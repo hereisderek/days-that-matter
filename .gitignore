@@ -17,3 +17,57 @@ captures
 !*.xcworkspace/contents.xcworkspacedata
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
+
+
+
+# --- System / OS Files ---
+.DS_Store
+Thumbs.db
+
+# --- Android / Gradle Build Artifacts ---
+build/
+.gradle/
+captures/
+**/build/
+**/intermediates/
+**/outputs/
+**/tmp/
+
+# --- Kotlin / KMP Specific ---
+.konan/              # Kotlin/Native compiler cache
+/kotlin-js-store/
+.kotlin/
+
+# --- Android Studio / IntelliJ Specific ---
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/caches/
+*.iml
+*.ipr
+*.iws
+.navigation/
+
+# --- Local Configuration (DO NOT COMMIT) ---
+local.properties
+.bundle/
+
+# --- Signing & Secrets ---
+*.jks
+*.keystore
+*.p12
+
+docs/keystore/**
+!docs/keystore/**/debug.keystore
+#google-services.json
+#GoogleService-Info.plist
+secrets.properties
+prod.keystore
+production.keystore
+
+# --- Testing / Profiling ---
+*.hprof
+.externalNativeBuild/
+.cxx/

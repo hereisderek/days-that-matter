@@ -7,24 +7,26 @@ plugins {
     alias(libs.plugins.composeMultiplatform) apply false
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
+    alias(libs.plugins.googleServices) apply false
+    alias(libs.plugins.kotlinSerialization) apply false
 }
 
 // In your root build.gradle.kts
-tasks.register("cleanAppleDouble") {
+tasks.register<Exec>("cleanAppleDouble") {
     group = "verification"
     description = "Cleans hidden macOS metadata files (._*) that break Gradle builds."
 
-    // Make it configuration cache compatible by capturing rootDir at configuration time
-    val projectRootDir = layout.projectDirectory.asFile.absolutePath
+    // Use project layout to get the path in a configuration-cache safe way
+    val rootDirPath = layout.projectDirectory.asFile.absolutePath
+    
+    commandLine("dot_clean", "-m", rootDirPath)
 
-    doLast {
-        println("Scrubbing metadata from: $projectRootDir")
-
-        // Use this specific syntax for Kotlin DSL
-        providers.exec {
-            commandLine("dot_clean", "-m", projectRootDir)
-        }.result.get()
+    doFirst {
+        println("Scrubbing metadata from: $rootDirPath")
     }
+    
+    // Ignore exit value in case dot_clean isn't available or fails (e.g. on non-Mac)
+    isIgnoreExitValue = true
 }
 
 // Attach it to the build lifecycle

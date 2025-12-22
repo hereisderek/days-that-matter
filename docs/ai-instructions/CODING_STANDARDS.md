@@ -5,7 +5,12 @@
 - **Documentation:** Maintain `AI_CONTEXT.md` as the source of truth for the AI's understanding.
 
 ## Architecture
-- *Pending: To be defined in next session.*
+- **MVVM:** Use ViewModels to manage UI state and business logic.
+- **Clean Architecture:**
+  - **Domain:** Pure Kotlin, contains Models and Repository Interfaces.
+  - **Data:** Repository Implementations, Data Sources (Firebase, DB).
+  - **Presentation:** UI (Compose), ViewModels.
+- **Dependency Injection:** Use Koin. Define modules in `commonMain`.
 
 ## Naming Conventions
 - Standard Kotlin coding conventions.

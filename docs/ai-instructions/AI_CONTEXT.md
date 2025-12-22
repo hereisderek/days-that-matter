@@ -20,12 +20,18 @@
 ## Tech Stack
 - **Language:** Kotlin 2.x
 - **Build System:** Gradle (Kotlin DSL)
-- **Backend (Proposed):** Firebase (Auth, Database, Storage) - *Selected for low cost & KMP support.*
+- **Backend:** Firebase (Auth, Firestore, Storage) - *Selected for low cost & KMP support.*
 - **Entry Points:**
   - Android: `composeApp`
   - iOS: `iosApp` (SwiftUI)
   - Desktop: `composeApp` (JVM)
   - Web: `composeApp` (Wasm/JS)
+
+## Architecture
+- **Pattern:** MVVM (Model-View-ViewModel) with Clean Architecture principles.
+- **DI:** Koin for dependency injection across all platforms.
+- **Data Layer:** Repository pattern. `EventRepository` abstracts data access.
+- **Backend:** Firebase (Auth, Firestore) accessed via `gitlive-firebase` KMP library.
 
 ## Naming Conventions
 - Standard Kotlin coding conventions.
@@ -35,4 +41,5 @@
 - **Widget Styling:** Initial implementation will use native customization (font, color, image). HTML/CSS styling is deferred to a future phase.
 
 ## Change-Log
-- 2025-12-22: Updated Project Overview, Key Features, and Tech Stack with app requirements (Supabase, Customization, Sharing).
+- 2025-12-22: Updated Project Overview, Key Features, and Tech Stack with app requirements (Firebase, Customization, Sharing).
+  

@@ -5,10 +5,10 @@
 - Backend selection and configuration (Firebase).
 
 ## 📋 Upcoming Tasks
-- [ ] **Core:** Define Domain models (Event, User, SharedLink).
-- [ ] **Core:** Use Koin for dependency injection. Need to support user login state.
+- [x] **Core:** Define Domain models (Event, User, SharedLink).
+- [x] **Core:** Use Koin for dependency injection. Need to support user login state.
 - [ ] **Database:** Setup Room for local database.
-- [ ] **Backend:** Set up Firebase project and client in KMP.
+- [x] **Backend:** Set up Firebase project and client in KMP.
 - [ ] **Auth:** Implement Login/Signup screens.
 - [ ] **Feature:** Event List & Detail screens.
 - [ ] **Feature:** Create/Edit Event with customization (Basic).
