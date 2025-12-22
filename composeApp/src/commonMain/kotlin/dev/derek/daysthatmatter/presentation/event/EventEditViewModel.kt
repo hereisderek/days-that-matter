@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
+import kotlin.time.Clock
 
 class EventEditViewModel(
     private val repository: EventRepository,
@@ -38,7 +38,8 @@ class EventEditViewModel(
         notes: String?,
         style: String,
         backgroundMusicUrl: String? = null,
-        backgroundMusicName: String? = null
+        backgroundMusicName: String? = null,
+        includeTime: Boolean = false
     ) {
         viewModelScope.launch {
             _uiState.value = EventEditUiState.Loading
@@ -54,6 +55,7 @@ class EventEditViewModel(
                     style = style,
                     backgroundMusicUrl = backgroundMusicUrl ?: existingEvent?.backgroundMusicUrl,
                     backgroundMusicName = backgroundMusicName ?: existingEvent?.backgroundMusicName,
+                    includeTime = includeTime,
                     createdAt = existingEvent?.createdAt ?: Clock.System.now().toEpochMilliseconds(),
                     updatedAt = Clock.System.now().toEpochMilliseconds()
                 )

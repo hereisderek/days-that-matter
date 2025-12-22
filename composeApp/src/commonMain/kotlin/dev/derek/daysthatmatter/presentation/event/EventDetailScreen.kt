@@ -14,10 +14,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.periodUntil
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,10 +93,46 @@ fun EventDetailScreen(
 
                         val date = Instant.fromEpochMilliseconds(event.date)
                             .toLocalDateTime(TimeZone.currentSystemDefault())
-                            .date
+
+                        val dateStr = if (event.includeTime) {
+                            "${date.date} ${date.hour}:${date.minute}"
+                        } else {
+                            "${date.date}"
+                        }
+
                         Text(
-                            text = "Date: $date",
+                            text = "Date: $dateStr",
                             style = MaterialTheme.typography.titleLarge
+                        )
+
+                        val now = Clock.System.now()
+                        val eventInstant = Instant.fromEpochMilliseconds(event.date)
+
+                        val diffText = if (event.includeTime) {
+                            val duration = eventInstant - now
+                            val days = duration.inWholeDays
+                            val hours = duration.inWholeHours % 24
+                            val minutes = duration.inWholeMinutes % 60
+                            if (days >= 0) {
+                                "$days days, $hours hours, $minutes minutes left"
+                            } else {
+                                "${-days} days, ${-hours} hours, ${-minutes} minutes ago"
+                            }
+                        } else {
+                            val today = now.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            val eventDate = eventInstant.toLocalDateTime(TimeZone.currentSystemDefault()).date
+                            val days = today.periodUntil(eventDate).days
+                            if (days >= 0) {
+                                "$days days left"
+                            } else {
+                                "${-days} days ago"
+                            }
+                        }
+
+                        Text(
+                            text = diffText,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary
                         )
 
                         if (!event.notes.isNullOrBlank()) {

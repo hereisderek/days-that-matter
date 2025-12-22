@@ -3,6 +3,7 @@ package dev.derek.daysthatmatter.presentation.event
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -13,6 +14,8 @@ import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.toInstant
+import kotlinx.datetime.LocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,8 +30,10 @@ fun EventEditScreen(
 
     var title by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
-    var dateMillis by remember { mutableStateOf(Clock.System.now().toEpochMilliseconds()) }
+    var dateMillis: Long by remember { mutableStateOf(Clock.System.now().toEpochMilliseconds()) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(false) }
+    var includeTime by remember { mutableStateOf(false) }
     var backgroundMusicName by remember { mutableStateOf<String?>(null) }
     var backgroundMusicUrl by remember { mutableStateOf<String?>(null) }
 
@@ -62,6 +67,7 @@ fun EventEditScreen(
                 title = state.event.title
                 notes = state.event.notes ?: ""
                 dateMillis = state.event.date
+                includeTime = state.event.includeTime
                 backgroundMusicName = state.event.backgroundMusicName
                 backgroundMusicUrl = state.event.backgroundMusicUrl
             }
@@ -88,7 +94,8 @@ fun EventEditScreen(
                                 notes = notes,
                                 style = "Simple", // Default style for now
                                 backgroundMusicUrl = backgroundMusicUrl,
-                                backgroundMusicName = backgroundMusicName
+                                backgroundMusicName = backgroundMusicName,
+                                includeTime = includeTime
                             )
                         },
                         enabled = title.isNotBlank() && uiState !is EventEditUiState.Loading
@@ -126,8 +133,28 @@ fun EventEditScreen(
             ) {
                 val date = Instant.fromEpochMilliseconds(dateMillis)
                     .toLocalDateTime(TimeZone.currentSystemDefault())
-                    .date
-                Text("Date: $date")
+                val dateStr = "${date.date}" + if (includeTime) " ${date.hour}:${date.minute}" else ""
+                Text("Date: $dateStr")
+            }
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Checkbox(
+                    checked = includeTime,
+                    onCheckedChange = {
+                        includeTime = it
+                        if (it) showTimePicker = true
+                    }
+                )
+                Text("Include Time")
+                if (includeTime) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(onClick = { showTimePicker = true }) {
+                        Text("Edit Time")
+                    }
+                }
             }
 
             OutlinedTextField(
@@ -179,5 +206,39 @@ fun EventEditScreen(
             DatePicker(state = datePickerState)
         }
     }
-}
 
+    if (showTimePicker) {
+        val currentDateTime = Instant.fromEpochMilliseconds(dateMillis).toLocalDateTime(TimeZone.currentSystemDefault())
+        val timePickerState = rememberTimePickerState(
+            initialHour = currentDateTime.hour,
+            initialMinute = currentDateTime.minute,
+            is24Hour = true
+        )
+
+        AlertDialog(
+            onDismissRequest = { showTimePicker = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val newDateTime = LocalDateTime(
+                            currentDateTime.year, currentDateTime.month, currentDateTime.dayOfMonth,
+                            timePickerState.hour, timePickerState.minute, 0, 0
+                        )
+                        dateMillis = newDateTime.toInstant(TimeZone.currentSystemDefault()).toEpochMilliseconds()
+                        showTimePicker = false
+                    }
+                ) {
+                    Text("OK")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTimePicker = false }) {
+                    Text("Cancel")
+                }
+            },
+            text = {
+                TimePicker(state = timePickerState)
+            }
+        )
+    }
+}

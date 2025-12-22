@@ -17,6 +17,7 @@ data class Event(
     val backgroundMusicUrl: String? = null,
     val backgroundMusicName: String? = null,
     val style: String = "Simple", // Simple, Photo, etc.
+    val includeTime: Boolean = false,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L
 )

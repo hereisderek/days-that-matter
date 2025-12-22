@@ -1,6 +1,7 @@
 package dev.derek.daysthatmatter.presentation.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -14,6 +15,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.derek.daysthatmatter.domain.model.Event
+import kotlinx.datetime.Instant
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
@@ -33,7 +37,7 @@ fun HomeScreen(
     ) { paddingValues ->
         Column(
             modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
+                .background(MaterialTheme.colorScheme.background)
                 .fillMaxSize()
                 .padding(paddingValues),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -49,9 +53,15 @@ fun HomeScreen(
                     Text("No events found. Add one!")
                 }
             } else {
-                LazyColumn {
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
                     items(events) { event ->
-                        EventItem(event)
+                        EventItem(
+                            event = event,
+                            onClick = { onNavigateToEventDetail(event.id) }
+                        )
                     }
                 }
             }
@@ -60,15 +70,27 @@ fun HomeScreen(
 }
 
 @Composable
-fun EventItem(event: Event) {
+fun EventItem(
+    event: Event,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .clickable(onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = event.title, style = MaterialTheme.typography.titleMedium)
-            Text(text = "Date: ${event.date}", style = MaterialTheme.typography.bodyMedium)
+
+            val date = Instant.fromEpochMilliseconds(event.date)
+                .toLocalDateTime(TimeZone.currentSystemDefault())
+            val dateStr = if (event.includeTime) {
+                "${date.date} ${date.hour}:${date.minute}"
+            } else {
+                "${date.date}"
+            }
+
+            Text(text = dateStr, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }
