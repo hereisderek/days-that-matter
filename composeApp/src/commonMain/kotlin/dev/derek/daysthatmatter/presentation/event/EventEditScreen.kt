@@ -6,6 +6,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import io.github.vinceglb.filekit.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.core.PickerType
+import kotlinx.coroutines.launch
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -26,6 +29,22 @@ fun EventEditScreen(
     var notes by remember { mutableStateOf("") }
     var dateMillis by remember { mutableStateOf(Clock.System.now().toEpochMilliseconds()) }
     var showDatePicker by remember { mutableStateOf(false) }
+    var backgroundMusicName by remember { mutableStateOf<String?>(null) }
+    var backgroundMusicUrl by remember { mutableStateOf<String?>(null) }
+
+    val scope = rememberCoroutineScope()
+
+    val musicPickerLauncher = rememberFilePickerLauncher(type = PickerType.File(extensions = listOf("mp3", "wav", "m4a", "aac"))) { file ->
+        if (file != null) {
+            backgroundMusicName = file.name
+            scope.launch {
+                val bytes = file.readBytes()
+                viewModel.uploadMusic(bytes, file.name) { url ->
+                    backgroundMusicUrl = url
+                }
+            }
+        }
+    }
 
     LaunchedEffect(eventId) {
         if (eventId != null) {
@@ -43,6 +62,8 @@ fun EventEditScreen(
                 title = state.event.title
                 notes = state.event.notes ?: ""
                 dateMillis = state.event.date
+                backgroundMusicName = state.event.backgroundMusicName
+                backgroundMusicUrl = state.event.backgroundMusicUrl
             }
             else -> {}
         }
@@ -65,7 +86,9 @@ fun EventEditScreen(
                                 title = title,
                                 date = dateMillis,
                                 notes = notes,
-                                style = "Simple" // Default style for now
+                                style = "Simple", // Default style for now
+                                backgroundMusicUrl = backgroundMusicUrl,
+                                backgroundMusicName = backgroundMusicName
                             )
                         },
                         enabled = title.isNotBlank() && uiState !is EventEditUiState.Loading
@@ -114,6 +137,13 @@ fun EventEditScreen(
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 3
             )
+
+            OutlinedButton(
+                onClick = { musicPickerLauncher.launch() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (backgroundMusicName != null) "Music: $backgroundMusicName" else "Select Background Music")
+            }
 
             if (uiState is EventEditUiState.Error) {
                 Text(

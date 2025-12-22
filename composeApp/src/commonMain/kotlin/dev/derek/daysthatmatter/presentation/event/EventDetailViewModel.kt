@@ -4,13 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.derek.daysthatmatter.domain.model.Event
 import dev.derek.daysthatmatter.domain.repository.EventRepository
+import dev.derek.daysthatmatter.domain.service.AudioPlayer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class EventDetailViewModel(
-    private val repository: EventRepository
+    private val repository: EventRepository,
+    private val audioPlayer: AudioPlayer
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<EventDetailUiState>(EventDetailUiState.Loading)
@@ -34,6 +36,19 @@ class EventDetailViewModel(
             // Navigation back should be handled by UI
         }
     }
+
+    fun playMusic(url: String) {
+        audioPlayer.play(url)
+    }
+
+    fun pauseMusic() {
+        audioPlayer.pause()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        audioPlayer.release()
+    }
 }
 
 sealed class EventDetailUiState {
@@ -41,4 +56,3 @@ sealed class EventDetailUiState {
     data class Success(val event: Event) : EventDetailUiState()
     data class Error(val message: String) : EventDetailUiState()
 }
-

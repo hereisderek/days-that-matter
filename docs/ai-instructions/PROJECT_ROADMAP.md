@@ -13,7 +13,7 @@
 - [x] **Auth:** Implement Google Sign-In (Android).
 - [x] **Feature:** Event List & Detail screens.
 - [x] **Feature:** Create/Edit Event with customization (Basic).
-- [ ] **Feature:** Background music selection & playback.
+- [x] **Feature:** Background music selection & playback.
 - [ ] **Sharing:** Generate unique links and handle deep linking.
 - [ ] **Widgets:** Implement basic Android App Widget.
 - [ ] **Widgets:** Implement basic iOS WidgetKit widget.

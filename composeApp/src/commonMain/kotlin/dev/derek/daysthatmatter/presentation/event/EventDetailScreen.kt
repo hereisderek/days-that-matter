@@ -5,6 +5,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -104,10 +106,33 @@ fun EventDetailScreen(
                                 style = MaterialTheme.typography.bodyLarge
                             )
                         }
+
+                        if (event.backgroundMusicUrl != null) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Background Music:",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = event.backgroundMusicName ?: "Unknown Track",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(onClick = { viewModel.playMusic(event.backgroundMusicUrl) }) {
+                                    Icon(Icons.Default.PlayArrow, contentDescription = "Play")
+                                }
+                                IconButton(onClick = { viewModel.pauseMusic() }) {
+                                    Icon(Icons.Default.Pause, contentDescription = "Pause")
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
 }
-

@@ -15,6 +15,7 @@ data class Event(
     val fontColor: Long? = null, // ARGB
     val backgroundColor: Long? = null, // ARGB
     val backgroundMusicUrl: String? = null,
+    val backgroundMusicName: String? = null,
     val style: String = "Simple", // Simple, Photo, etc.
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L

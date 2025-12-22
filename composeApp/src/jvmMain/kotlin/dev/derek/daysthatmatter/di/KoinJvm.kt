@@ -1,7 +1,9 @@
 package dev.derek.daysthatmatter.di
 
+import dev.derek.daysthatmatter.domain.service.AudioPlayer
 import dev.derek.daysthatmatter.domain.service.GoogleAuthCredentials
 import dev.derek.daysthatmatter.domain.service.GoogleSignInService
+import dev.derek.daysthatmatter.domain.service.JvmAudioPlayer
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
@@ -13,5 +15,6 @@ class JvmGoogleSignInService : GoogleSignInService {
 
 actual val platformModule: Module = module {
     single<GoogleSignInService> { JvmGoogleSignInService() }
+    factory<AudioPlayer> { JvmAudioPlayer() }
 }
 
