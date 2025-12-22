@@ -69,7 +69,21 @@ Sensitive files are **never** committed to the repository.
     *   Post test summary to PR comments.
     *   (Optional) Request AI Review summary.
 
-## 5. CD Pipeline (Release)
+## 5. Manual Snapshot Workflow
+
+**Trigger:** Manual dispatch via GitHub Actions UI.
+
+**Steps:**
+1.  **Checkout Code.**
+2.  **Setup Environment.**
+3.  **Inject Mock Secrets.**
+4.  **Run Tests.**
+5.  **Build Snapshot:**
+    *   Build `assembleDebug`.
+    *   **Artifact Name:** `days-that-matter-snapshot-<date>-<commit_hash>.apk`
+6.  **Upload Artifact:** Available for download in GitHub Actions run summary.
+
+## 6. CD Pipeline (Release)
 
 **Trigger:** Push to `release` branch.
 
@@ -91,7 +105,7 @@ Sensitive files are **never** committed to the repository.
     *   **Play Store:** Upload `.aab` to the **Internal Testing** track using the Gradle Play Publisher plugin or Fastlane.
 8.  **Notification:** Notify team (Slack/Discord/Email) of successful deployment.
 
-## 6. Implementation Checklist (User Action Items)
+## 7. Implementation Checklist (User Action Items)
 
 To activate this workflow, the user must:
 1.  [ ] Create `google-services.json.mock` (dummy file) and commit it.
@@ -104,4 +118,3 @@ To activate this workflow, the user must:
     *   `PLAY_STORE_JSON_KEY_BASE64` (Service Account for publishing)
 3.  [ ] Create `.github/workflows/pr_check.yml`.
 4.  [ ] Create `.github/workflows/release.yml`.
-
