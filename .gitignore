@@ -71,3 +71,4 @@ production.keystore
 *.hprof
 .externalNativeBuild/
 .cxx/
+.firebase/
