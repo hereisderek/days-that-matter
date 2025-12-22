@@ -21,6 +21,7 @@ fun SignUpScreen(
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var passwordError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(uiState) {
         if (uiState is AuthUiState.Success) {
@@ -71,6 +72,14 @@ fun SignUpScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        if (passwordError != null) {
+            Text(
+                text = passwordError!!,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 16.dp)
+            )
+        }
+
         if (uiState is AuthUiState.Error) {
             Text(
                 text = (uiState as AuthUiState.Error).message,
@@ -82,9 +91,10 @@ fun SignUpScreen(
         Button(
             onClick = {
                 if (password == confirmPassword) {
+                    passwordError = null
                     viewModel.signUp(email, password)
                 } else {
-                    // Show error locally or via ViewModel
+                    passwordError = "Passwords do not match"
                 }
             },
             enabled = uiState !is AuthUiState.Loading,

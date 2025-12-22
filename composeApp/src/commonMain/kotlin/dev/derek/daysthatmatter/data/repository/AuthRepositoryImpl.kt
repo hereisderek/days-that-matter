@@ -7,8 +7,12 @@ import dev.gitlive.firebase.auth.FirebaseUser
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
+import dev.derek.daysthatmatter.domain.service.GoogleSignInService
+import dev.gitlive.firebase.auth.GoogleAuthProvider
+
 class AuthRepositoryImpl(
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val googleSignInService: GoogleSignInService
 ) : AuthRepository {
 
     override val currentUser: Flow<User?> = auth.authStateChanged.map { firebaseUser ->
@@ -18,6 +22,17 @@ class AuthRepositoryImpl(
     override suspend fun signInAnonymously(): Result<Unit> {
         return try {
             auth.signInAnonymously()
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun signInWithGoogle(): Result<Unit> {
+        return try {
+            val credentials = googleSignInService.signIn().getOrThrow()
+            val authCredential = GoogleAuthProvider.credential(credentials.idToken, credentials.accessToken)
+            auth.signInWithCredential(authCredential)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

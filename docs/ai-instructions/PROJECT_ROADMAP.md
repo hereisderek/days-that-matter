@@ -10,6 +10,7 @@
 - [ ] **Database:** Setup Room for local database.
 - [x] **Backend:** Set up Firebase project and client in KMP.
 - [x] **Auth:** Implement Login/Signup screens.
+- [x] **Auth:** Implement Google Sign-In (Android).
 - [x] **Feature:** Event List & Detail screens.
 - [x] **Feature:** Create/Edit Event with customization (Basic).
 - [ ] **Feature:** Background music selection & playback.

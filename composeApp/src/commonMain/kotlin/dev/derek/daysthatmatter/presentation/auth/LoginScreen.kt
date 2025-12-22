@@ -83,9 +83,18 @@ fun LoginScreen(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = { viewModel.signInWithGoogle() },
+            enabled = uiState !is AuthUiState.Loading,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Sign in with Google")
+        }
+
         TextButton(onClick = onNavigateToSignUp) {
             Text("Don't have an account? Sign up")
         }
     }
 }
-

@@ -39,6 +39,18 @@ class AuthViewModel(
         }
     }
 
+    fun signInWithGoogle() {
+        viewModelScope.launch {
+            _uiState.value = AuthUiState.Loading
+            val result = repository.signInWithGoogle()
+            _uiState.value = if (result.isSuccess) {
+                AuthUiState.Success
+            } else {
+                AuthUiState.Error(result.exceptionOrNull()?.message ?: "Unknown error")
+            }
+        }
+    }
+
     fun resetState() {
         _uiState.value = AuthUiState.Idle
     }
@@ -50,4 +62,3 @@ sealed class AuthUiState {
     data object Success : AuthUiState()
     data class Error(val message: String) : AuthUiState()
 }
-
