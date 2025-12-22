@@ -154,6 +154,23 @@ dependencies {
     debugImplementation(compose.uiTooling)
 }
 
+tasks.register("printSecrets") {
+    doLast {
+        println("=== DEBUG SECRETS ===")
+        println("KEYSTORE_PASSWORD: ${System.getenv("KEYSTORE_PASSWORD")}")
+        println("KEY_ALIAS: ${System.getenv("KEY_ALIAS")}")
+        println("KEY_PASSWORD: ${System.getenv("KEY_PASSWORD")}")
+        val keystoreFile = rootProject.file("docs/keystore/prod.keystore")
+        println("prod.keystore path: ${keystoreFile.absolutePath}")
+        println("prod.keystore exists: ${keystoreFile.exists()}")
+        if (keystoreFile.exists()) {
+            println("prod.keystore size: ${keystoreFile.length()} bytes")
+        }
+        println("CI env var: ${System.getenv("CI")}")
+        println("=====================")
+    }
+}
+
 compose.desktop {
     application {
         mainClass = "dev.derek.daysthatmatter.MainKt"
