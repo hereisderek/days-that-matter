@@ -31,7 +31,8 @@ jobs:
           PROD_KEYSTORE_BASE64: ${{ secrets.PROD_KEYSTORE_BASE64 }}
         run: |
           echo $GOOGLE_SERVICES_JSON_BASE64 | base64 --decode > composeApp/google-services.json
-          echo $PROD_KEYSTORE_BASE64 | base64 --decode > prod.keystore
+          mkdir -p docs/keystore
+          echo $PROD_KEYSTORE_BASE64 | base64 --decode > docs/keystore/prod.keystore
 
       - name: Build Release Bundle
         env:
@@ -48,15 +49,17 @@ jobs:
           ./gradlew :composeApp:bundleRelease
           
           # Rename artifact
-          mv composeApp/build/outputs/bundle/release/composeApp-release.aab "composeApp/build/outputs/bundle/release/${VERSION_NAME}(${VERSION_CODE}).aab"
+          FILENAME="release_${VERSION_NAME}(${VERSION_CODE}).aab"
+          mv composeApp/build/outputs/bundle/release/composeApp-release.aab "composeApp/build/outputs/bundle/release/${FILENAME}"
           
-          echo "ARTIFACT_PATH=composeApp/build/outputs/bundle/release/${VERSION_NAME}(${VERSION_CODE}).aab" >> $GITHUB_ENV
-          echo "VERSION_TAG=v${VERSION_NAME}" >> $GITHUB_ENV
+          echo "ARTIFACT_PATH=composeApp/build/outputs/bundle/release/${FILENAME}" >> $GITHUB_ENV
+          echo "VERSION_TAG=${VERSION_NAME}(${VERSION_CODE})" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ env.VERSION_TAG }}
+          name: Release ${{ env.VERSION_TAG }}
           files: |
             ${{ env.ARTIFACT_PATH }}
             composeApp/build/outputs/mapping/release/mapping.txt

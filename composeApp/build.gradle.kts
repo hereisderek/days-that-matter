@@ -98,12 +98,26 @@ android {
             keyPassword = "android"
         }
         create("release") {
-            val keystoreFile = rootProject.file("prod.keystore")
-            if (keystoreFile.exists()) {
+            val keystoreFile = rootProject.file("docs/keystore/prod.keystore")
+            val keystorePassword = System.getenv("KEYSTORE_PASSWORD")
+            val keyAlias = System.getenv("KEY_ALIAS")
+            val keyPassword = System.getenv("KEY_PASSWORD")
+            val isCi = System.getenv("CI") == "true"
+
+            if (keystoreFile.exists() && !keystorePassword.isNullOrEmpty()) {
                 storeFile = keystoreFile
-                storePassword = System.getenv("KEYSTORE_PASSWORD")
-                keyAlias = System.getenv("KEY_ALIAS")
-                keyPassword = System.getenv("KEY_PASSWORD")
+                storePassword = keystorePassword
+                this.keyAlias = keyAlias
+                this.keyPassword = keyPassword
+            } else if (isCi) {
+                // In CI, we expect secrets to be present for release builds
+                throw GradleException("Release build in CI requires prod.keystore and KEYSTORE_PASSWORD env var.")
+            } else {
+                // Local fallback to debug keystore to avoid sync errors
+                storeFile = rootProject.file("docs/keystore/debug.keystore")
+                storePassword = "android"
+                this.keyAlias = "androiddebugkey"
+                this.keyPassword = "android"
             }
         }
     }
