@@ -39,6 +39,7 @@
 
 ## Design Decisions
 - **Widget Styling:** Initial implementation will use native customization (font, color, image). HTML/CSS styling is deferred to a future phase.
+- **CI/CD:** Follows the workflow defined in `docs/ai-instructions/CICD_WORKFLOW.md`.
 
 ## Change-Log
 - 2025-12-22: Updated Project Overview, Key Features, and Tech Stack with app requirements (Firebase, Customization, Sharing).
