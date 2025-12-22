@@ -4,5 +4,16 @@
 <dict>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>daysthatmatter</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>dev.derek.daysthatmatter</string>
+		</dict>
+	</array>
 </dict>
 </plist>

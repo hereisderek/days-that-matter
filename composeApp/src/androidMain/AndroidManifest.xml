@@ -19,6 +19,23 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Deep Link: Custom Scheme -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="daysthatmatter" android:host="event" />
+            </intent-filter>
+
+            <!-- Deep Link: App Links (Web) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="days-that-matter.web.app" android:pathPrefix="/event" />
+                <data android:scheme="https" android:host="days-that-matter.firebaseapp.com" android:pathPrefix="/event" />
+            </intent-filter>
         </activity>
     </application>
 

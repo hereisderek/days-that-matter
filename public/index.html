@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Days That Matter</title>
+    <script src="/__/firebase/10.7.1/firebase-app-compat.js"></script>
+    <script src="/__/firebase/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="/__/firebase/init.js"></script>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f0f0f0; }
+        .card { background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 90%; }
+        h1 { margin-bottom: 0.5rem; }
+        p { color: #666; margin-bottom: 1.5rem; }
+        .btn { display: inline-block; background: #6200ee; color: white; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 4px; font-weight: bold; margin-top: 1rem; cursor: pointer; border: none; }
+        .btn:hover { background: #3700b3; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading event...</div>
+    <div id="event-container" class="hidden card">
+        <h1 id="event-title"></h1>
+        <p id="event-date"></p>
+        <p id="event-notes"></p>
+        <button id="import-btn" class="btn">Open in App / Import</button>
+    </div>
+    <div id="error-container" class="hidden card">
+        <h1>Error</h1>
+        <p id="error-message"></p>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            const path = window.location.pathname;
+            const match = path.match(/\/event\/([a-zA-Z0-9]+)/);
+
+            if (match) {
+                const eventId = match[1];
+                try {
+                    const db = firebase.firestore();
+                    const doc = await db.collection('events').doc(eventId).get();
+
+                    if (doc.exists) {
+                        const data = doc.data();
+                        document.getElementById('loading').classList.add('hidden');
+                        document.getElementById('event-container').classList.remove('hidden');
+                        document.getElementById('event-title').textContent = data.title;
+
+                        const date = new Date(data.date);
+                        document.getElementById('event-date').textContent = date.toLocaleDateString() + (data.includeTime ? ' ' + date.toLocaleTimeString() : '');
+                        document.getElementById('event-notes').textContent = data.notes || '';
+
+                        const importBtn = document.getElementById('import-btn');
+                        importBtn.onclick = () => {
+                            // Try to open app scheme
+                            const appScheme = `daysthatmatter://event/${eventId}`;
+                            window.location.href = appScheme;
+
+                            // Fallback to store (simplified)
+                            setTimeout(() => {
+                                // Replace with actual store links
+                                const isAndroid = /Android/i.test(navigator.userAgent);
+                                const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+                                if (isAndroid) {
+                                    window.location.href = 'https://play.google.com/store/apps/details?id=dev.derek.daysthatmatter';
+                                } else if (isIOS) {
+                                    // window.location.href = 'https://apps.apple.com/app/id...';
+                                    alert("App Store link not configured yet.");
+                                } else {
+                                    alert("Please open this link on a mobile device.");
+                                }
+                            }, 2000);
+                        };
+                    } else {
+                        showError("Event not found.");
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showError("Failed to load event.");
+                }
+            } else {
+                showError("Invalid link.");
+            }
+        });
+
+        function showError(msg) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('error-container').classList.remove('hidden');
+            document.getElementById('error-message').textContent = msg;
+        }
+    </script>
+</body>
+</html>
+

@@ -14,8 +14,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.derek.daysthatmatter.presentation.main.MainViewModel
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
 import kotlinx.datetime.TimeZone
@@ -31,7 +31,9 @@ fun EventDetailScreen(
     onNavigateToEdit: (String) -> Unit
 ) {
     val viewModel = koinViewModel<EventDetailViewModel>()
+    val mainViewModel = koinViewModel<MainViewModel>()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentUser by mainViewModel.currentUser.collectAsStateWithLifecycle()
 
     LaunchedEffect(eventId) {
         viewModel.loadEvent(eventId)
@@ -48,14 +50,25 @@ fun EventDetailScreen(
                 },
                 actions = {
                     if (uiState is EventDetailUiState.Success) {
-                        IconButton(onClick = { onNavigateToEdit(eventId) }) {
-                            Icon(Icons.Default.Edit, contentDescription = "Edit")
-                        }
-                        IconButton(onClick = {
-                            viewModel.deleteEvent(eventId)
-                            onNavigateBack()
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = "Delete")
+                        val event = (uiState as EventDetailUiState.Success).event
+                        val isOwner = currentUser?.id == event.ownerId
+
+                        if (isOwner) {
+                            IconButton(onClick = { onNavigateToEdit(eventId) }) {
+                                Icon(Icons.Default.Edit, contentDescription = "Edit")
+                            }
+                            IconButton(onClick = {
+                                viewModel.deleteEvent(eventId)
+                                onNavigateBack()
+                            }) {
+                                Icon(Icons.Default.Delete, contentDescription = "Delete")
+                            }
+                        } else {
+                            // Shared view actions
+                            // TODO: Add "Import" button logic here if needed,
+                            // but for now we just show details.
+                            // If we want to support importing, we need an "Import" button
+                            // that copies the event to the current user's list.
                         }
                     }
                 }

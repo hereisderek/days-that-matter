@@ -6,6 +6,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navDeepLink
 import dev.derek.daysthatmatter.presentation.auth.LoginScreen
 import dev.derek.daysthatmatter.presentation.auth.SignUpScreen
 import dev.derek.daysthatmatter.presentation.event.EventDetailScreen
@@ -99,15 +100,35 @@ fun App() {
                     }
                 )
             }
-            composable(Screen.EventDetail.route) { backStackEntry ->
+            composable(
+                route = Screen.EventDetail.route,
+                deepLinks = listOf(
+                    navDeepLink { uriPattern = "https://days-that-matter.web.app/event/{eventId}" },
+                    navDeepLink { uriPattern = "https://days-that-matter.firebaseapp.com/event/{eventId}" },
+                    navDeepLink { uriPattern = "daysthatmatter://event/{eventId}" }
+                )
+            ) { backStackEntry ->
                 val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
                 EventDetailScreen(
                     eventId = eventId,
                     onNavigateBack = {
-                        navController.popBackStack()
+                        if (navController.previousBackStackEntry != null) {
+                            navController.popBackStack()
+                        } else {
+                            // If deep linked and no back stack, go home or login
+                            if (currentUser != null) {
+                                navController.navigate(Screen.Home.route) {
+                                    popUpTo(Screen.EventDetail.route) { inclusive = true }
+                                }
+                            } else {
+                                navController.navigate(Screen.Login.route) {
+                                    popUpTo(Screen.EventDetail.route) { inclusive = true }
+                                }
+                            }
+                        }
                     },
-                    onNavigateToEdit = { id ->
-                        navController.navigate(Screen.EventEdit.createRoute(id))
+                    onNavigateToEdit = {
+                        navController.navigate(Screen.EventEdit.createRoute(it))
                     }
                 )
             }
