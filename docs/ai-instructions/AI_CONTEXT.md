@@ -46,3 +46,4 @@
 - 2025-12-22: Added Google Sign-In support for Android using Credential Manager. Configured debug keystore for local development.
 - 2025-12-22: Implemented Background Music feature: File picking (FileKit), Firebase Storage upload, and Audio Playback (Android/iOS).
 - 2025-12-22: Added Time support for events (includeTime field, TimePicker, precise difference display).
+- 2025-12-23: Implemented Sharing & Deep Linking: Android App Links, Custom Scheme, Web Fallback (Firebase Hosting), and Firestore Rules.
