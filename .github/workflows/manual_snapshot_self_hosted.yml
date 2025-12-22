@@ -1,0 +1,11 @@
+name: Manual Snapshot (Self-Hosted)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: ./.github/workflows/reusable_debug_build.yml
+    with:
+      runner-label: self-hosted
+
