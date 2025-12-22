@@ -83,7 +83,15 @@ Sensitive files are **never** committed to the repository.
     *   **Artifact Name:** `days-that-matter-snapshot-<date>-<commit_hash>.apk`
 6.  **Upload Artifact:** Available for download in GitHub Actions run summary.
 
-## 6. CD Pipeline (Release)
+## 6. Self-Hosted Runners
+
+When using self-hosted runners (via `manual_snapshot_self_hosted.yml`), the runner environment must meet basic requirements.
+
+*   **OS:** Linux is assumed.
+*   **Dependencies:** The workflow attempts to install `unzip` (required for Android SDK setup) using `apt-get`, `apk`, or `yum`. If your runner uses a different package manager, you must install `unzip` manually.
+*   **Caching:** Remote Gradle caching (uploading/downloading to GitHub) is **disabled** for self-hosted runners. This relies on the runner's local persistence to speed up builds and avoids network errors or bandwidth limits.
+
+## 7. CD Pipeline (Release)
 
 **Trigger:** Push to `release` branch.
 
@@ -105,7 +113,7 @@ Sensitive files are **never** committed to the repository.
     *   **Play Store:** Upload `.aab` to the **Internal Testing** track using the Gradle Play Publisher plugin or Fastlane.
 8.  **Notification:** Notify team (Slack/Discord/Email) of successful deployment.
 
-## 7. Implementation Checklist (User Action Items)
+## 8. Implementation Checklist (User Action Items)
 
 To activate this workflow, the user must:
 1.  [ ] Create `google-services.json.mock` (dummy file) and commit it.
