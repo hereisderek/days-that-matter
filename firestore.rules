@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /events/{eventId} {
+      // Allow anyone to read an event if they have the ID (needed for sharing)
+      // Ideally, we should check a flag like 'isPublic' or 'shared', but for now allowing get is common for shared links.
+      // We restrict 'list' operations so people can't dump the whole database.
+      allow get: if true;
+
+      // Only authenticated users can list events, and usually we'd filter this in the query
+      // but Firestore rules don't filter results, they just block the query if it *could* return forbidden docs.
+      // For simplicity in this MVP:
+      allow list: if request.auth != null;
+
+      // Only the owner can update/delete
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && resource.data.ownerId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}
+
