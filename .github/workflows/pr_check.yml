@@ -37,11 +37,23 @@ jobs:
         run: ./gradlew lintDebug
 
       - name: Build Debug APK
-        run: ./gradlew :composeApp:assembleDebug
+        run: |
+          ./gradlew :composeApp:assembleDebug
+          
+          # Extract versionName
+          VERSION_NAME=$(grep 'versionName =' composeApp/build.gradle.kts | sed 's/.*= "\(.*\)".*/\1/')
+          VERSION_CODE=1 # Default for debug
+          COMMIT_HASH=$(git rev-parse --short HEAD)
+          DATE=$(date +%Y%m%d)
+          
+          FILENAME="${VERSION_NAME}(${VERSION_CODE})_${COMMIT_HASH}.${DATE}.snapshot.apk"
+          mv composeApp/build/outputs/apk/debug/composeApp-debug.apk "composeApp/build/outputs/apk/debug/${FILENAME}"
+          
+          echo "ARTIFACT_PATH=composeApp/build/outputs/apk/debug/${FILENAME}" >> $GITHUB_ENV
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: composeApp/build/outputs/apk/debug/composeApp-debug.apk
+          path: ${{ env.ARTIFACT_PATH }}
 

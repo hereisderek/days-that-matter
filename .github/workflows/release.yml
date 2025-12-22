@@ -38,16 +38,27 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :composeApp:bundleRelease
-        # Note: You need to configure signingConfigs in build.gradle.kts to read these env vars for release builds.
-        # Currently it might only be configured for debug. We will need to update build.gradle.kts.
+        run: |
+          # Extract versionName from build.gradle.kts
+          VERSION_NAME=$(grep 'versionName =' composeApp/build.gradle.kts | sed 's/.*= "\(.*\)".*/\1/')
+          VERSION_CODE=${{ github.run_number }}
+          
+          # Build with version code injection (assuming you update gradle to accept it, or we just use it for naming)
+          # For now, we just build. Ideally, we pass -PversionCode=$VERSION_CODE to gradle if supported.
+          ./gradlew :composeApp:bundleRelease
+          
+          # Rename artifact
+          mv composeApp/build/outputs/bundle/release/composeApp-release.aab "composeApp/build/outputs/bundle/release/${VERSION_NAME}(${VERSION_CODE}).aab"
+          
+          echo "ARTIFACT_PATH=composeApp/build/outputs/bundle/release/${VERSION_NAME}(${VERSION_CODE}).aab" >> $GITHUB_ENV
+          echo "VERSION_TAG=v${VERSION_NAME}" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ github.run_number }} # Simplified tagging for now, ideally read from libs.versions.toml
+          tag_name: ${{ env.VERSION_TAG }}
           files: |
-            composeApp/build/outputs/bundle/release/composeApp-release.aab
+            ${{ env.ARTIFACT_PATH }}
             composeApp/build/outputs/mapping/release/mapping.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
