@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "24034030340",
+    "project_id": "days-that-matter",
+    "storage_bucket": "days-that-matter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:24034030340:android:4358f0c03641c3406e5651",
+        "android_client_info": {
+          "package_name": "dev.derek.daysthatmatter"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDIeQcLUx45F0TgteirLeAkMQR6Isbjt2M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

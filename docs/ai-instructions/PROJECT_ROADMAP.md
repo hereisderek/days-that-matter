@@ -9,9 +9,9 @@
 - [x] **Core:** Use Koin for dependency injection. Need to support user login state.
 - [ ] **Database:** Setup Room for local database.
 - [x] **Backend:** Set up Firebase project and client in KMP.
-- [ ] **Auth:** Implement Login/Signup screens.
-- [ ] **Feature:** Event List & Detail screens.
-- [ ] **Feature:** Create/Edit Event with customization (Basic).
+- [x] **Auth:** Implement Login/Signup screens.
+- [x] **Feature:** Event List & Detail screens.
+- [x] **Feature:** Create/Edit Event with customization (Basic).
 - [ ] **Feature:** Background music selection & playback.
 - [ ] **Sharing:** Generate unique links and handle deep linking.
 - [ ] **Widgets:** Implement basic Android App Widget.

@@ -42,4 +42,4 @@
 
 ## Change-Log
 - 2025-12-22: Updated Project Overview, Key Features, and Tech Stack with app requirements (Firebase, Customization, Sharing).
-  
+- 2025-12-22: Implemented Core Features: Auth (Login/Signup), Event Management (List, Create, Edit, Detail, Delete), and Navigation. Updated JVM target to 17.

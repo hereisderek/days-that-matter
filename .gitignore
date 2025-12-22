@@ -61,8 +61,8 @@ local.properties
 
 docs/keystore/**
 !docs/keystore/**/debug.keystore
-#google-services.json
-#GoogleService-Info.plist
+google-services.json
+GoogleService-Info.plist
 secrets.properties
 prod.keystore
 production.keystore

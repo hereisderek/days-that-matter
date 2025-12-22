@@ -38,7 +38,7 @@ class EventRepositoryImpl(
         if (eventToSave.id.isEmpty()) {
             val docRef = collection.add(eventToSave)
             // Update the event with the generated ID
-            docRef.update("id" to docRef.id)
+            docRef.updateFields { "id" to docRef.id }
         } else {
             collection.document(eventToSave.id).set(eventToSave)
         }

@@ -1,75 +1,116 @@
 package dev.derek.daysthatmatter
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeContentPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import dev.derek.daysthatmatter.presentation.home.HomeViewModel
-import org.jetbrains.compose.resources.painterResource
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import dev.derek.daysthatmatter.presentation.auth.LoginScreen
+import dev.derek.daysthatmatter.presentation.auth.SignUpScreen
+import dev.derek.daysthatmatter.presentation.event.EventDetailScreen
+import dev.derek.daysthatmatter.presentation.event.EventEditScreen
+import dev.derek.daysthatmatter.presentation.home.HomeScreen
+import dev.derek.daysthatmatter.presentation.main.MainViewModel
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.viewmodel.koinViewModel
 
-import daysthatmatter.composeapp.generated.resources.Res
-import daysthatmatter.composeapp.generated.resources.compose_multiplatform
+sealed class Screen(val route: String) {
+    data object Login : Screen("login")
+    data object SignUp : Screen("signup")
+    data object Home : Screen("home")
+    data object EventEdit : Screen("event_edit/{eventId}") {
+        fun createRoute(eventId: String?) = "event_edit/${eventId ?: "new"}"
+    }
+    data object EventDetail : Screen("event_detail/{eventId}") {
+        fun createRoute(eventId: String) = "event_detail/$eventId"
+    }
+}
 
 @Composable
 @Preview
 fun App() {
     MaterialTheme {
-        val viewModel = koinViewModel<HomeViewModel>()
-        val events by viewModel.events.collectAsStateWithLifecycle()
+        val navController = rememberNavController()
+        val mainViewModel = koinViewModel<MainViewModel>()
+        val currentUser by mainViewModel.currentUser.collectAsStateWithLifecycle()
 
-        Column(
-            modifier = Modifier
-                .background(MaterialTheme.colorScheme.primaryContainer)
-                .safeContentPadding()
-                .fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = "Days That Matter",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(16.dp)
-            )
-
-            if (events.isEmpty()) {
-                Text("No events found. Add one!")
-            } else {
-                LazyColumn {
-                    items(events) { event ->
-                        EventItem(event)
+        // Simple auth guard
+        LaunchedEffect(currentUser) {
+            if (currentUser != null) {
+                // Only navigate if we are on Login or SignUp to avoid resetting navigation on every emission
+                val currentRoute = navController.currentBackStackEntry?.destination?.route
+                if (currentRoute == Screen.Login.route || currentRoute == Screen.SignUp.route) {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 }
             }
         }
-    }
-}
 
-@Composable
-fun EventItem(event: dev.derek.daysthatmatter.domain.model.Event) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = event.title, style = MaterialTheme.typography.titleMedium)
-            Text(text = "Date: ${event.date}", style = MaterialTheme.typography.bodyMedium)
+        NavHost(
+            navController = navController,
+            startDestination = if (currentUser != null) Screen.Home.route else Screen.Login.route
+        ) {
+            composable(Screen.Login.route) {
+                LoginScreen(
+                    onLoginSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToSignUp = {
+                        navController.navigate(Screen.SignUp.route)
+                    }
+                )
+            }
+            composable(Screen.SignUp.route) {
+                SignUpScreen(
+                    onSignUpSuccess = {
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
+                    },
+                    onNavigateToLogin = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(Screen.Home.route) {
+                HomeScreen(
+                    onNavigateToEventDetail = { eventId ->
+                        navController.navigate(Screen.EventDetail.createRoute(eventId))
+                    },
+                    onNavigateToEventCreate = {
+                        navController.navigate(Screen.EventEdit.createRoute(null))
+                    }
+                )
+            }
+            composable(Screen.EventEdit.route) { backStackEntry ->
+                val eventId = backStackEntry.arguments?.getString("eventId")
+                val actualEventId = if (eventId == "new") null else eventId
+                EventEditScreen(
+                    eventId = actualEventId,
+                    onEventSaved = {
+                        navController.popBackStack()
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(Screen.EventDetail.route) { backStackEntry ->
+                val eventId = backStackEntry.arguments?.getString("eventId") ?: return@composable
+                EventDetailScreen(
+                    eventId = eventId,
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    },
+                    onNavigateToEdit = { id ->
+                        navController.navigate(Screen.EventEdit.createRoute(id))
+                    }
+                )
+            }
         }
     }
 }
