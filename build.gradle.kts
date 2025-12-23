@@ -18,14 +18,19 @@ tasks.register<Exec>("cleanAppleDouble") {
 
     // Use project layout to get the path in a configuration-cache safe way
     val rootDirPath = layout.projectDirectory.asFile.absolutePath
-    
+
+    // Only execute on macOS
+    onlyIf {
+        System.getProperty("os.name").contains("Mac", ignoreCase = true)
+    }
+
     commandLine("dot_clean", "-m", rootDirPath)
 
     doFirst {
         println("Scrubbing metadata from: $rootDirPath")
     }
     
-    // Ignore exit value in case dot_clean isn't available or fails (e.g. on non-Mac)
+    // Ignore exit value in case dot_clean isn't available or fails
     isIgnoreExitValue = true
 }
 
