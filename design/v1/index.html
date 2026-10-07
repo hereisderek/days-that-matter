@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Days That Matter — Design System & Interactive Prototype V1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./css/styles.css">
+</head>
+<body>
+  <div class="studio-wrapper">
+    <!-- Studio Top Navigation Bar -->
+    <header class="studio-header">
+      <div class="studio-brand">
+        <div class="brand-glyph">✦</div>
+        <div class="brand-text">
+          <h1>Days That Matter</h1>
+          <span>Design System & Prototype V1</span>
+        </div>
+      </div>
+
+      <div class="view-controls">
+        <button class="view-btn active" data-mode="device">📱 Device Frame</button>
+        <button class="view-btn" data-mode="gallery">🖼️ All Screens Gallery</button>
+      </div>
+
+      <div class="theme-controls">
+        <span class="token-pill">Tokens: Active (CSS Variables)</span>
+      </div>
+    </header>
+
+    <!-- Studio Main Stage -->
+    <main class="studio-stage">
+      
+      <!-- MODE A: SINGLE INTERACTIVE DEVICE FRAME -->
+      <div class="device-container">
+        <!-- Interactive Screen Switcher Tabs -->
+        <nav class="screen-switcher-tabs">
+          <button class="screen-tab active" data-target="screen-home">1. Dashboard</button>
+          <button class="screen-tab" data-target="screen-detail">2. Event Detail</button>
+          <button class="screen-tab" data-target="screen-edit">3. Editor & Themes</button>
+          <button class="screen-tab" data-target="screen-share">4. Social Export</button>
+        </nav>
+
+        <!-- Hardware Double-Bezel Phone Shell -->
+        <div class="phone-bezel">
+          <div class="phone-screen">
+            <!-- iOS Status Bar & Dynamic Island -->
+            <div class="phone-status-bar">
+              <span>9:41</span>
+              <div class="dynamic-island">
+                <div class="island-camera"></div>
+                <div class="island-sensor"></div>
+              </div>
+              <div style="display: flex; gap: 4px; align-items: center;">
+                <svg width="16" height="12" viewBox="0 0 16 12" fill="currentColor"><path d="M1 8h2v3H1zm4-3h2v6H5zm4-3h2v9H9zm4-2h2v11h-2z"/></svg>
+                <svg width="18" height="10" viewBox="0 0 20 10" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="16" height="8" rx="2"/><rect x="18" y="3" width="1.5" height="4" rx="0.5" fill="currentColor"/></svg>
+              </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- SCREEN 1: HOME DASHBOARD                   -->
+            <!-- ========================================== -->
+            <section class="app-screen active" id="screen-home">
+              <div class="app-nav">
+                <span class="app-nav-title">Days That Matter</span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="icon-btn" title="Search">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  </button>
+                  <button class="icon-btn trigger-edit" title="Settings / Add">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="home-content">
+                <!-- Category Filters Row -->
+                <div class="category-scroller">
+                  <div class="pill-chip active">All Events</div>
+                  <div class="pill-chip">⭐ Milestones</div>
+                  <div class="pill-chip">🎂 Birthdays</div>
+                  <div class="pill-chip">❤️ Anniversaries</div>
+                  <div class="pill-chip">🎯 Goals</div>
+                </div>
+
+                <!-- Featured Hero Card with Live Ticking -->
+                <div class="hero-card trigger-detail" id="featured-hero-card">
+                  <div class="hero-top-row">
+                    <span class="badge-pinned">📌 Pinned Milestone</span>
+                    <span class="hero-audio-pill">
+                      <div class="audio-waves">
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                        <div class="audio-bar"></div>
+                      </div>
+                      Lo-Fi Theme
+                    </span>
+                  </div>
+
+                  <h2 class="hero-title dynamic-event-title">Trip to Tokyo & Kyoto</h2>
+                  <p class="hero-date">Departing Nov 18, 2026 • 09:30 AM JST</p>
+
+                  <!-- Live Ticker Grid -->
+                  <div class="ticker-grid">
+                    <div class="ticker-cell">
+                      <span class="ticker-val" id="val-days">42</span>
+                      <span class="ticker-unit">Days</span>
+                    </div>
+                    <div class="ticker-cell">
+                      <span class="ticker-val" id="val-hours">08</span>
+                      <span class="ticker-unit">Hours</span>
+                    </div>
+                    <div class="ticker-cell">
+                      <span class="ticker-val" id="val-minutes">24</span>
+                      <span class="ticker-unit">Mins</span>
+                    </div>
+                    <div class="ticker-cell">
+                      <span class="ticker-val" id="val-seconds">52</span>
+                      <span class="ticker-unit">Secs</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Upcoming Events List -->
+                <div class="section-header">
+                  <span class="section-title">Upcoming Milestones</span>
+                  <span class="section-link trigger-edit">Add New +</span>
+                </div>
+
+                <div class="event-list">
+                  <div class="event-card-item trigger-detail">
+                    <div class="item-left">
+                      <div class="item-icon icon-anniversary">💍</div>
+                      <div class="item-meta">
+                        <h4>Wedding Anniversary</h4>
+                        <p>Oct 24, 2026 • 5th Year</p>
+                      </div>
+                    </div>
+                    <div class="item-badge">
+                      <div class="badge-days">17</div>
+                      <div class="badge-label">Days Left</div>
+                    </div>
+                  </div>
+
+                  <div class="event-card-item trigger-detail">
+                    <div class="item-left">
+                      <div class="item-icon icon-birthday">🎂</div>
+                      <div class="item-meta">
+                        <h4>Mom's 60th Birthday</h4>
+                        <p>Dec 05, 2026 • Celebration</p>
+                      </div>
+                    </div>
+                    <div class="item-badge">
+                      <div class="badge-days">59</div>
+                      <div class="badge-label">Days Left</div>
+                    </div>
+                  </div>
+
+                  <div class="event-card-item trigger-detail">
+                    <div class="item-left">
+                      <div class="item-icon icon-life">🚀</div>
+                      <div class="item-meta">
+                        <h4>New Year 2027</h4>
+                        <p>Jan 01, 2027 • Countdown</p>
+                      </div>
+                    </div>
+                    <div class="item-badge">
+                      <div class="badge-days">86</div>
+                      <div class="badge-label">Days Left</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom Tab Bar -->
+              <nav class="app-tabbar">
+                <div class="tabbar-item active">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                  Events
+                </div>
+                <div class="tabbar-item trigger-detail">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                  Favorites
+                </div>
+                <div class="tabbar-fab trigger-edit" title="New Event">
+                  <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </div>
+                <div class="tabbar-item trigger-share">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  Share
+                </div>
+                <div class="tabbar-item trigger-edit">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                  Settings
+                </div>
+              </nav>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- SCREEN 2: EVENT DETAIL VIEW                -->
+            <!-- ========================================== -->
+            <section class="app-screen" id="screen-detail">
+              <div class="app-nav">
+                <button class="icon-btn trigger-home" title="Back">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <span class="app-nav-title">Milestone Details</span>
+                <div style="display: flex; gap: 8px;">
+                  <button class="icon-btn trigger-share" title="Share">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  </button>
+                  <button class="icon-btn trigger-edit" title="Edit">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="detail-content">
+                <!-- Massive Hero Number Card -->
+                <div class="hero-detail-banner">
+                  <span class="pill-chip" style="background: rgba(59, 130, 246, 0.2); color: #93C5FD; border: none;">✈️ International Travel</span>
+                  <h2 class="hero-title dynamic-event-title" style="margin: 0;">Trip to Tokyo & Kyoto</h2>
+                  <div class="detail-big-number" id="detail-days-num">42</div>
+                  <span class="detail-big-unit">Days Remaining</span>
+                  <p style="font-size: 13px; color: var(--text-secondary); margin-top: 4px;">Target Date: November 18, 2026 • 09:30 AM JST</p>
+                </div>
+
+                <!-- Interactive Audio Player Bar -->
+                <div class="audio-player-strip">
+                  <div class="audio-strip-info">
+                    <div class="vinyl-disc">
+                      <div class="vinyl-center"></div>
+                    </div>
+                    <div>
+                      <div class="audio-track-name">Tokyo Nights (Ambient Lo-Fi)</div>
+                      <div class="audio-track-sub">Attached Soundscape</div>
+                    </div>
+                  </div>
+                  <button class="icon-btn" id="btn-audio-toggle" title="Play/Pause">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                  </button>
+                </div>
+
+                <!-- Milestone Progress Card -->
+                <div class="timeline-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 14px; font-weight: 700;">Journey Progress</span>
+                    <span style="font-size: 13px; font-weight: 700; color: var(--brand-primary);">68% to Milestone</span>
+                  </div>
+                  <div class="timeline-progress-track">
+                    <div class="timeline-progress-fill"></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-tertiary);">
+                    <span>Planned 90 days ago</span>
+                    <span>Goal: Day 0 (Departure)</span>
+                  </div>
+                </div>
+
+                <!-- Memos Section -->
+                <div class="section-header">
+                  <span class="section-title">Milestone Reflections (2)</span>
+                  <span class="section-link trigger-edit">+ Add Note</span>
+                </div>
+
+                <div class="memo-feed">
+                  <div class="memo-bubble">
+                    <div class="memo-header">
+                      <span class="memo-author">Derek Zhu (Organizer)</span>
+                      <span class="memo-time">2 days ago</span>
+                    </div>
+                    <p class="memo-body">Confirmed flights with ANA! Looking forward to exploring Shibuya crossing and the quiet bamboo groves in Arashiyama.</p>
+                  </div>
+                  <div class="memo-bubble">
+                    <div class="memo-header">
+                      <span class="memo-author">Elena (Invited)</span>
+                      <span class="memo-time">5 days ago</span>
+                    </div>
+                    <p class="memo-body">JR Rail pass vouchers arrived in the mail today. All luggage tags prepared!</p>
+                  </div>
+                </div>
+
+                <!-- CTA Button -->
+                <button class="btn-primary trigger-share">
+                  <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+                  Share Milestone Card
+                </button>
+              </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- SCREEN 3: EVENT EDITOR & CUSTOMIZER        -->
+            <!-- ========================================== -->
+            <section class="app-screen" id="screen-edit">
+              <div class="app-nav">
+                <button class="icon-btn trigger-home" title="Cancel">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <span class="app-nav-title">Edit Milestone</span>
+                <button class="pill-chip active trigger-home" style="padding: 6px 14px; font-size: 13px;">Save</button>
+              </div>
+
+              <div class="editor-content">
+                <!-- Mini Live Preview Card -->
+                <div class="editor-field-group">
+                  <span class="field-label">Interactive Card Preview</span>
+                  <div class="event-card-item" style="border-color: var(--brand-primary); box-shadow: 0 0 20px var(--brand-primary-glow);">
+                    <div class="item-left">
+                      <div class="item-icon icon-life">✈️</div>
+                      <div class="item-meta">
+                        <h4 class="dynamic-event-title">Trip to Tokyo & Kyoto</h4>
+                        <p>Nov 18, 2026 • Live Preview</p>
+                      </div>
+                    </div>
+                    <div class="item-badge">
+                      <div class="badge-days">42</div>
+                      <div class="badge-label">Days Left</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Title Input -->
+                <div class="editor-field-group">
+                  <label class="field-label" for="input-event-title">Event Title</label>
+                  <input type="text" id="input-event-title" class="text-input" value="Trip to Tokyo & Kyoto" placeholder="What are you counting toward?">
+                </div>
+
+                <!-- Date & Time Row -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div class="editor-field-group">
+                    <label class="field-label">Target Date</label>
+                    <input type="date" class="text-input" value="2026-11-18">
+                  </div>
+                  <div class="editor-field-group">
+                    <label class="field-label">Time (Optional)</label>
+                    <input type="time" class="text-input" value="09:30">
+                  </div>
+                </div>
+
+                <!-- Color Palette Theme Selector -->
+                <div class="editor-field-group">
+                  <span class="field-label">Card Aura & Accent Color</span>
+                  <div class="palette-picker">
+                    <div class="color-swatch active" data-theme="blue" style="background: #3B82F6;" title="Royal Blue"></div>
+                    <div class="color-swatch" data-theme="rose" style="background: #F43F5E;" title="Rose Love"></div>
+                    <div class="color-swatch" data-theme="emerald" style="background: #10B981;" title="Emerald Goal"></div>
+                    <div class="color-swatch" data-theme="amber" style="background: #F59E0B;" title="Amber Celebration"></div>
+                    <div class="color-swatch" data-theme="violet" style="background: #8B5CF6;" title="Violet Journey"></div>
+                  </div>
+                </div>
+
+                <!-- Card Style Preset -->
+                <div class="editor-field-group">
+                  <span class="field-label">Aesthetic Style</span>
+                  <div style="display: flex; gap: 8px;">
+                    <div class="pill-chip active" style="flex: 1; text-align: center;">Glassmorphic</div>
+                    <div class="pill-chip" style="flex: 1; text-align: center;">Minimalist</div>
+                    <div class="pill-chip" style="flex: 1; text-align: center;">Full Bleed</div>
+                  </div>
+                </div>
+
+                <!-- Background Audio Selector -->
+                <div class="editor-field-group">
+                  <span class="field-label">Soundtrack / Ambience</span>
+                  <div class="audio-player-strip" style="cursor: pointer;">
+                    <div class="audio-strip-info">
+                      <span style="font-size: 20px;">🎵</span>
+                      <div>
+                        <div class="audio-track-name">Tokyo Nights (Ambient Lo-Fi)</div>
+                        <div class="audio-track-sub">Tap to change track or upload MP3</div>
+                      </div>
+                    </div>
+                    <span style="color: var(--brand-primary); font-size: 13px; font-weight: 700;">Change</span>
+                  </div>
+                </div>
+
+                <!-- Action Button -->
+                <button class="btn-primary trigger-home" style="margin-top: 10px;">
+                  Save Changes
+                </button>
+              </div>
+            </section>
+
+            <!-- ========================================== -->
+            <!-- SCREEN 4: SOCIAL SHARE STORY EXPORTER      -->
+            <!-- ========================================== -->
+            <section class="app-screen" id="screen-share">
+              <div class="app-nav">
+                <button class="icon-btn trigger-home" title="Back">
+                  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                </button>
+                <span class="app-nav-title">Share Milestone</span>
+                <div style="width: 38px;"></div>
+              </div>
+
+              <div class="share-content">
+                <!-- 9:16 Instagram Story Export Canvas -->
+                <div class="story-card-canvas" id="story-canvas-export">
+                  <div class="story-watermark-top">✦ DAYS THAT MATTER ✦</div>
+
+                  <div class="story-main-hero">
+                    <h2 class="dynamic-event-title">Trip to Tokyo & Kyoto</h2>
+                    <div class="story-counter" id="story-days-num">42</div>
+                    <div class="story-counter-unit">Days Remaining</div>
+                  </div>
+
+                  <div class="story-footer">
+                    <div class="story-qr-chip">🔗 daysthatmatter.app/e/tokyo2026</div>
+                    <span style="font-size: 11px; color: rgba(255, 255, 255, 0.7);">Scan to import into app</span>
+                  </div>
+                </div>
+
+                <div style="width: 100%; display: flex; flex-direction: column; gap: 10px;">
+                  <button class="btn-primary" onclick="alert('Exporting high-resolution 1080x1920 Story Card!')">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Share to Instagram Stories
+                  </button>
+                  <button class="btn-secondary" onclick="navigator.clipboard?.writeText('https://daysthatmatter.app/e/tokyo2026'); alert('Share link copied to clipboard!');">
+                    Copy Web Invite Link
+                  </button>
+                </div>
+              </div>
+            </section>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- MODE B: MULTI-SCREEN STUDIO GALLERY (SIDE-BY-SIDE) -->
+      <div class="gallery-grid">
+        <div class="gallery-card">
+          <div class="gallery-label">01. Home Dashboard <span>Interactive Ticker</span></div>
+          <div class="gallery-phone-slot" id="gallery-slot-home"></div>
+        </div>
+        <div class="gallery-card">
+          <div class="gallery-label">02. Event Detail <span>Vinyl Soundscape</span></div>
+          <div class="gallery-phone-slot" id="gallery-slot-detail"></div>
+        </div>
+        <div class="gallery-card">
+          <div class="gallery-label">03. Event Editor <span>Live Customizer</span></div>
+          <div class="gallery-phone-slot" id="gallery-slot-edit"></div>
+        </div>
+        <div class="gallery-card">
+          <div class="gallery-label">04. Social Exporter <span>9:16 Story Canvas</span></div>
+          <div class="gallery-phone-slot" id="gallery-slot-share"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="./js/app.js"></script>
+</body>
+</html>
