@@ -104,12 +104,13 @@ File ownership. Implementers MUST NOT edit files owned by another, except to res
 | :--- | :--- | :--- |
 | A: API, D1, migrations, tests | `feat/share-api` | `src/index.ts`, `src/routes/shares.ts`, `src/routes/health.ts`, `src/lib/*`, `migrations/`, `schema/`, `vitest.config.ts`, `test/api/` |
 | B: web page, static assets, well-known, OG | `feat/share-web` | `src/routes/page.ts`, `src/page/*`, `public/**`, `test/page/`, `test/fixtures/` |
-| C: CI, wrangler, deploy docs, service README | `chore/share-ci` | `.github/workflows/share-service.yml`, `services/share/wrangler.jsonc`, `package.json`, `package-lock.json`, `tsconfig.json`, `README.md`, deploy sections of this doc |
+| C: CI, wrangler, deploy docs, service README | `chore/share-ci` | `.github/workflows/share-service.yml`, `services/share/wrangler.jsonc`, `package.json`, `package-lock.json`, `tsconfig.json`, `README.md`, deploy sections of this doc (C extends the minimal skeleton files A creates in M1, see below) |
 
 Interfaces between owners:
-- B calls the data access function `getShareByToken(db, token, nowSeconds)` exported from `src/lib/db.ts` (owner A). Its return type is the `ShareLookup` union in section 6.6. A MUST publish this function and its type first (milestone M1) so B can code against it.
+- B calls the data access function `getShareByToken(db, token, nowSeconds)` exported from `src/lib/db.ts` (owner A). Its return type is the `ShareLookup` union in section 6.7. A MUST publish this function and its type first (milestone M1) so B can code against it.
 - `src/index.ts` (A) mounts `pageRoutes` from `src/routes/page.ts` (B). Until B lands, A mounts a stub that returns 404.
-- C owns `wrangler.jsonc`. A and B request binding or config changes through C.
+- Bootstrap. The M1 commit by A creates minimal `package.json` (dependencies: hono, zod; dev: vitest, `@cloudflare/vitest-pool-workers`, wrangler, typescript; scripts `test`, `typecheck`), `tsconfig.json` and `wrangler.jsonc` (DB binding, assets, `run_worker_first`), so that `npm ci && npm test` works. Exact dependency versions are chosen by A and pinned by `package-lock.json`. After M1, C owns these files and extends them (scripts, environments, routes, cron). A and B MAY make small additive edits to `package.json` dependencies or scripts when they need a package, and rebase on C.
+- C owns `wrangler.jsonc` after M1. A and B request binding or config changes through C.
 
 ---
 
@@ -278,7 +279,7 @@ No authentication.
   "serverTime": "2026-10-10T15:09:00Z"
 }
 ```
-Headers: `ETag: "r{rev}"`, `Cache-Control: public, max-age=30, stale-while-revalidate=60`. `If-None-Match` matching gives `304` with no body. `serverTime` lets clients correct clock skew.
+Headers: `ETag: "r{rev}"`, `Cache-Control: public, max-age=30, stale-while-revalidate=60`. A revoke or update can therefore take up to 90 seconds to reach cached API reads; the share page itself is `no-store`. `If-None-Match` matching gives `304` with no body. `serverTime` lets clients correct clock skew.
 
 Other responses:
 - `404 not_found`: unknown share, purged share, or malformed token. Identical body, status and headers for all three. `Cache-Control: no-store`.
@@ -299,7 +300,7 @@ Request:
 Errors:
 - 401 `unauthorized`: `Authorization` header missing or not `Bearer mt_...`.
 - 404 `not_found`: unknown share, malformed token, or wrong manage token (not distinguishable).
-- 410 `revoked` or `expired`: the share is revoked or expired. Revocation is permanent. A new share must be created.
+- 410 `revoked` or `expired`: the manage token is valid but the share is revoked or expired (PUT only). Revocation is permanent. A new share must be created.
 - 412 `precondition_failed`: `If-Match` does not equal the current ETag.
 - 400, 413, 415, 422 as in 6.3.
 - 429 `rate_limited`: 30 requests per minute per share.
@@ -308,7 +309,9 @@ Errors:
 
 Headers: `Authorization: Bearer mt_...`.
 
-Sets `revoked_at = now`, clears the payload, increments `rev`. `204 No Content`. Repeating the call with the same token returns 204. Errors: 401, 404 as in 6.5, 429.
+Sets `revoked_at = now`, clears the payload, increments `rev`. `204 No Content`. Repeating the call with the same token returns 204. DELETE on an expired share also succeeds with 204 (it sets `revoked_at` and clears the payload). Errors: 401, 404 as in 6.5, 429.
+
+Order of checks for PUT and DELETE: token format, then 401 header check, then lookup by hash and constant-time manage token compare (any mismatch gives 404), and only then the revoked or expired state (410). A caller without the manage token therefore never learns more than a public GET shows.
 
 ### 6.7 `GET /health`
 
@@ -363,7 +366,7 @@ function getShareByToken(db: D1Database, token: string, nowSeconds: number): Pro
 | Worker or D1 error | 503 | Short static-style error page. |
 
 Headers on every response of this route:
-- `Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests`. Event data and `serverTime` are injected as `<script type="application/json" id="share-data">` (shape: `{"shareToken","payload","serverTime"}`), which is not executed, so no inline script nonce is needed. The countdown script is `/assets/countdown.js`.
+- `Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; object-src 'none'; upgrade-insecure-requests`. Event data and `serverTime` are injected as `<script type="application/json" id="share-data">` (shape: `{"shareToken","payload","serverTime"}`), which is not executed, so no inline script nonce is needed. Inline `style` attributes are blocked by `style-src 'self'`, so the theme gradient and colors are applied by `countdown.js` through `element.style.setProperty` (CSSOM, allowed by CSP). The server-rendered HTML has no inline styles. The countdown script is `/assets/countdown.js`.
 - `Cache-Control: no-store` (revocation takes effect on the next request).
 - `X-Robots-Tag: noindex, nofollow` and `<meta name="robots" content="noindex">`.
 - `Referrer-Policy: no-referrer`, `X-Content-Type-Options: nosniff`, `Strict-Transport-Security: max-age=31536000`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
@@ -403,8 +406,8 @@ HTML rules:
 | :--- | :--- |
 | Read access | Possession of the 128-bit `shareToken`. No list or search endpoint exists. |
 | Write access | Possession of the 256-bit `manageToken`. 404 for wrong token and unknown share. |
-| Create abuse | Per IP: 10 creates per minute and 60 per hour. Per install: 50 active shares. Global: 20000 creates per UTC day (budget guard for the D1 write limit). Counters are D1 rows (`rate_counters`). The Workers Rate Limiting binding MAY be added as an extra burst guard if the Free plan supports it (unverified; it is per location and eventually consistent, so it is not a control by itself). |
-| Read abuse | Per IP: 120 requests per minute on `/api/v1/shares/{token}` and `/e/*` using the Rate Limiting binding if available. D1 counters are NOT used for reads (each check would be a write). Malformed tokens never reach D1. |
+| Create abuse | Per IP: 10 creates per minute and 60 per hour. Per install: 50 active shares (a soft limit only: a client can rotate install ids, so the IP limits and the global cap are the real controls). Global: 10000 creates per UTC day (budget guard for the D1 write limit, see 10.1). Counters are D1 rows (`rate_counters`). The Workers Rate Limiting binding (period 10 or 60 s, per location, eventually consistent) MAY be added as an extra burst guard. Free-plan availability is unverified, so no requirement depends on it. |
+| Read abuse | Per IP: 120 requests per minute on `/api/v1/shares/{token}` and `/e/*` using the Rate Limiting binding if it is available on the plan; if not, rely on the Cloudflare edge rule below and the 100k request cap. D1 counters are NOT used for reads (each check would be a write). Malformed tokens never reach D1. |
 | Cloudflare edge | Domain is on Cloudflare DNS. Enable Bot Fight Mode and one WAF rate limiting rule on `/e/*` if the plan allows it (verify in the dashboard). |
 | Anonymous spam | Titles are the only free text. They are escaped everywhere, never auto-linked, and capped at 100 chars. A report link and an admin revoke runbook exist (see 10.4). Firebase App Check on create is a possible later hardening. |
 | Input | zod `.strict()` schemas, size caps, Unicode checks, no URL fields. |
@@ -412,7 +415,7 @@ HTML rules:
 | Privacy | Payload is an allow-list. No memos, owner id, email, names, notes, media. `install_id` and IP are not logged or returned. |
 | Logging | JSON line per request: `ts`, `route`, `status`, `reqId`, `tokenHashPrefix` (first 8 hex of the token hash), `rateLimited`. Never log bodies, titles, tokens, `Authorization` headers, IPs, `X-Install-Id`. A test asserts this. Workers Logs head sampling at 10%. |
 | Secrets | `RATE_SALT` and `ADMIN_KEY` are wrangler secrets, never in `wrangler.jsonc`. |
-| Retention | Revoked and expired rows are purged 30 days after revoke or expiry. D1 Time Travel keeps 7 days of history, so deleted data can remain recoverable for 7 days. State this in the privacy policy. |
+| Retention | Revoked rows have their payload cleared at revoke. The nightly job also clears the payload of expired rows right away. Rows are deleted 30 days after revoke or expiry. D1 Time Travel keeps 7 days of history, so deleted data can remain recoverable for 7 days. State this in the privacy policy. |
 | Referrers | Token is in the URL path. `Referrer-Policy: no-referrer` on all pages. |
 | Account deletion | Shares are not linked to a user account in v1, so account deletion does not affect them. The app SHOULD revoke the user's active shares before sign-out or deletion, using the stored manage tokens. |
 
@@ -428,16 +431,16 @@ HTML rules:
 
 ## 10. Free-tier budget, deployment and operations
 
-### 10.1 Limits (checked 2026-10-10 against Cloudflare docs)
+### 10.1 Limits (checked 2026-10-10 against Cloudflare docs: Workers limits, D1 limits and pricing, Static Assets billing; index write counting confirmed in D1 pricing)
 
 | Resource | Free limit | Design use |
 | :--- | :--- | :--- |
-| Worker requests | 100,000 per day, reset 00:00 UTC. Over the limit the route returns error 1027 or 429. | 1 request per page view, 1 per API call. About 60k views per day is the planning ceiling. |
+| Worker requests | 100,000 per day, reset 00:00 UTC. Over the limit, routes fail with error 1027, or 429 for `run_worker_first` asset routes. | 1 request per page view, 1 per API call. About 60k views per day is the planning ceiling. |
 | Worker CPU | 10 ms per request | Hashing, zod validation and HTML templating only. No image or QR generation. No JWT or RSA work. |
-| Subrequests / D1 queries per invocation | 50 | At most 4 queries per request. Purge runs in batches. |
+| Subrequests / D1 queries per invocation | 50 each | At most 4 D1 round trips per request (a `db.batch()` call counts as one round trip). Purge runs in batches. |
 | Static asset requests | Documented as free and unlimited | Keep everything static that can be. Whether they count toward the 100k is not stated; check the dashboard after launch. |
 | D1 rows read | 5,000,000 per day | About 1 to 3 rows per request. Not the limiting factor. |
-| D1 rows written | 100,000 per day. Queries fail after the limit until 00:00 UTC. | Creates (2 rows: share and counter), updates, revokes. Global create cap 20,000 per day keeps room. |
+| D1 rows written | 100,000 per day. Queries fail after the limit until 00:00 UTC. | Indexes add written rows. One create writes about 7 rows: the share row, 3 index entries (`token_hash`, `install_id`, `expires_at` when set), and up to 3 counter rows (IP minute, IP hour, global day). Updates and revokes write about 3 to 5 rows. Global create cap 10,000 per day is about 70,000 rows and leaves room for updates, revokes, counters and purge. |
 | D1 storage | 500 MB per database, 5 GB per account | 8 KB cap per share gives well over 50k shares. |
 | Cron triggers | 5 per account | 1 used (nightly purge). |
 
@@ -450,7 +453,7 @@ Not verified (confirm manually before relying on them):
 - The Workers Rate Limiting binding on the Free plan.
 - Number of free WAF rate limiting rules.
 - Whether `_headers` can set `Content-Type` for an extensionless file.
-- Whether static asset requests count toward the 100k per day.
+- Whether static asset requests count toward the 100k per day (the Static Assets billing page says they are free and unlimited, so this is a confirmation only).
 
 ### 10.2 Environments
 
@@ -478,7 +481,7 @@ Secrets are set with `wrangler secret put RATE_SALT --env <env>` and `ADMIN_KEY`
 
 - Abuse takedown: `wrangler d1 execute dtm-share --remote --command "UPDATE shares SET revoked_at=unixepoch(), payload='{}', payload_bytes=0, rev=rev+1 WHERE token_hash=?"` with the hash of the reported token. There is no public admin API in v1, so `ADMIN_KEY` is reserved and unused until one is added.
 - Kill switch: set `MAINTENANCE=1` (wrangler var or dashboard). Create, update and revoke return 503. Reads keep working.
-- Nightly purge (cron `0 3 * * *`): delete rows where `revoked_at < now - 30d` or `expires_at < now - 30d`, and `rate_counters` older than 2 days. Bounded batches (at most 500 rows per DELETE, at most 20 statements per run).
+- Nightly purge (cron `0 3 * * *`): first clear `payload` (set `'{}'`, `payload_bytes=0`) of rows with `expires_at < now` that still hold data, then delete rows where `revoked_at < now - 30d` or `expires_at < now - 30d`, and `rate_counters` older than 2 days. Bounded batches (at most 500 rows per DELETE, at most 20 statements per run).
 
 ---
 

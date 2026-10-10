@@ -13,7 +13,7 @@ Out of scope (later milestones, listed in section 7): KMP client work, collabora
 | Milestone | Content | Exit criteria |
 | :--- | :--- | :--- |
 | M0 | This design merged (docs only) | PR `docs/share-service` merged. |
-| M1 | Skeleton and contract types | `services/share/` builds and tests run (`npm ci && npm test` passes with a health test). `getShareByToken` and `ShareLookup` are exported from `src/lib/db.ts`. Migration `0001_init.sql` applies. |
+| M1 | Skeleton and contract types | `services/share/` builds and tests run (`npm ci && npm test` passes with a health test). A creates the minimal `package.json`, `tsconfig.json` and `wrangler.jsonc` for this. `getShareByToken` and `ShareLookup` are exported from `src/lib/db.ts`. Migration `0001_init.sql` applies. |
 | M2 | API complete | All routes in contract section 6 pass the API test group. |
 | M3 | Share page and assets | `/e/{token}` renders all states, countdown matches golden vectors, headers pass. Well-known files served with correct content type. |
 | M4 | CI and preview deploy | Workflow runs on PR and deploys preview on `master`. Smoke test passes against preview. |
@@ -36,7 +36,7 @@ Work:
 3. Token generation, hashing, constant-time compare.
 4. zod schemas and Unicode checks for payload v1. JSON Schema file.
 5. Routes: `POST /shares`, `GET /shares/{token}`, `PUT`, `DELETE`, `GET /health`.
-6. Rate limits and quotas with `rate_counters`. Global daily create cap. `MAINTENANCE` flag.
+6. Rate limits and quotas with `rate_counters`. Global daily create cap (10,000). Nightly purge also clears payloads of expired rows. `MAINTENANCE` flag.
 7. Scheduled purge.
 8. `getShareByToken` for the page route. Stub mount for the page routes.
 
@@ -44,7 +44,7 @@ Acceptance:
 - Every status code and header in contract sections 6.1 to 6.8 is covered by a test.
 - 404 responses for unknown, malformed, purged and wrong-manage-token are byte-identical in status, headers (except `X-Request-Id`) and body.
 - No query reaches D1 for a malformed token (asserted with a query counter).
-- No more than 4 D1 queries per request.
+- No more than 4 D1 round trips per request (`db.batch()` counts as one).
 - `npm run typecheck`, lint and tests pass.
 
 ### PR 2: `feat/share-web` (implementer B)
@@ -69,7 +69,7 @@ Acceptance:
 
 ### PR 3: `chore/share-ci` (implementer C)
 
-Files: `.github/workflows/share-service.yml`, `services/share/wrangler.jsonc`, `package.json`, `package-lock.json`, `tsconfig.json`, `README.md`.
+Files: `.github/workflows/share-service.yml`, `services/share/wrangler.jsonc`, `package.json`, `package-lock.json`, `tsconfig.json`, `README.md`. The three config files already exist from A's M1 skeleton; C extends them, so PR 3 merges after the M1 skeleton commit.
 
 Work:
 1. `wrangler.jsonc` with assets (`directory: public`, `run_worker_first: ["/e/*", "/api/*"]`), D1 binding `DB`, cron `0 3 * * *`, `env.preview` and `env.production`, custom domain route for production.
@@ -86,7 +86,7 @@ Acceptance:
 
 ### PR order
 
-PR 3 and PR 1 can merge in either order. PR 2 merges after PR 1 (needs `getShareByToken`). Final integration check on preview after all three.
+PR 3 merges after the M1 skeleton commit of PR 1 (it extends the skeleton files); the rest of PR 1 and PR 3 can merge in either order. PR 2 merges after PR 1 (needs `getShareByToken`). Final integration check on preview after all three.
 
 ## 4. Task dependencies
 
@@ -109,7 +109,7 @@ API (A):
 4. Auth: missing header 401, wrong token 404, unknown share 404, same response as malformed token.
 5. 410 revoked and expired, expiry computed from `expiresInDays`, expiry boundary.
 6. Limits: 413 body, 413 payload, 415, 422, per-IP rate limit with `Retry-After`, 51st active share per install gives `quota_exceeded`, global cap, `MAINTENANCE` gives 503 on writes only.
-7. Purge: removes rows past the 30 day window, keeps younger rows, clears old counters, respects the batch bound.
+7. Purge: clears payload of expired rows, removes rows past the 30 day window, keeps younger rows, clears old counters, respects the batch bound.
 8. Headers on every route class including 404 and 500. No CORS headers. Preflight `OPTIONS` from another origin gets no `Access-Control-Allow-Origin`.
 9. Log redaction: a request containing a title, token, `Authorization`, install id and IP produces log output with none of those strings.
 

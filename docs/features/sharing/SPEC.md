@@ -77,14 +77,14 @@ The service replaces the former Firestore security rules (`shared_events`, `allo
 | Action | Requirement |
 | :--- | :--- |
 | Read (`GET /shares/{token}`, `GET /e/{token}`) | The unguessable share token. No list or search endpoint. |
-| Create (`POST /shares`) | None beyond rate limits: per IP, 50 active shares per install id, and a global daily cap. No account needed, so guests can share. |
+| Create (`POST /shares`) | None beyond rate limits: per IP, 50 active shares per install id, and a global daily cap (10,000 creates per day). No account needed, so guests can share. |
 | Update, revoke | The `manageToken` returned at creation (Bearer). Only its SHA-256 hash is stored. Wrong token and unknown share give the same 404. |
 
 Data rules:
 - Shared payload is an allow-list: title, emoji, date, time, time zone, unit mode, recurrence, theme ids and gradient. Maximum 8 KB.
 - **Memos are not shared in v1.** The "Include Memos in Share" option and collaborative memos (`AccessMode.CollaborativeMemos`) are deferred, because they need authenticated writes and carry spam and PII risk. Notes, owner id, email, names, wallpapers and audio are never shared.
 - Raw tokens are not stored. IP addresses and install ids are not logged.
-- Revoking a share deletes its data immediately. The row is removed 30 days later. D1 Time Travel can keep deleted data recoverable for 7 days.
+- Revoking a share clears its data immediately. Expired shares have their data cleared by the nightly job. The row is removed 30 days later. D1 Time Travel can keep deleted data recoverable for 7 days.
 - The service runs on Cloudflare's free plan. The request cap (100,000 per day) is a known availability limit, see the share service doc, section 10.
 
 ## 5. Out of Scope (v1)
