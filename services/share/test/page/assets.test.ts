@@ -50,10 +50,13 @@ describe('well-known files', () => {
     expect(j.applinks.details[0].appIDs.length).toBe(1);
   });
 
-  it('_headers has an application/json rule for both files', async () => {
-    const headers = await text('/_headers').catch(() => '');
-    // `_headers` is not served as an asset; the rule itself is verified by scripts/check-assets.mjs.
-    expect(typeof headers).toBe('string');
+  it('serves both with Content-Type application/json and no duplicated nosniff', async () => {
+    for (const path of ['/.well-known/apple-app-site-association', '/.well-known/assetlinks.json']) {
+      const res = await asset(path);
+      expect(res.headers.get('content-type'), path).toBe('application/json');
+      expect(res.headers.get('x-content-type-options'), path).toBe('nosniff');
+      expect(res.headers.get('location')).toBeNull();
+    }
   });
 });
 
