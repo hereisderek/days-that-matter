@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daysthatmatter.app/schema/share-payload.v1.schema.json",
+  "title": "Days That Matter share payload v1",
+  "description": "Snapshot of an event for display. Fields not listed are rejected. Server-side checks that JSON Schema cannot express: title is NFC-normalized and trimmed, 1 to 100 code points, without control characters, bidi overrides or lone surrogates; targetDate is a real calendar date; timeZone is a valid IANA zone; emoji is a single grapheme.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["v", "title", "targetDate", "theme"],
+  "properties": {
+    "v": { "const": 1 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+    "emoji": { "type": ["string", "null"], "maxLength": 16 },
+    "targetDate": { "type": "string", "pattern": "^(19\\d\\d|20\\d\\d|2100|21\\d\\d|2200)-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])$" },
+    "targetTime": { "type": ["string", "null"], "pattern": "^([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d$" },
+    "timeZone": { "type": ["string", "null"], "pattern": "^[A-Za-z][A-Za-z0-9_+\\-/]{0,63}$" },
+    "unitMode": { "enum": ["auto", "days", "calendar"], "default": "auto" },
+    "recurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["none", "yearly", "monthly", "weekly", "customDays"] },
+        "originalYear": { "type": ["integer", "null"], "minimum": 1900, "maximum": 2200, "description": "Required when type is yearly, otherwise null." },
+        "days": { "type": ["integer", "null"], "minimum": 1, "maximum": 3650, "description": "Required when type is customDays, otherwise null." }
+      }
+    },
+    "theme": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paletteId", "cardStyle", "typography"],
+      "properties": {
+        "paletteId": { "type": "string", "pattern": "^[a-z0-9_-]{1,32}$" },
+        "cardStyle": { "type": "string", "pattern": "^[a-z0-9_-]{1,32}$" },
+        "typography": { "type": "string", "pattern": "^[a-z0-9_-]{1,32}$" },
+        "gradient": {
+          "type": ["array", "null"],
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" }
+        }
+      }
+    }
+  }
+}
