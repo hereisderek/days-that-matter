@@ -284,11 +284,12 @@ body[data-card='glass'] .share-card { backdrop-filter: blur(20px); }
 }
 .btn:hover { background: var(--bg-card-hover); }
 .btn-primary {
-  background: var(--brand-primary);
+  /* The hover shade keeps white text above 4.5:1 contrast. */
+  background: var(--brand-primary-hover);
   border-color: transparent;
   color: var(--brand-on-primary);
 }
-.btn-primary:hover { background: var(--brand-primary-hover); }
+.btn-primary:hover { background: var(--brand-primary-hover); filter: brightness(0.92); }
 
 .share-footer {
   display: flex;
