@@ -1,0 +1,497 @@
+[
+  {
+    "name": "future-utc-date-only",
+    "rule": "future",
+    "timeZone": "UTC",
+    "targetDate": "2027-01-01",
+    "targetTime": null,
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2027-01-01T00:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 82,
+      "years": 0,
+      "months": 2,
+      "days": 21,
+      "hours": 9,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  },
+  {
+    "name": "past-leap-origin",
+    "rule": "past",
+    "timeZone": "UTC",
+    "targetDate": "2020-02-29",
+    "targetTime": "12:00:00",
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2020-02-29T12:00:00Z",
+    "expectedBreakdown": {
+      "direction": "since",
+      "totalDays": 2415,
+      "years": 6,
+      "months": 7,
+      "days": 11,
+      "hours": 3,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  },
+  {
+    "name": "yearly-feb29-clamped",
+    "rule": "yearly",
+    "timeZone": "UTC",
+    "targetDate": "2024-02-29",
+    "targetTime": null,
+    "recurrence": {
+      "type": "yearly",
+      "originalYear": 2024,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2027-02-28T00:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 140,
+      "years": 0,
+      "months": 4,
+      "days": 17,
+      "hours": 9,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": 3
+    }
+  },
+  {
+    "name": "yearly-feb29-leap-year",
+    "rule": "yearly",
+    "timeZone": "UTC",
+    "targetDate": "2024-02-29",
+    "targetTime": null,
+    "recurrence": {
+      "type": "yearly",
+      "originalYear": 2024,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2027-12-01T00:00:00Z",
+    "expectedTargetInstant": "2028-02-29T00:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 90,
+      "years": 0,
+      "months": 2,
+      "days": 28,
+      "hours": 0,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": 4
+    }
+  },
+  {
+    "name": "yearly-day-of-event-london",
+    "rule": "day-of-event",
+    "timeZone": "Europe/London",
+    "targetDate": "1990-05-17",
+    "targetTime": null,
+    "recurrence": {
+      "type": "yearly",
+      "originalYear": 1990,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-05-17T10:00:00Z",
+    "expectedTargetInstant": "2026-05-16T23:00:00Z",
+    "expectedBreakdown": {
+      "direction": "today",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 11,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": 36
+    }
+  },
+  {
+    "name": "monthly-clamp-feb",
+    "rule": "monthly",
+    "timeZone": "UTC",
+    "targetDate": "2026-01-31",
+    "targetTime": "09:00:00",
+    "recurrence": {
+      "type": "monthly",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-02-15T00:00:00Z",
+    "expectedTargetInstant": "2026-02-28T09:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 13,
+      "years": 0,
+      "months": 0,
+      "days": 13,
+      "hours": 9,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  },
+  {
+    "name": "monthly-back-to-31",
+    "rule": "monthly",
+    "timeZone": "UTC",
+    "targetDate": "2026-01-31",
+    "targetTime": "09:00:00",
+    "recurrence": {
+      "type": "monthly",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-03-01T00:00:00Z",
+    "expectedTargetInstant": "2026-03-31T09:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 30,
+      "years": 0,
+      "months": 0,
+      "days": 30,
+      "hours": 9,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  },
+  {
+    "name": "weekly-new-york",
+    "rule": "weekly",
+    "timeZone": "America/New_York",
+    "targetDate": "2026-10-05",
+    "targetTime": "18:00:00",
+    "recurrence": {
+      "type": "weekly",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2026-10-12T22:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 2,
+      "years": 0,
+      "months": 0,
+      "days": 2,
+      "hours": 7,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null,
+      "totalHours": 55
+    }
+  },
+  {
+    "name": "custom-days-10",
+    "rule": "customDays",
+    "timeZone": "UTC",
+    "targetDate": "2026-10-01",
+    "targetTime": null,
+    "recurrence": {
+      "type": "customDays",
+      "originalYear": null,
+      "days": 10
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2026-10-11T00:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 9,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  },
+  {
+    "name": "dst-gap-spring-forward",
+    "rule": "dst",
+    "timeZone": "America/New_York",
+    "targetDate": "2026-03-08",
+    "targetTime": "02:30:00",
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-03-07T12:00:00Z",
+    "expectedTargetInstant": "2026-03-08T07:30:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 19,
+      "minutes": 30,
+      "seconds": 0,
+      "anniversary": null,
+      "totalHours": 19,
+      "totalMinutes": 1170
+    }
+  },
+  {
+    "name": "dst-overlap-fall-back",
+    "rule": "dst",
+    "timeZone": "America/New_York",
+    "targetDate": "2026-11-01",
+    "targetTime": "01:30:00",
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-31T12:00:00Z",
+    "expectedTargetInstant": "2026-11-01T05:30:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 17,
+      "minutes": 30,
+      "seconds": 0,
+      "anniversary": null,
+      "totalHours": 17,
+      "totalMinutes": 1050
+    }
+  },
+  {
+    "name": "dst-spanning-interval",
+    "rule": "dst",
+    "timeZone": "America/New_York",
+    "targetDate": "2026-03-09",
+    "targetTime": "12:00:00",
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-03-07T17:00:00Z",
+    "expectedTargetInstant": "2026-03-09T16:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 1,
+      "years": 0,
+      "months": 0,
+      "days": 2,
+      "hours": 0,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null,
+      "totalHours": 47
+    }
+  },
+  {
+    "name": "floating-auckland",
+    "rule": "floating",
+    "timeZone": null,
+    "targetDate": "2027-01-01",
+    "targetTime": null,
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": "Pacific/Auckland",
+    "nowInstant": "2026-12-31T10:00:00Z",
+    "expectedTargetInstant": "2026-12-31T11:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 1,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null,
+      "totalMinutes": 60
+    }
+  },
+  {
+    "name": "floating-honolulu",
+    "rule": "floating",
+    "timeZone": null,
+    "targetDate": "2027-01-01",
+    "targetTime": null,
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": "Pacific/Honolulu",
+    "nowInstant": "2026-12-31T10:00:00Z",
+    "expectedTargetInstant": "2027-01-01T10:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 1,
+      "years": 0,
+      "months": 0,
+      "days": 1,
+      "hours": 0,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null,
+      "totalHours": 24
+    }
+  },
+  {
+    "name": "since-one-second",
+    "rule": "past",
+    "timeZone": "UTC",
+    "targetDate": "2025-12-31",
+    "targetTime": "23:59:59",
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-01-01T00:00:00Z",
+    "expectedTargetInstant": "2025-12-31T23:59:59Z",
+    "expectedBreakdown": {
+      "direction": "since",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 0,
+      "minutes": 0,
+      "seconds": 1,
+      "anniversary": null,
+      "totalSeconds": 1
+    }
+  },
+  {
+    "name": "yearly-future-start",
+    "rule": "yearly",
+    "timeZone": "UTC",
+    "targetDate": "2030-06-01",
+    "targetTime": null,
+    "recurrence": {
+      "type": "yearly",
+      "originalYear": 2030,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2030-06-01T00:00:00Z",
+    "expectedBreakdown": {
+      "direction": "until",
+      "totalDays": 1329,
+      "years": 3,
+      "months": 7,
+      "days": 21,
+      "hours": 9,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": 0
+    }
+  },
+  {
+    "name": "same-day-later-today",
+    "rule": "day-of-event",
+    "timeZone": "UTC",
+    "targetDate": "2026-10-10",
+    "targetTime": "20:00:00",
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-10-10T15:00:00Z",
+    "expectedTargetInstant": "2026-10-10T20:00:00Z",
+    "expectedBreakdown": {
+      "direction": "today",
+      "totalDays": 0,
+      "years": 0,
+      "months": 0,
+      "days": 0,
+      "hours": 5,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  },
+  {
+    "name": "past-month-end-clamp",
+    "rule": "past",
+    "timeZone": "UTC",
+    "targetDate": "2026-01-31",
+    "targetTime": null,
+    "recurrence": {
+      "type": "none",
+      "originalYear": null,
+      "days": null
+    },
+    "unitMode": "auto",
+    "viewerZone": null,
+    "nowInstant": "2026-03-01T00:00:00Z",
+    "expectedTargetInstant": "2026-01-31T00:00:00Z",
+    "expectedBreakdown": {
+      "direction": "since",
+      "totalDays": 29,
+      "years": 0,
+      "months": 1,
+      "days": 1,
+      "hours": 0,
+      "minutes": 0,
+      "seconds": 0,
+      "anniversary": null
+    }
+  }
+]

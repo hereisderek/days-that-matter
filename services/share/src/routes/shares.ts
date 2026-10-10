@@ -74,16 +74,19 @@ shareRoutes.post('/shares', async (c) => {
 
   const now = nowSeconds();
   const limits = await createLimits(c.req.header('CF-Connecting-IP') ?? null, now, c.env.RATE_SALT);
-  const results = await hitLimits(c.env.DB, limits, now);
-  const ipHit = results.slice(0, 2).find((r) => !r.ok);
+  // IP limits first. The global daily counter is only consumed by requests that passed them, so a single
+  // rate-limited client cannot burn the global cap for everyone. Two round trips, then the insert.
+  const ipResults = await hitLimits(c.env.DB, limits.slice(0, 2), now);
+  const ipHit = ipResults.find((r) => !r.ok);
   if (ipHit) {
     c.set('rateLimited', true);
     throw new ApiError(429, 'rate_limited', 'Too many requests', null, { 'Retry-After': String(ipHit.retryAfter) });
   }
-  if (!results[2].ok) {
+  const [globalHit] = await hitLimits(c.env.DB, limits.slice(2), now);
+  if (!globalHit.ok) {
     c.set('rateLimited', true);
     throw new ApiError(429, 'quota_exceeded', 'Daily share creation limit reached', null, {
-      'Retry-After': String(results[2].retryAfter),
+      'Retry-After': String(globalHit.retryAfter),
     });
   }
 

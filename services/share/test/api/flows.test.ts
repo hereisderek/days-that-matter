@@ -367,6 +367,17 @@ describe('limits and quotas', () => {
     vi.setSystemTime(new Date('2027-01-06T00:00:01Z'));
     expect((await call('POST', '/api/v1/shares', { body: body(), headers: { 'X-Install-Id': INSTALL } })).status).toBe(201);
   });
+  it('rate-limited creates do not consume the global daily counter', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2027-02-05T08:00:00Z'));
+    const ip = freshIp();
+    for (let i = 0; i < 15; i++) {
+      await call('POST', '/api/v1/shares', { ip, body: body(), headers: { 'X-Install-Id': crypto.randomUUID() } });
+    }
+    const row = await env.DB.prepare('SELECT count FROM rate_counters WHERE key = ?')
+      .bind('create:global:20270205').first<{ count: number }>();
+    expect(row?.count).toBe(10);
+  });
   it('MAINTENANCE=1 gives 503 on writes only', async () => {
     const c = await create();
     const url = `/api/v1/shares/${c.shareToken}`;

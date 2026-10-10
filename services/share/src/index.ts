@@ -6,6 +6,7 @@ import type { AppEnv } from './lib/headers';
 import { purge } from './lib/purge';
 import { nowSeconds } from './lib/time';
 import { healthRoutes } from './routes/health';
+import { pageRoutes } from './routes/page';
 import { shareRoutes } from './routes/shares';
 
 export const app = new Hono<AppEnv>();
@@ -15,8 +16,7 @@ app.use('*', securityHeaders);
 app.route('/api/v1', healthRoutes);
 app.route('/api/v1', shareRoutes);
 
-// Stub until implementer B mounts pageRoutes from src/routes/page.ts here.
-app.get('/e/:token', () => errorResponse(notFound()));
+app.route('/', pageRoutes);
 
 app.notFound(() => errorResponse(notFound()));
 
