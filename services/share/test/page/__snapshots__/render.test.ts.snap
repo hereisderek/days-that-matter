@@ -1,0 +1,60 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`XSS corpus > golden snapshot of the hostile page 1`] = `
+"<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="dark light">
+<title>&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(1)&gt; | Days That Matter</title>
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/share.css">
+<link rel="canonical" href="https://daysthatmatter.app/e/Zq3u8Yc0Vf1o7e2N9a4Kxw">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Days That Matter">
+<meta property="og:url" content="https://daysthatmatter.app/e/Zq3u8Yc0Vf1o7e2N9a4Kxw">
+<meta property="og:title" content="&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(1)&gt;">
+<meta property="og:description" content="244 days to go">
+<meta property="og:image" content="https://daysthatmatter.app/og/default.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(1)&gt;">
+<meta name="twitter:description" content="244 days to go">
+<meta name="twitter:image" content="https://daysthatmatter.app/og/default.png">
+<meta name="apple-itunes-app" content="app-id=IOS_APP_ID_PLACEHOLDER, app-argument=https://daysthatmatter.app/e/Zq3u8Yc0Vf1o7e2N9a4Kxw">
+</head>
+<body data-palette="violet" data-card="glass" data-type="modern">
+<main class="share-main">
+<header class="share-brand"><a class="brand-link" href="/"><span class="brand-glyph" aria-hidden="true">D</span><span>Days That Matter</span></a></header>
+<section class="share-card" id="share-card" data-state="until" aria-labelledby="share-title">
+
+<p class="share-kicker" id="share-kicker">Until</p>
+<h1 class="share-title" id="share-title">&lt;/title&gt;&lt;script&gt;alert(1)&lt;/script&gt;&quot;&gt;&lt;img src=x onerror=alert(1)&gt;</h1>
+<p class="share-anniversary" id="share-anniversary" hidden></p>
+<div class="share-ticker" id="share-ticker" aria-hidden="true"><div class="ticker-cell"><span class="ticker-num">244</span><span class="ticker-label">days</span></div><div class="ticker-cell"><span class="ticker-num">23</span><span class="ticker-label">hours</span></div><div class="ticker-cell"><span class="ticker-num">30</span><span class="ticker-label">minutes</span></div><div class="ticker-cell"><span class="ticker-num">00</span><span class="ticker-label">seconds</span></div></div>
+<p class="visually-hidden" id="share-live" role="status">244 days to go</p>
+<p class="share-when" id="share-when">2027-06-12 16:30 (Europe/Paris)</p>
+<noscript><p class="share-noscript">244 days to go. Turn on JavaScript to see the live countdown.</p></noscript>
+</section>
+<aside class="app-banner" id="banner-android" hidden>
+<p class="app-banner-text">See this countdown in the Days That Matter app.</p>
+<div class="app-banner-actions">
+<a class="btn btn-primary" href="https://daysthatmatter.app/e/Zq3u8Yc0Vf1o7e2N9a4Kxw">Open in app</a>
+<a class="btn" href="https://play.google.com/store/apps/details?id=PLAY_PACKAGE_PLACEHOLDER&amp;referrer=share_token%3DZq3u8Yc0Vf1o7e2N9a4Kxw">Get it on Google Play</a>
+</div>
+<a class="app-banner-alt" href="daysthatmatter://event?token=Zq3u8Yc0Vf1o7e2N9a4Kxw">App not opening? Try the app link</a>
+</aside>
+<footer class="share-footer">
+<p>Created by a user of Days That Matter</p>
+<p><a href="mailto:abuse@daysthatmatter.app?subject=Report%20a%20shared%20link&amp;body=Link%3A%20https%3A%2F%2Fdaysthatmatter.app%2Fe%2FZq3u8Yc0Vf1o7e2N9a4Kxw%0A%0AWhat%20is%20wrong%20with%20it%3F%0A">Report this link</a></p>
+</footer>
+</main>
+<script type="application/json" id="share-data">{"shareToken":"Zq3u8Yc0Vf1o7e2N9a4Kxw","payload":{"v":1,"title":"\\u003c/title\\u003e\\u003cscript\\u003ealert(1)\\u003c/script\\u003e\\"\\u003e\\u003cimg src=x onerror=alert(1)\\u003e","emoji":null,"targetDate":"2027-06-12","targetTime":"16:30:00","timeZone":"Europe/Paris","unitMode":"auto","recurrence":{"type":"none","originalYear":null,"days":null},"theme":{"paletteId":"violet","cardStyle":"glass","typography":"modern","gradient":["#8B5CF6","#3B82F6"]}},"serverTime":"2026-10-10T15:00:00Z"}</script>
+<script type="module" src="/assets/countdown.js"></script>
+</body>
+</html>
+"
+`;

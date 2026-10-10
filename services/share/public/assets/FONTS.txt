@@ -1,0 +1,2 @@
+Plus Jakarta Sans and JetBrains Mono (latin subsets, variable) are licensed under the SIL Open Font License 1.1.
+Source: https://fontsource.org (fontsource/font-files).

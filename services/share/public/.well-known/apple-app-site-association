@@ -1,0 +1,10 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["TEAMID_PLACEHOLDER.BUNDLE_ID_PLACEHOLDER"],
+        "components": [{ "/": "/e/*" }]
+      }
+    ]
+  }
+}
