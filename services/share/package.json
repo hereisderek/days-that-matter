@@ -6,7 +6,17 @@
   "scripts": {
     "dev": "wrangler dev --local",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "check:assets": "node scripts/check-placeholders.mjs",
+    "check:assets:strict": "node scripts/check-placeholders.mjs --strict",
+    "migrate:local": "wrangler d1 migrations apply DB --local",
+    "migrate:preview": "wrangler d1 migrations apply DB --remote --env preview",
+    "migrate:prod": "wrangler d1 migrations apply DB --remote --env production",
+    "deploy:dry-run": "wrangler deploy --dry-run --outdir .wrangler/dry-run --env preview && wrangler deploy --dry-run --outdir .wrangler/dry-run --env production",
+    "deploy:preview": "wrangler deploy --env preview",
+    "deploy:prod": "wrangler deploy --env production",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "hono": "^4.13.13",
@@ -15,7 +25,9 @@
   "devDependencies": {
     "@cloudflare/vitest-pool-workers": "^0.23.0",
     "@cloudflare/workers-types": "^4.20260702.0",
+    "eslint": "^9.39.5",
     "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.1",
     "vitest": "~4.1.0",
     "wrangler": "4.124.0"
   }
