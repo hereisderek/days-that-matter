@@ -1,5 +1,6 @@
 import { Hono } from 'hono';
 import type { Env } from '../env';
+import { getShareByToken } from '../lib/db';
 import { PAGE_HEADERS } from '../page/headers';
 import { renderActive, renderGone, renderNotFound, renderUnavailable } from '../page/render';
 import type { PageShare } from '../page/types';
@@ -40,3 +41,6 @@ export function createPageRoutes(lookup: LookupFn): Hono<{ Bindings: Env }> {
   app.all('/e/:token', () => respond(renderNotFound(), 404));
   return app;
 }
+
+/** Mounted by src/index.ts. */
+export const pageRoutes = createPageRoutes(getShareByToken);
