@@ -34,6 +34,7 @@
 - **CI/CD Pipeline & GitHub Workflows:** [`docs/ci-cd/WORKFLOW_PIPELINE.md`](file:///workspace/myapp/days-that-matter/docs/ci-cd/WORKFLOW_PIPELINE.md)
 - **Share Service (Cloudflare Worker + D1, API contract, `services/share/`):** [`docs/architecture/SHARE_SERVICE.md`](file:///workspace/myapp/days-that-matter/docs/architecture/SHARE_SERVICE.md)
 - **Share Service Implementation Plan:** [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](file:///workspace/myapp/days-that-matter/docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md)
+- **Share Service Status, TODO & Next Steps:** [`docs/plans/SHARE_SERVICE_STATUS.md`](file:///workspace/myapp/days-that-matter/docs/plans/SHARE_SERVICE_STATUS.md)
 - **Toolchain & Build Guidelines (JDK 21, Gradle 8.13+):** [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](file:///workspace/myapp/days-that-matter/docs/ci-cd/TOOLCHAIN_GUIDELINES.md)
 
 ### 3.2 Feature Specifications
