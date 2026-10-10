@@ -468,10 +468,11 @@ Not verified (confirm manually before relying on them):
 ### 10.3 Deployment
 
 CI file `.github/workflows/share-service.yml` (owner C). Secrets: `CLOUDFLARE_API_TOKEN` (scoped to Workers and D1 edit), `CLOUDFLARE_ACCOUNT_ID`.
+Required GitHub secrets, variables and environments are listed in [`WORKFLOW_PIPELINE.md`](../ci-cd/WORKFLOW_PIPELINE.md) section 4 and the one-time setup is in `services/share/README.md`. The D1 `database_id` values in `wrangler.jsonc` are not secret; the all-zero placeholders must be replaced before the first deploy and CI refuses to deploy while they remain.
 1. Install (`npm ci`), typecheck, lint, test (`vitest`).
 2. Asset check: placeholders, token drift against `design/v1/css/styles.css`, JSON validity of the association files.
 3. Deploy order: apply D1 migrations (`wrangler d1 migrations apply <db> --remote --env <env>`), then `wrangler deploy --env <env>`. Migrations MUST be backward compatible with the previous Worker version (add columns or tables only; no drops in the same release).
-4. Smoke test after deploy: `GET /api/v1/health`, create then read then revoke a share on preview, fetch both well-known files with `redirect: manual`.
+4. Smoke test after deploy (`npm run smoke` with `BASE_URL`): `GET /api/v1/health`, create then read then revoke a share on preview, fetch both well-known files with `redirect: manual`.
 
 Rollback: `wrangler rollback` for the Worker. D1 changes roll forward only; use Time Travel for data recovery.
 

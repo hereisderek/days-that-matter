@@ -1,4 +1,7 @@
 {
+  // Local and test config. `wrangler dev --local` and vitest use the top level.
+  // Non-inheritable keys (vars, d1_databases, triggers) are repeated per environment on purpose.
+  // Secrets (RATE_SALT, ADMIN_KEY) are never set here: `wrangler secret put <NAME> --env <env>`.
   "name": "dtm-share",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
@@ -17,5 +20,45 @@
     }
   ],
   "triggers": { "crons": ["0 3 * * *"] },
-  "vars": { "MAINTENANCE": "0", "VERSION": "dev" }
+  "vars": { "MAINTENANCE": "0", "VERSION": "dev" },
+  "observability": { "enabled": true, "logs": { "head_sampling_rate": 0.1 } },
+
+  "env": {
+    "preview": {
+      // Deployed on every push to master that touches services/share/**. Host: workers.dev.
+      "name": "dtm-share-preview",
+      "workers_dev": true,
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "dtm-share-preview",
+          // PLACEHOLDER: replace with the id printed by `wrangler d1 create dtm-share-preview`.
+          // Not a secret. CI refuses to deploy while the all-zero id is present.
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "triggers": { "crons": ["0 3 * * *"] },
+      "vars": { "MAINTENANCE": "0", "VERSION": "preview" },
+      "observability": { "enabled": true, "logs": { "head_sampling_rate": 0.1 } }
+    },
+    "production": {
+      // Deployed from tag share-v*.*.* with environment approval. Needs daysthatmatter.app on Cloudflare DNS.
+      "name": "dtm-share",
+      "workers_dev": false,
+      "routes": [{ "pattern": "daysthatmatter.app", "custom_domain": true }],
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "dtm-share",
+          // PLACEHOLDER: replace with the id printed by `wrangler d1 create dtm-share`.
+          "database_id": "00000000-0000-0000-0000-000000000000",
+          "migrations_dir": "migrations"
+        }
+      ],
+      "triggers": { "crons": ["0 3 * * *"] },
+      "vars": { "MAINTENANCE": "0", "VERSION": "production" },
+      "observability": { "enabled": true, "logs": { "head_sampling_rate": 0.1 } }
+    }
+  }
 }

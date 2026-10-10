@@ -1,6 +1,6 @@
 // Typed view of public/assets/countdown.js, which the browser loads as well.
 // The JS file is the single implementation, so the server text and the page agree.
-// @ts-ignore the module has no declaration file (the file is a static asset)
+// @ts-expect-error the module has no declaration file (the file is a static asset)
 import * as raw from '../../public/assets/countdown.js';
 import type { SharePayload } from './types';
 

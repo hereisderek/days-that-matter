@@ -57,13 +57,22 @@ The share service in `services/share/` (Cloudflare Worker + D1, see [`docs/archi
 | `CLOUDFLARE_API_TOKEN` | Token scoped to Workers and D1 edit |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
 
+Required GitHub repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Never commit their values. The Worker secrets `RATE_SALT` and `ADMIN_KEY` are not CI secrets: they are set once per environment with `wrangler secret put`.
+
+| Repository variable | Description |
+| :--- | :--- |
+| `SHARE_PREVIEW_URL` | Preview `workers.dev` URL used by the smoke test |
+| `SHARE_PRODUCTION_URL` | Optional, defaults to `https://daysthatmatter.app` |
+
+GitHub environments `preview` and `production` must exist. `production` needs required reviewers (the approval gate). One-time setup steps are in [`services/share/README.md`](../../services/share/README.md).
+
 ### 4.1 Pull Request Verification
 - **Trigger:** pull request touching `services/share/**`.
-- **Steps:** `npm ci`, typecheck, lint, `vitest` (Workers pool with local D1), `npm run check:assets` (placeholder check, design token drift check, JSON validity of the association files), `npm audit --audit-level=high`, `wrangler deploy --dry-run`.
+- **Steps:** `npm ci`, typecheck, lint, `vitest` (Workers pool with local D1), `npm run check:assets` (placeholder check, design token drift check, JSON validity of the association files), `npm audit --omit=dev --audit-level=high` (production dependencies; the dev toolchain does not ship in the Worker), `wrangler deploy --dry-run` for both environments. The same checks also run on push to `master` and on tags.
 
 ### 4.2 Preview Deploy
 - **Trigger:** push to `master` touching `services/share/**`.
-- **Steps:** apply D1 migrations to the preview database, then `wrangler deploy --env preview`, then the smoke test (health, create/read/revoke, well-known files with `redirect: manual`).
+- **Steps:** refuse the placeholder D1 database id, apply D1 migrations to the preview database, then `wrangler deploy --env preview`, then the smoke test (`npm run smoke`: health, create/read/revoke, well-known files with `redirect: manual`).
 
 ### 4.3 Production Deploy
 - **Trigger:** tag `share-v*.*.*`, with a required environment approval.
