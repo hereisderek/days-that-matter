@@ -95,6 +95,11 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # A tag on a side branch must not reach production: the tagged commit has to be on master.
+      - name: Require tagged commit on master
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/master
       - uses: actions/setup-node@v4
         with:
           node-version: 22
