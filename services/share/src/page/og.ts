@@ -3,7 +3,7 @@ import type { HtmlEscapedString } from 'hono/utils/html';
 
 export const ORIGIN = 'https://daysthatmatter.app';
 // Placeholders until the apps are published (docs/architecture/SHARE_SERVICE.md section 11).
-// scripts/check-placeholders.mjs reports them; a production deploy must have none.
+// scripts/check-assets.mjs reports them; a production deploy must have none.
 export const IOS_APP_ID = 'IOS_APP_ID_PLACEHOLDER';
 export const PLAY_PACKAGE = 'PLAY_PACKAGE_PLACEHOLDER';
 export const REPORT_EMAIL = 'abuse@daysthatmatter.app';

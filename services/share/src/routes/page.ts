@@ -39,6 +39,8 @@ export function createPageRoutes(lookup: LookupFn): Hono<{ Bindings: Env }> {
   });
   // Any other method on /e/* is a plain 404 with the same headers.
   app.all('/e/:token', () => respond(renderNotFound(), 404));
+  // `/e/`, `/e/a/b` and similar also get the HTML 404 page, not the JSON API error.
+  app.all('/e/*', () => respond(renderNotFound(), 404));
   return app;
 }
 

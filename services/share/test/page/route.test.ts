@@ -32,6 +32,15 @@ describe('GET /e/:token', () => {
     expect(PAGE_CSP).toBe(EXPECTED_CSP);
   });
 
+  it('paths under /e/ without a single token segment get the HTML 404 page', async () => {
+    for (const path of ['/e/', '/e/a/b']) {
+      const res = await get(app(okLookup), path);
+      expect(res.status).toBe(404);
+      assertHeaders(res);
+      expect(await res.text()).toContain('Link not found');
+    }
+  });
+
   it('200 active', async () => {
     const res = await get(app(okLookup), `/e/${TOKEN}`);
     expect(res.status).toBe(200);
