@@ -32,6 +32,8 @@
 - **Coding Standards & Kotlin Idioms:** [`docs/standards/CODING_STANDARDS.md`](file:///workspace/myapp/days-that-matter/docs/standards/CODING_STANDARDS.md)
 - **Testing Pyramid & QA Strategy:** [`docs/standards/TESTING_STRATEGY.md`](file:///workspace/myapp/days-that-matter/docs/standards/TESTING_STRATEGY.md)
 - **CI/CD Pipeline & GitHub Workflows:** [`docs/ci-cd/WORKFLOW_PIPELINE.md`](file:///workspace/myapp/days-that-matter/docs/ci-cd/WORKFLOW_PIPELINE.md)
+- **Share Service (Cloudflare Worker + D1, API contract, `services/share/`):** [`docs/architecture/SHARE_SERVICE.md`](file:///workspace/myapp/days-that-matter/docs/architecture/SHARE_SERVICE.md)
+- **Share Service Implementation Plan:** [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](file:///workspace/myapp/days-that-matter/docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md)
 - **Toolchain & Build Guidelines (JDK 21, Gradle 8.13+):** [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](file:///workspace/myapp/days-that-matter/docs/ci-cd/TOOLCHAIN_GUIDELINES.md)
 
 ### 3.2 Feature Specifications
@@ -44,7 +46,7 @@
 - **Media & Background Audio:** [`docs/features/media/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/media/SPEC.md)
   - Multiplatform audio playback engine, file selection via FileKit, loop and fade controls.
 - **Sharing, Deep Linking & Export:** [`docs/features/sharing/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/sharing/SPEC.md)
-  - App Links / Universal Links, web fallback, social card image exporter, QR codes.
+  - App Links / Universal Links, web fallback, social card image exporter, QR codes. Backed by the share service (not Firebase).
 - **Home & Lock Screen Widgets:** [`docs/features/widgets/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/widgets/SPEC.md)
   - Jetpack Glance (Android) and WidgetKit (iOS) specifications, data synchronization.
 - **Memos & Memory Notes:** [`docs/features/memos/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/memos/SPEC.md)

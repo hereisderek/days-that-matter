@@ -46,3 +46,27 @@ Sensitive signing certificates and Firebase configurations are never committed d
 ### 3.3 Self-Hosted Runner Compatibility
 - Automatic check and installation for `unzip` on Linux environments.
 - Remote caching automatically toggled off for self-hosted instances to avoid network throttling and take advantage of persistent local disks.
+
+---
+
+## 4. Share Service Pipeline (`share-service.yml`)
+The share service in `services/share/` (Cloudflare Worker + D1, see [`docs/architecture/SHARE_SERVICE.md`](../architecture/SHARE_SERVICE.md)) has its own workflow. It is independent from the app pipelines and only runs for changes under `services/share/**` and the workflow file.
+
+| Secret Name | Description |
+| :--- | :--- |
+| `CLOUDFLARE_API_TOKEN` | Token scoped to Workers and D1 edit |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
+
+### 4.1 Pull Request Verification
+- **Trigger:** pull request touching `services/share/**`.
+- **Steps:** `npm ci`, typecheck, lint, `vitest` (Workers pool with local D1), `npm run check:assets` (placeholder check, design token drift check, JSON validity of the association files), `npm audit --audit-level=high`, `wrangler deploy --dry-run`.
+
+### 4.2 Preview Deploy
+- **Trigger:** push to `master` touching `services/share/**`.
+- **Steps:** apply D1 migrations to the preview database, then `wrangler deploy --env preview`, then the smoke test (health, create/read/revoke, well-known files with `redirect: manual`).
+
+### 4.3 Production Deploy
+- **Trigger:** tag `share-v*.*.*`, with a required environment approval.
+- **Steps:** same checks, the placeholder check in strict mode (fails while association files contain placeholders), apply D1 migrations to production, `wrangler deploy --env production`, smoke test.
+- **Order rule:** migrations always run before the Worker deploy and must be backward compatible with the previous Worker version.
+- **Rollback:** `wrangler rollback` for the Worker. D1 changes roll forward only.

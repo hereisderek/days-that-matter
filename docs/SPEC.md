@@ -28,6 +28,7 @@ The app helps users track meaningful moments in their lives—past anniversaries
 | **Web Target** | Kotlin/Wasm | Canvas-based rendering with JS fallback |
 | **Local Persistence**| Room KMP 2.7+ | Multiplatform SQLite with reactive Flow queries |
 | **Cloud Backend** | Firebase (Auth, Firestore, Storage)| Multiplatform SDK with strict security rules |
+| **Share Service** | Cloudflare Workers + D1 + Static Assets (free tier) | Share links, web fallback page, association files; see `docs/architecture/SHARE_SERVICE.md` |
 | **Dependency Inj.** | Koin 4.0+ | Compose ViewModel integration |
 
 ---
@@ -72,9 +73,11 @@ All feature-specific requirements, data models, UI flows, and edge cases are iso
 | **Event Engine** | [`docs/features/events/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/events/SPEC.md) | Countdown engine, recurring cadences, sorting, categorization |
 | **Customization** | [`docs/features/customization/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/customization/SPEC.md) | Theming, card styles, typography, color palettes, custom images |
 | **Media & Audio** | [`docs/features/media/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/media/SPEC.md) | Ambient music playback, audio uploads, loop/fade controls |
-| **Sharing & Links** | [`docs/features/sharing/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/sharing/SPEC.md) | Universal / App Links, web preview fallback, card image export, QR |
+| **Sharing & Links** | [`docs/features/sharing/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/sharing/SPEC.md) | Universal / App Links, web preview fallback, card image export, QR, share service API |
 | **Widgets** | [`docs/features/widgets/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/widgets/SPEC.md) | Android Glance widgets, iOS WidgetKit, Lock-screen complications |
 | **Memos** | [`docs/features/memos/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/memos/SPEC.md) | Event milestone memories, collaborative notes, timestamps |
+| **Share Service** | [`docs/architecture/SHARE_SERVICE.md`](file:///workspace/myapp/days-that-matter/docs/architecture/SHARE_SERVICE.md) | Cloudflare Worker + D1 architecture, REST API contract, security, free-tier budget, `services/share/` layout |
+| **Share Service Plan** | [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](file:///workspace/myapp/days-that-matter/docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md) | Milestones, PR breakdown, acceptance criteria, test plan |
 | **Data & Sync** | [`docs/architecture/PERSISTENCE_AND_SYNC.md`](file:///workspace/myapp/days-that-matter/docs/architecture/PERSISTENCE_AND_SYNC.md) | Room KMP schema, Firestore collections, offline reconciliation |
 
 ---

@@ -66,3 +66,8 @@ interface EventDao {
 2. **Pull Phase:** Listen to or query Firestore changes since `lastSyncTimestamp`.
    - For each remote document: compare `updated_at` against local `updated_at`.
    - **Conflict Resolution (Last-Write-Wins):** If remote `updated_at > local updated_at`, overwrite local cache. Otherwise, trigger local push to overwrite stale remote data.
+
+---
+
+## 4. Shared Event Links
+Share links are not stored in Firestore. They are handled by the share service (Cloudflare Worker + D1), see [`SHARE_SERVICE.md`](SHARE_SERVICE.md). The local database keeps a `shares` table (eventId, shareToken, expiresAt, revokedAt, syncStatus). The `manageToken` is kept in secure storage, not in Room or Firestore. Creating, updating and revoking a share are queued as pending operations in the sync engine.
