@@ -64,7 +64,7 @@ days-that-matter/
 │   ├── model/            # Pure Kotlin domain data models
 │   ├── common/           # Coroutine dispatchers, date/time utilities, result wrappers
 │   ├── database/         # Room KMP entity definitions, migrations, DAOs
-│   ├── network/          # Firebase clients and network data sources
+│   ├── network/          # Firebase clients, Ktor client for the share service API, network data sources
 │   ├── designsystem/     # Material 3 Adaptive theme, typography, color palettes, shared UI
 │   └── audio/            # Multiplatform audio playback engine abstraction
 ├── feature/
