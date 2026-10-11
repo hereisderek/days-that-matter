@@ -8,6 +8,7 @@ Normative requirements (OpenSpec change [`pluggable-backend-live-sharing`](../..
 - [`share-web`](../../../openspec/changes/pluggable-backend-live-sharing/specs/share-web/spec.md): web page states, live changes, web sign-in, web editing.
 - [`event-history`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-history/spec.md): revisions and restore.
 - [`event-backdrops`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-backdrops/spec.md): photo and animated backdrops.
+- [`event-audio`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-audio/spec.md): built-in tracks and Spotify links.
 
 Backend API and data model: [`docs/architecture/BACKEND.md`](../../architecture/BACKEND.md).
 
@@ -22,18 +23,20 @@ Backend API and data model: [`docs/architecture/BACKEND.md`](../../architecture/
 | People link | at most 1 | people the owner invited | editors only | needed |
 
 - Both use `https://daysthatmatter.app/e/{token}`. The token is 22 base64url characters (128 bits). There is no way to list or search links.
-- People join through invites: `https://daysthatmatter.app/i/{token}`, single use, role viewer or editor, valid 7 days. The first signed-in person who accepts gets the role. The owner sees who accepted and can change roles or remove people. People can leave.
+- Sharing needs an account: the owner must be signed in to create links or invites, and the receiver must be signed in to accept an invite. Public links open without an account.
+- People join through invites: `https://daysthatmatter.app/i/{token}`, a one-time URL with the role viewer or editor. Opening it consumes nothing; it is consumed when it is linked to an account. Unused invites can be cancelled and expire after 30 days. The owner sees who accepted and can change roles or remove people. People can leave.
 - Roles: **viewer** sees the event live. **editor** also edits the shared fields and backdrop and sees history. **owner** also manages links and people, edits notes, pin and category, and deletes the event. At most 50 people per event.
 - Custom scheme fallback: `daysthatmatter://e/{token}` and `daysthatmatter://i/{token}`.
 
 ### 2.2 Share Flow in the App
-1. **Public link:** Share sheet → "Public link" → optional label and expiry → link created and copied. A guest gets an anonymous account on the first link, after a one-time warning that guest links cannot be managed from another device.
-2. **People:** Share sheet → "People" → "Invite" with a role → the invite URL is handed to the system share sheet. Requires sign-in with Google or Apple; a guest's data is kept when they sign in.
-3. **Manage:** the share screen lists links (copy, rename, change expiry, revoke), people (role, remove) and pending invites (cancel). It loads from the backend, so it is the same on every signed-in device.
-4. **Offline:** link, invite and people actions need a connection and are disabled offline. Event edits work offline and sync later (see [`PERSISTENCE_AND_SYNC.md`](../../architecture/PERSISTENCE_AND_SYNC.md)).
+1. **Public link:** Share sheet → "Public link" → optional label and expiry → link created and copied. A guest first sees the sign-in prompt; after sign-in their events upload and the flow continues.
+2. **People:** Share sheet → "People" → "Invite" with a role → the invite URL is handed to the system share sheet.
+3. **Receiving an invite:** the URL opens the app when installed, otherwise the web page. If the receiver is not signed in, they sign in or create an account (Apple or Google) in the app or on the web. They then see the event name, the owner's name and the role, and tap "Accept". Accepting links their account and consumes the invite. If they already have access, or are the owner, the event opens and the invite stays unused.
+4. **Manage:** the share screen lists links (copy, rename, change expiry, revoke), people (role, remove) and pending invites (cancel). It loads from the backend, so it is the same on every signed-in device.
+5. **Offline:** link, invite and people actions need a connection and are disabled offline. Event edits work offline and sync later (see [`PERSISTENCE_AND_SYNC.md`](../../architecture/PERSISTENCE_AND_SYNC.md)).
 
 ### 2.3 What Is Shared
-Shared fields: title, emoji, date, time, time zone, unit mode, recurrence, theme, backdrop. Never shared: notes, pin state, category, memos, audio. Public links carry no names or account data. People links show the display names of the owner and the people with access.
+Shared fields: title, emoji, date, time, time zone, unit mode, recurrence, theme, backdrop, audio. Never shared: notes, pin state, category, memos. Viewers see Premium content (animated backdrops, Premium tracks) whatever their own plan. Public links carry no names or account data. People links show the display names of the owner and the people with access.
 
 ### 2.4 Time Zone Semantics
 `timeZone` is an IANA name or null. A fixed zone means everyone sees the same instant. Null means "floating": each viewer's local zone is used (New Year, birthdays). An event with no time counts to 00:00 in that zone. See [`docs/features/events/SPEC.md`](../events/SPEC.md).
@@ -59,7 +62,9 @@ Shared fields: title, emoji, date, time, time zone, unit mode, recurrence, theme
 - Live changes: WebSocket notices or polling every 20 seconds, depending on the backend provider. Revoking a link or removing a person switches open pages to the right state.
 - People link and invite pages offer Sign in with Google and Sign in with Apple through redirects. No third-party scripts.
 - Editors get an Edit button (shared fields, backdrop) and a History panel with restore.
-- Backdrop: still photo or silent looping animation with a poster; poster only under reduced motion or data saver.
+- Backdrop: still photo, or an animated photo that plays once and rests on its key photo; key photo only under reduced motion.
+- Audio: a play button for built-in tracks (never autoplay), a "Listen on Spotify" link for Spotify links.
+- The web editor changes text, date, time, zone, recurrence, theme, still backdrop and dim. Animated photos and audio are changed in the app.
 - Smart banners on iOS and Android, none on desktop. Desktop shows the card without a QR code.
 - Not indexed by search engines. Public link previews show title, countdown text and the backdrop still; people links show a generic preview.
 
@@ -78,7 +83,7 @@ Shared fields: title, emoji, date, time, time zone, unit mode, recurrence, theme
 
 ### 5.1 High-Resolution Card Export
 - Offscreen rendering of the event card at 1080x1920 (9:16 Instagram Story aspect ratio) or 1200x630 (horizontal social banner).
-- Includes the event title, countdown counter, custom typography, the backdrop (poster frame for animations) and an optional subtle watermark ("Tracked with Days That Matter").
+- Includes the event title, countdown counter, custom typography, the backdrop (key photo for animated photos) and an optional subtle watermark ("Tracked with Days That Matter").
 - Native system share sheet invokes with image attachment for direct sharing to Instagram, WhatsApp, X/Twitter, or saving to Camera Roll.
 
 ### 5.2 QR Code Sharing
@@ -96,6 +101,5 @@ Shared fields: title, emoji, date, time, time zone, unit mode, recurrence, theme
 ## 7. Out of Scope (this change)
 - Comments, including anonymous comments visible only to the owner (planned; see the change's design D12).
 - Memos in shares and collaborative memos.
-- Audio in shares.
 - Push notifications for changes.
 - Email invites (invites are URLs the owner sends).

@@ -73,25 +73,27 @@ days-that-matter/
 │   ├── auth/             # Sign in with Google and Apple, guest onboarding, account settings
 │   ├── events/           # Event listing, filtering, search, sorting
 │   ├── eventdetail/      # Live countdown view, milestone progress, audio player overlay
-│   ├── eventeditor/      # Creation/editing form, recurrence, customization and backdrop picker
+│   ├── eventeditor/      # Creation/editing form, recurrence, customization, backdrop and audio pickers
 │   ├── sharing/          # Public links, people link, invites, people list, history and restore
+│   ├── premium/          # Paywall, restore purchases, plan state (RevenueCat)
 │   └── memos/            # Milestone reflections and timeline notes
 ├── platform/
-│   ├── android/          # Glance AppWidgets, credentials, media compression (Media3 Transformer)
-│   ├── ios/              # iOS entry point, WidgetKit bridge, media compression (AVFoundation)
+│   ├── android/          # Glance AppWidgets, credentials, Motion Photo extraction and Media3 Transformer
+│   ├── ios/              # iOS entry point, WidgetKit bridge, Live Photo conversion (AVFoundation), share extension
 │   ├── desktop/          # Later: JVM entry point, window lifecycle, menu bar tray
 │   └── web/              # Later: Wasm browser canvas entry point
 ├── composeApp/           # Main application shell and root navigation graph
-├── server/               # Backend, see docs/architecture/BACKEND.md
-│   ├── core/             # Kotlin (jvm, js): router, handlers, ports, SqlStore, page rendering
-│   ├── migrations/       # SQLite migrations shared by D1, self-host and Turso
-│   ├── web/              # Share page static assets and scripts
-│   ├── conformance/      # HTTP test suite run against every adapter
-│   └── cloudflare/ selfhost/ vercel/ firebase/   # one adapter per provider
+├── backend/              # See docs/architecture/BACKEND.md
+│   ├── core/             # ALL backend behavior: API, auth, sync, sharing, history, media checks, plans, audio,
+│   │                     #   pages, purge; plus migrations/, web/, audio/catalog.json, conformance/
+│   ├── cloudflare/       # variant: Workers entry, D1, R2, Durable Object, wrangler config
+│   ├── selfhost/         # variant: Node entry, SQLite file, disk storage, WebSocket hub, Docker
+│   ├── vercel/           # variant: handler, Turso, Vercel Blob, cron
+│   └── firebase/         # variant: function entry, Firestore, Cloud Storage, Hosting config
 └── openspec/             # Spec-driven changes and behavior specs
 ```
 
 Dependency rules:
-- `core/model` depends on nothing but kotlinx-serialization and kotlinx-datetime. Both the app and `server/core` depend on it.
-- `server/core` never depends on `core/network`, `core/database` or any vendor SDK.
-- Adapter modules depend on `server/core` and their vendor SDK only.
+- `core/model` depends on nothing but kotlinx-serialization and kotlinx-datetime. The app depends on it; the backend core either compiles it in (Kotlin/JS) or uses the contract files generated from it (TypeScript).
+- `backend/core` never depends on app modules or any vendor SDK.
+- A variant depends on `backend/core` and its own vendor SDK only, and contains no behavior of its own.

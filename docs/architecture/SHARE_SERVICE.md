@@ -1,6 +1,6 @@
 # Share Service Architecture & API Contract
 
-> **Superseded (2026-10-12).** This describes the TypeScript share service in `services/share/` (snapshot links, manage tokens). The direction changed to a Kotlin backend on pluggable providers with live links, people access and history: see [`BACKEND.md`](BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). This document is kept as the behavior reference for `services/share/` until task 5.5 of that change removes the service.
+> **Superseded (2026-10-12).** This describes the TypeScript share service in `services/share/` (snapshot links, manage tokens). The direction changed to one backend core with provider variants, with live links, people access and history: see [`BACKEND.md`](BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). This document is kept as the behavior reference for `services/share/` until task 5.5 of that change removes the service.
 
 Status: design, not yet implemented. Feature behavior is in [`docs/features/sharing/SPEC.md`](../features/sharing/SPEC.md). Build order is in [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](../plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md).
 

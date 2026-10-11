@@ -10,7 +10,7 @@ The app helps users track meaningful moments in their lives—past anniversaries
 2. **Precision & Depth:** Multi-unit countdown calculations down to seconds, intelligent recurring events, and time-zone resilience.
 3. **Emotional Resonance:** Rich customization including bespoke card aesthetics, typography, full-bleed imagery, and atmospheric background audio.
 4. **Universal Accessibility:** Android and iOS first, with native home-screen and lock-screen widgets. Desktop (JVM) and Web (Wasm) apps follow. Shared events open in any browser.
-5. **Privacy & Offline-First:** Full offline utility powered by local SQLite/Room. Nothing leaves the device until the user shares or signs in. Sync and sharing go through our own backend, which can run on several providers.
+5. **Privacy & Offline-First:** Full offline utility powered by local SQLite/Room. Guests keep everything on the device. Signed-in users sync everything through our own backend, which can run on several providers.
 
 ---
 
@@ -27,7 +27,8 @@ The app helps users track meaningful moments in their lives—past anniversaries
 | **Desktop Target** (later) | macOS (ARM/x64), Windows, Linux | JVM 21, Skiko GPU-accelerated |
 | **Web Target** (later) | Kotlin/Wasm | Canvas-based rendering with JS fallback |
 | **Local Persistence**| Room KMP 2.7+ | Multiplatform SQLite with reactive Flow queries |
-| **Backend** | Kotlin (`:server:core`, shares `:core:model` with the app), compiled to JS | Accounts, sync, sharing, history, backdrops, share web page. Adapters: Cloudflare (Workers, D1, R2, Durable Objects; primary), self-host (Node, SQLite), Vercel (Functions, Turso, Blob), Firebase (Functions, Firestore, Storage). See [`architecture/BACKEND.md`](architecture/BACKEND.md) |
+| **Backend** | `backend/core/` (Kotlin/JS or TypeScript, chosen by measured CPU time and cost) + one variant per provider; rules from `:core:model` | Accounts, sync, sharing, history, backdrops, audio, plans, share web page. Variants: Cloudflare (Workers, D1, R2, Durable Objects; primary), self-host (Node, SQLite), Vercel (Functions, Turso, Blob), Firebase (Functions, Firestore, Storage). See [`architecture/BACKEND.md`](architecture/BACKEND.md) |
+| **Purchases** | StoreKit 2 / Play Billing through RevenueCat | Premium subscriptions, verified by the backend. See [`features/premium/SPEC.md`](features/premium/SPEC.md) |
 | **Network Client** | Ktor + kotlinx-serialization | One HTTP API on every backend provider |
 | **Dependency Inj.** | Koin 4.0+ | Compose ViewModel integration |
 
@@ -69,14 +70,15 @@ All feature-specific requirements, data models, UI flows, and edge cases are iso
 
 | Feature Area | Folder Location | Scope & Highlights |
 | :--- | :--- | :--- |
-| **Authentication** | [`docs/features/auth/SPEC.md`](features/auth/SPEC.md) | Guest mode, anonymous accounts, Google and Apple sign-in, sessions |
+| **Authentication** | [`docs/features/auth/SPEC.md`](features/auth/SPEC.md) | Guest mode, sign-in prompt, Google and Apple sign-in, sessions |
 | **Event Engine** | [`docs/features/events/SPEC.md`](features/events/SPEC.md) | Countdown engine, recurring cadences, sorting, categorization |
-| **Customization** | [`docs/features/customization/SPEC.md`](features/customization/SPEC.md) | Theming, card styles, typography, color palettes, photo and animated backdrops |
-| **Media & Audio** | [`docs/features/media/SPEC.md`](features/media/SPEC.md) | Ambient music playback, audio uploads, loop/fade controls |
+| **Customization** | [`docs/features/customization/SPEC.md`](features/customization/SPEC.md) | Theming, card styles, typography, color palettes, still and animated (Live/Motion) photo backdrops |
+| **Media & Audio** | [`docs/features/media/SPEC.md`](features/media/SPEC.md) | Built-in audio catalog, Spotify links, loop/fade controls |
 | **Sharing & Links** | [`docs/features/sharing/SPEC.md`](features/sharing/SPEC.md) | Public links, people link and invites, live updates, history, web page, App Links, card export, QR |
 | **Widgets** | [`docs/features/widgets/SPEC.md`](features/widgets/SPEC.md) | Android Glance widgets, iOS WidgetKit, Lock-screen complications |
 | **Memos** | [`docs/features/memos/SPEC.md`](features/memos/SPEC.md) | Event milestone memories, collaborative notes, timestamps |
-| **Backend** | [`docs/architecture/BACKEND.md`](architecture/BACKEND.md) | Ports and provider adapters, data model, REST API contract, limits, free-tier budget |
+| **Premium** | [`docs/features/premium/SPEC.md`](features/premium/SPEC.md) | Plans, feature table, paywall and gating rules |
+| **Backend** | [`docs/architecture/BACKEND.md`](architecture/BACKEND.md) | Core and provider variants, ports, data model, REST API contract, limits, free-tier budget |
 | **Data & Sync** | [`docs/architecture/PERSISTENCE_AND_SYNC.md`](architecture/PERSISTENCE_AND_SYNC.md) | Room KMP schema, sync protocol with the backend, offline reconciliation |
 
 ---

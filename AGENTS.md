@@ -6,7 +6,7 @@
 
 ## 1. Project Overview & Mission
 
-**Days That Matter** is a high-precision milestone and countdown application built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform (CMP)**. Android and iOS come first; Desktop (JVM) and Web (Kotlin/Wasm) apps come later. A Kotlin backend shares the `:core:model` module with the app and runs on Cloudflare, a self-hosted server, Vercel or Firebase.
+**Days That Matter** is a high-precision milestone and countdown application built with **Kotlin Multiplatform (KMP)** and **Compose Multiplatform (CMP)**. Android and iOS come first; Desktop (JVM) and Web (Kotlin/Wasm) apps come later. The backend has one core (`backend/core/`) and one variant per provider (Cloudflare, self-host, Vercel, Firebase). Its rules come from `:core:model`, the Kotlin module shared with the app.
 
 - **Primary Specification:** [`docs/SPEC.md`](docs/SPEC.md)
 - **User Documentation:** [`README.md`](README.md)
@@ -19,8 +19,9 @@
 2. **Specification Adherence:** Never invent ad-hoc data schemas or business logic that diverge from the specifications in [`openspec/specs/`](openspec/specs/), the active changes in [`openspec/changes/`](openspec/changes/), and [`docs/features/`](docs/features/). Where they disagree, the active OpenSpec change wins.
 3. **Documentation Sync:** When a significant architectural choice, schema modification, or feature is added, update the corresponding documentation immediately.
 4. **Toolchain Discipline:** Do not hardcode dependency versions in `build.gradle.kts`. Always use the Gradle Version Catalog (`gradle/libs.versions.toml`).
-5. **No Platform Code in Domain:** Keep domain entities and use cases strictly pure Kotlin. `:core:model` is also compiled for the server (JS, JVM), so it may depend only on Kotlin stdlib, kotlinx-serialization and kotlinx-datetime.
-6. **No Vendor SDK in the Server Core:** `:server:core` talks to providers only through its ports (`Store`, `BlobStore`, `LiveHub`). Vendor code belongs in the adapter modules (`server/cloudflare`, `server/selfhost`, `server/vercel`, `server/firebase`).
+5. **No Platform Code in Domain:** Keep domain entities and use cases strictly pure Kotlin. `:core:model` is also compiled for the backend (JS, JVM), so it may depend only on Kotlin stdlib, kotlinx-serialization and kotlinx-datetime.
+6. **Backend Core and Variants:** all backend behavior lives in `backend/core/`. A variant directory (`backend/cloudflare`, `backend/selfhost`, `backend/vercel`, `backend/firebase`) holds only port implementations (`Store`, `BlobStore`, `LiveHub`), an entry file and deploy config. Performance and low running cost come first.
+7. **Premium Features:** any change to what a plan includes updates the plan table in `:core:model` and [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md) in the same PR. Gating uses the event owner's plan; viewing is never gated.
 
 ---
 
@@ -35,7 +36,7 @@ Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenS
 - After the change ships: `openspec archive <change>` merges its deltas into `openspec/specs/`.
 - `docs/` keeps architecture and reference material. When a change alters something described there, update the doc in the same PR.
 
-Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-backend-live-sharing/) (Kotlin backend on four providers, accounts, sync, live links, people access, history, photo backdrops).
+Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-backend-live-sharing/) (backend core with four provider variants, accounts, sync of everything, live links, people access and invites, history, Live Photo and Motion Photo backdrops, audio catalog and Spotify links, Premium plans).
 
 ---
 
@@ -44,7 +45,7 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 ### 4.1 Architectural & Technical Guidelines
 - **Master Specification:** [`docs/SPEC.md`](docs/SPEC.md)
 - **System Architecture & Modularization:** [`docs/architecture/SYSTEM_ARCHITECTURE.md`](docs/architecture/SYSTEM_ARCHITECTURE.md)
-- **Backend (ports, adapters, data model, API contract, limits):** [`docs/architecture/BACKEND.md`](docs/architecture/BACKEND.md)
+- **Backend (core, variants, ports, data model, API contract, limits):** [`docs/architecture/BACKEND.md`](docs/architecture/BACKEND.md)
 - **Persistence, Room KMP & Sync:** [`docs/architecture/PERSISTENCE_AND_SYNC.md`](docs/architecture/PERSISTENCE_AND_SYNC.md)
 - **Coding Standards & Kotlin Idioms:** [`docs/standards/CODING_STANDARDS.md`](docs/standards/CODING_STANDARDS.md)
 - **Testing Pyramid & QA Strategy:** [`docs/standards/TESTING_STRATEGY.md`](docs/standards/TESTING_STRATEGY.md)
@@ -54,19 +55,21 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 
 ### 4.2 Feature Specifications
 - **Authentication & Accounts:** [`docs/features/auth/SPEC.md`](docs/features/auth/SPEC.md)
-  - Guest mode, anonymous accounts, Sign in with Google and Apple, sessions, account deletion.
+  - Guest mode, sign-in prompt, Sign in with Google and Apple (also creates the account), sessions, account deletion.
 - **Event Tracking & Countdown Engine:** [`docs/features/events/SPEC.md`](docs/features/events/SPEC.md)
   - Time calculation algorithms, time zones, recurrence schedules, categorization, filtering, and sorting.
 - **Customization & Visual Theming:** [`docs/features/customization/SPEC.md`](docs/features/customization/SPEC.md)
   - Card styles, color palettes, gradients, photo and animated backdrops, typography presets, auto-contrast.
 - **Media & Background Audio:** [`docs/features/media/SPEC.md`](docs/features/media/SPEC.md)
-  - Multiplatform audio playback engine, file selection via FileKit, loop and fade controls.
+  - Built-in audio catalog (free and Premium tracks), Spotify links, playback engine, loop and fade controls.
 - **Sharing, Deep Linking & Export:** [`docs/features/sharing/SPEC.md`](docs/features/sharing/SPEC.md)
   - Public links, people link and invites, live updates, history, web page, App Links / Universal Links, card image export, QR codes.
 - **Home & Lock Screen Widgets:** [`docs/features/widgets/SPEC.md`](docs/features/widgets/SPEC.md)
   - Jetpack Glance (Android) and WidgetKit (iOS) specifications, data synchronization.
 - **Memos & Memory Notes:** [`docs/features/memos/SPEC.md`](docs/features/memos/SPEC.md)
-  - Milestone reflections, timeline entries, author attribution.
+  - Milestone reflections, timeline entries, author attribution, synced across the owner's devices.
+- **Plans & Premium Features:** [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md)
+  - Free, Premium and reserved Premium Plus; the feature table; paywall and gating rules.
 
 ---
 

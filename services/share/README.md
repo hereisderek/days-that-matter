@@ -1,6 +1,6 @@
 # Days That Matter share service
 
-> **Superseded (2026-10-12).** This service is frozen. Do not deploy it. The direction changed to a Kotlin backend on pluggable providers with live links, people access and history: see [`BACKEND.md`](../../docs/architecture/BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). This document is kept as the behavior reference for `services/share/` until task 5.5 of that change removes the service.
+> **Superseded (2026-10-12).** This service is frozen. Do not deploy it. The direction changed to one backend core with provider variants, with live links, people access and history: see [`BACKEND.md`](../../docs/architecture/BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). This document is kept as the behavior reference for `services/share/` until task 5.5 of that change removes the service.
 
 Cloudflare Worker + D1 + Static Assets. Serves the public share page (`/e/{token}`), the App Links / Universal Links files and the REST API under `/api/v1`. Contract: [`docs/architecture/SHARE_SERVICE.md`](../../docs/architecture/SHARE_SERVICE.md). Plan: [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](../../docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md).
 

@@ -10,7 +10,7 @@ Empowers users to transform simple dates into personalized visual art. Offers cu
 ### 2.1 Backgrounds
 1. **Curated Color Presets:** Carefully selected minimal, pastel, and vibrant palettes.
 2. **Gradients:** Multi-stop linear and radial gradients with adjustable angle.
-3. **Photo & Animated Backdrops:** A still photo, or a short animation (video, iOS Live Photo, GIF, animated WebP) with a still poster. Picked via `FileKit` and the platform photo pickers, compressed on the device (stills at most 1.5 MB and 2560 px; animations at most 4 MB, 10 s, 1280 px, silent), uploaded to the backend when the event is synced or shared. Location and camera metadata are removed. Reduced motion shows the poster. Requirements: the [`event-backdrops`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-backdrops/spec.md) spec.
+3. **Photo & Animated Backdrops:** A still photo (free), or an animated photo from an iPhone Live Photo or a Google Motion Photo (Premium on the event owner's plan; free users can preview it and are offered "Use still photo" on save). Picked from the platform photo pickers and converted on the device (stills JPEG or WebP, at most 1.5 MB and 2560 px; motion H.264 MP4, at most 4 MB, 5 s, 1280 px, silent). The animation plays once when the event opens and on touch, then rests on the key photo; reduced motion shows the key photo only. Viewers see it animated whatever their plan. Location and camera metadata are removed. Requirements: the [`event-backdrops`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-backdrops/spec.md) spec.
 4. **Curated Wallpapers:** Bundled high-resolution nature, abstract, and festive wallpapers.
 5. **Dark Mode Adaptation:** Automatic darkening / scrim overlay applied in dark mode.
 
@@ -53,10 +53,10 @@ sealed interface BackgroundConfig {
     @Serializable data class ImagePreset(val presetId: String) : BackgroundConfig
     @Serializable data class Photo(
         val kind: BackdropKind,                 // Still or Animated
-        val localPath: String?,                 // device cache; null until downloaded
-        val mediaId: String? = null,            // set after upload
-        val posterMediaId: String? = null,      // animated only
-        val posterLocalPath: String? = null
+        val stillLocalPath: String?,            // device cache; for Animated this is the key photo
+        val stillId: String? = null,            // set after upload
+        val motionLocalPath: String? = null,    // Animated only: H.264 MP4
+        val motionId: String? = null
     ) : BackgroundConfig
 }
 

@@ -51,12 +51,12 @@ Sensitive signing certificates and Firebase configurations are never committed d
 
 ## 4. Backend Pipeline (`backend.yml`, planned)
 
-The backend in `server/` (see [`BACKEND.md`](../architecture/BACKEND.md)) gets one workflow, added by task 5.3 of the OpenSpec change `pluggable-backend-live-sharing`:
+The backend in `backend/` (see [`BACKEND.md`](../architecture/BACKEND.md)) gets one workflow, added by task 5.3 of the OpenSpec change `pluggable-backend-live-sharing`:
 
-- **Pull request** touching `core/model/**`, `server/**` or the workflow: `:core:model` and `:server:core` tests, store conformance, then the HTTP conformance suite against each adapter (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
+- **Pull request** touching `core/model/**`, `backend/**` or the workflow: `:core:model` and `backend/core` tests (plus the contract drift check with a TypeScript core), store conformance, then the HTTP conformance suite against each variant (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
 - **Push to `master`:** the same, then D1 migrations and deploy to the Cloudflare preview, then the smoke test.
 - **Tag `backend-v*.*.*`:** production deploy to Cloudflare with environment approval. Other providers deploy manually until they are used in production.
-- Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as below. OAuth client secrets, the Apple key and `RATE_SALT` are set per environment with `wrangler secret put`, never in CI.
+- Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as below. OAuth client secrets, the Apple key, the RevenueCat secret key and `RATE_SALT` are set per environment with `wrangler secret put`, never in CI.
 
 Until task 5.5 removes it, the old share service workflow below stays in place.
 

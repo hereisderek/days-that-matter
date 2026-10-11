@@ -1,6 +1,6 @@
 # Share Service Implementation Plan
 
-> **Superseded (2026-10-12).** This plan was completed for milestones M1 to M4. Milestones M5 and M6 are replaced by the change's `tasks.md`. The direction changed to a Kotlin backend on pluggable providers with live links, people access and history: see [`BACKEND.md`](../architecture/BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). This document is kept as the behavior reference for `services/share/` until task 5.5 of that change removes the service.
+> **Superseded (2026-10-12).** This plan was completed for milestones M1 to M4. Milestones M5 and M6 are replaced by the change's `tasks.md`. The direction changed to one backend core with provider variants, with live links, people access and history: see [`BACKEND.md`](../architecture/BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). This document is kept as the behavior reference for `services/share/` until task 5.5 of that change removes the service.
 
 Design and API contract: [`docs/architecture/SHARE_SERVICE.md`](../architecture/SHARE_SERVICE.md). Feature behavior: [`docs/features/sharing/SPEC.md`](../features/sharing/SPEC.md).
 

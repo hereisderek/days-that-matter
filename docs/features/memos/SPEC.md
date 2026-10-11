@@ -15,8 +15,8 @@ Transforms simple countdown timers into rich digital keepsakes. Users can log me
 
 ### 2.2 Collaboration & Permissions
 - Event owners can add, edit, and delete any memo.
-- Memos stay on the device in this phase. They are not synced across the owner's devices, not visible to people with access and never appear on link pages. Memo sync is a separate change.
-- Later: editors of a shared event (see the `event-sharing` spec) may add their own memos. Comments from link visitors, optionally anonymous and visible only to the owner, are a separate planned feature (design D12 of the change [`pluggable-backend-live-sharing`](../../../openspec/changes/pluggable-backend-live-sharing/design.md)).
+- Memos sync across the owner's signed-in devices (see [`PERSISTENCE_AND_SYNC.md`](../../architecture/PERSISTENCE_AND_SYNC.md)). They are visible to the owner only: not to people with access, never on link pages.
+- Later: editors of a shared event (see the `event-sharing` spec) may add their own memos. Comments from link visitors, optionally anonymous and visible only to the owner, are a separate planned feature; they will sync the same way as memos (design D12 of the change [`pluggable-backend-live-sharing`](../../../openspec/changes/pluggable-backend-live-sharing/design.md)).
 
 ---
 

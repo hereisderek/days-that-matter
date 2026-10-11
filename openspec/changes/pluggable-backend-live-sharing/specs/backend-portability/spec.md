@@ -18,10 +18,10 @@ The backend SHALL expose the same HTTP API on every supported provider: the same
 - **THEN** the response is `400` with error code `invalid_payload` and field path `title` in `details`
 
 ### Requirement: Supported means conformance passes
-A provider SHALL be listed as supported only while the backend conformance suite passes against it. CI SHALL run the suite for every provider adapter on every change to the backend.
+A provider SHALL be listed as supported only while the backend conformance suite passes against it. CI SHALL run the suite for every provider variant on every change to the backend.
 
-#### Scenario: Adapter breaks conformance
-- **WHEN** a change makes the Firebase adapter fail a conformance test
+#### Scenario: Variant breaks conformance
+- **WHEN** a change makes the Firebase variant fail a conformance test
 - **THEN** CI fails and the change cannot merge
 
 ### Requirement: Same limits on every provider
@@ -32,7 +32,7 @@ Size limits, quotas and rate limits SHALL be the same on every provider. They SH
 - **THEN** the response is `413` with error code `payload_too_large`
 
 #### Scenario: Upload at the limit
-- **WHEN** a client uploads a valid 4 MB animated backdrop to any provider
+- **WHEN** a client uploads a valid 4 MB animated backdrop for a Premium owner's event to any provider
 - **THEN** the upload succeeds
 
 ### Requirement: Live update mode is discoverable
