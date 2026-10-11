@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Lets the operator run the backend on Cloudflare, a self-hosted server, Vercel or Firebase without changing the app or the share web page.
+Lets the operator run the backend on Cloudflare, a self-hosted server, Vercel or Firebase, in one or more regions, without changing the app or the share web page.
 
 ## ADDED Requirements
 
@@ -25,26 +25,33 @@ A provider SHALL be listed as supported only while the backend conformance suite
 - **THEN** CI fails and the change cannot merge
 
 ### Requirement: Same limits on every provider
-Size limits, quotas and rate limits SHALL be the same on every provider. They SHALL fit within the smallest platform limit of any supported provider, so no provider rejects a request that another accepts.
+Size limits, plan limits and rate limits SHALL be the same on every provider. They SHALL fit within the smallest platform limit of any supported provider, so no provider rejects a request that another accepts.
 
 #### Scenario: Upload over the limit
-- **WHEN** a client uploads a 4.2 MB animated backdrop to any provider
+- **WHEN** a client uploads a 4.2 MB file to any provider
 - **THEN** the response is `413` with error code `payload_too_large`
 
 #### Scenario: Upload at the limit
-- **WHEN** a client uploads a valid 4 MB animated backdrop for a Premium owner's event to any provider
+- **WHEN** a Premium user uploads a valid 4 MB animated photo to any provider
 - **THEN** the upload succeeds
 
-### Requirement: Live update mode is discoverable
-The health endpoint SHALL report the backend version and its live update mode, `ws` or `poll`. Clients SHALL use WebSocket notifications in `ws` mode and conditional polling in `poll` mode.
+### Requirement: Deployment capabilities are discoverable
+Each deployment SHALL report its live update mode (`ws` or `poll`), enabled sign-in methods, purchase stores and optional features such as Spotify links. The app and the share page SHALL offer only what the deployment reports, and SHALL use WebSocket notices in `ws` mode and conditional polling in `poll` mode.
+
+#### Scenario: Deployment without Google sign-in
+- **WHEN** a deployment does not enable Google sign-in
+- **THEN** the app's sign-in screen shows no Google button
 
 #### Scenario: Provider in poll mode
-- **WHEN** the backend reports live mode `poll` and a share page is open and visible
+- **WHEN** the deployment reports live mode `poll` and a share page is open and visible
 - **THEN** the page checks for changes at most once every 20 seconds and gets `304 Not Modified` while nothing changed
 
-#### Scenario: Provider in ws mode
-- **WHEN** the backend reports live mode `ws` and a share page is open
-- **THEN** the page keeps one WebSocket open and makes no polling requests
+### Requirement: Regions are separate deployments
+A region SHALL be an independent deployment with its own domain and data. An account and its events SHALL belong to one region. The app SHALL choose the region once per install and keep it.
+
+#### Scenario: Region chosen once
+- **WHEN** a user installs the app from a storefront mapped to a region and later travels abroad
+- **THEN** the app keeps using the region it chose at first launch
 
 ### Requirement: Maintenance mode
 The operator SHALL be able to put the backend in maintenance mode. In maintenance mode every write SHALL return `503` with error code `service_unavailable`, while reads and share pages keep working.

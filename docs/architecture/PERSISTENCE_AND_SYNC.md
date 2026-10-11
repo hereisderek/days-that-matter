@@ -87,7 +87,7 @@ Shared rules (`:core:model`): field sets, validation, patch apply, plan table. T
 1. **Push** (signed in only), in order of `updated_at`:
    - Pending backdrop files are uploaded first (`POST /events/{id}/media`); the returned ids replace the local paths in the patch.
    - Events with `server_rev == null`: `PUT /events/{id}` with the full document. This also covers the first sign-in on a device, when all guest events are new to the account.
-   - `is_deleted`: `DELETE /events/{id}` (owner), or leave (`DELETE /events/{id}/people/me`) for shared-with-me events. On success the row is removed.
+   - `is_deleted`: `DELETE /events/{id}` (owner), or leave (`DELETE /events/{id}/members/me`) for shared-with-me events. On success the row is removed.
    - Otherwise: `PATCH /events/{id}` with `{baseRev: server_rev, patch: pending_patch}`. On success, store the returned document and `rev`, clear `pending_patch`. If `overwritten` is not empty, show a notice naming the replaced fields.
    - Memos: `PUT`, `PATCH` or `DELETE /events/{id}/memos/{memoId}` the same way.
 2. **Pull**:
@@ -98,7 +98,7 @@ Shared rules (`:core:model`): field sets, validation, patch apply, plan table. T
 3. **Merge**: the backend keeps the newest write per field and records every event write as a revision (see `BACKEND.md` section 7). The app never shows a conflict dialog.
 4. **Errors**: `401` asks the user to sign in again and keeps local data. `403 field_not_allowed` or `400 invalid_payload` drops the patch fields named in `details` and reports it. `402 premium_required` reverts that field locally and shows the paywall. `429` and `503` retry with backoff.
 5. **Live**: while a shared event is open, the app listens for change notices (WebSocket or polling, from `GET /health`) and refetches that event.
-6. **Network-only actions**: creating and revoking links, invites, people changes, accepting invites and history restore need a connection. The app disables them offline.
+6. **Network-only actions**: creating and revoking links and invites, member changes, joining through an invite and history restore need a connection. The app disables them offline.
 
 ---
 

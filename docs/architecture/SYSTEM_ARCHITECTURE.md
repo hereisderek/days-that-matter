@@ -70,16 +70,16 @@ days-that-matter/
 │   ├── designsystem/     # Material 3 Adaptive theme, typography, color palettes, shared UI
 │   └── audio/            # Multiplatform audio playback engine abstraction
 ├── feature/
-│   ├── auth/             # Sign in with Google and Apple, guest onboarding, account settings
+│   ├── auth/             # Google, Apple and email code sign-in, guest onboarding, account settings
 │   ├── events/           # Event listing, filtering, search, sorting
 │   ├── eventdetail/      # Live countdown view, milestone progress, audio player overlay
 │   ├── eventeditor/      # Creation/editing form, recurrence, customization, backdrop and audio pickers
-│   ├── sharing/          # Public links, people link, invites, people list, history and restore
-│   ├── premium/          # Paywall, restore purchases, plan state (RevenueCat)
+│   ├── sharing/          # Public links, invite links, join flow, members, history and restore
+│   ├── premium/          # Paywall, restore purchases, plan state (StoreKit 2 bridge, Play Billing)
 │   └── memos/            # Milestone reflections and timeline notes
 ├── platform/
 │   ├── android/          # Glance AppWidgets, credentials, Motion Photo extraction and Media3 Transformer
-│   ├── ios/              # iOS entry point, WidgetKit bridge, Live Photo conversion (AVFoundation), share extension
+│   ├── ios/              # iOS entry point, WidgetKit bridge, Live Photo conversion (AVFoundation), StoreKit 2 bridge, share extension
 │   ├── desktop/          # Later: JVM entry point, window lifecycle, menu bar tray
 │   └── web/              # Later: Wasm browser canvas entry point
 ├── composeApp/           # Main application shell and root navigation graph

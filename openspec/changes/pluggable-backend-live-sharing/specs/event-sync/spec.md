@@ -61,7 +61,7 @@ Memos SHALL sync with the same rules as events: offline first, sent automaticall
 - **THEN** its memos match the backend, including memos deleted in the meantime
 
 ### Requirement: Shared validation
-The app and the backend SHALL apply the same validation rules, built from one shared definition. A rejected write SHALL return `400 invalid_payload` with the field path. Titles SHALL be 1 to 100 characters, notes at most 4,000 characters, memo text at most 10,000 characters. An account SHALL own at most 500 events, and an event SHALL have at most 500 memos.
+The app and the backend SHALL apply the same validation rules, built from one shared definition. A rejected write SHALL return `400 invalid_payload` with the field path. Titles SHALL be 1 to 100 characters, notes at most 4,000 characters, memo text at most 10,000 characters, and an event SHALL have at most 500 memos. The number of owned events follows the plan table (premium spec).
 
 #### Scenario: Title too long
 - **WHEN** a user types a 101 character title

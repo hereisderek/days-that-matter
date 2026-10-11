@@ -56,7 +56,7 @@ The backend in `backend/` (see [`BACKEND.md`](../architecture/BACKEND.md)) gets 
 - **Pull request** touching `core/model/**`, `backend/**` or the workflow: `:core:model` and `backend/core` tests (plus the contract drift check with a TypeScript core), store conformance, then the HTTP conformance suite against each variant (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
 - **Push to `master`:** the same, then D1 migrations and deploy to the Cloudflare preview, then the smoke test.
 - **Tag `backend-v*.*.*`:** production deploy to Cloudflare with environment approval. Other providers deploy manually until they are used in production.
-- Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as below. OAuth client secrets, the Apple key, the RevenueCat secret key and `RATE_SALT` are set per environment with `wrangler secret put`, never in CI.
+- Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as below. OAuth client secrets, the Apple keys, the Google Play service account, the email provider key, `RATE_SALT`, `EMAIL_CODE_KEY` and `INVITE_KEY` are set per environment with `wrangler secret put`, never in CI.
 
 Until task 5.5 removes it, the old share service workflow below stays in place.
 

@@ -3,7 +3,7 @@
 Normative requirements: the [`event-audio`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-audio/spec.md) spec. Plans: [`premium/SPEC.md`](../premium/SPEC.md).
 
 ## 1. Overview & Goals
-Events can have background music for emotional depth: a built-in track served by our backend, or a link to Spotify. Audio is a shared field, so people with access and link visitors can play it too.
+Events can have background music for emotional depth: a built-in track served by our backend, a custom audio file (Premium), or a link to Spotify. Audio is a shared field, so members and link visitors can play it too, except custom audio, which plays for the owner and members only.
 
 ---
 
@@ -11,7 +11,7 @@ Events can have background music for emotional depth: a built-in track served by
 
 ### 2.1 Built-in Tracks
 - Catalog served by the backend (`GET /api/v1/audio/catalog`): id, title, artist, duration, tier. The catalog changes with a backend deploy, not an app release.
-- A handful of tracks are free (initial catalog: 5); the rest need Premium on the event owner's plan. Any track can be previewed.
+- A handful of tracks are free (initial catalog: 5); the rest need Premium on the plan of the person saving them. Any track can be previewed.
 - Files: AAC (`.m4a`), at most 4 MB. Downloaded through `GET /api/v1/audio/{trackId}`, which checks access, then cached on the device for offline playback.
 - Anyone who can see an event can play its track, whatever their own plan.
 
@@ -19,14 +19,18 @@ Events can have background music for emotional depth: a built-in track served by
 - The user shares a Spotify track, album or playlist from the Spotify app to Days That Matter (Android share intent, iOS share extension), or pastes its `open.spotify.com` link.
 - The app reads the title and artist from Spotify's public oEmbed endpoint. No Spotify sign-in.
 - Playing opens Spotify: the Spotify app when installed, the Spotify website otherwise. There is no in-app Spotify playback: Spotify's Web API and SDK access is limited to a few allowlisted users unless an app has 250,000 monthly users, and on-demand playback needs Spotify Premium.
-- Free plan: Spotify links on up to 3 owned events. Premium: unlimited.
+- Free plan: Spotify links on up to 3 events (counted for the person who set them). Premium: no separate limit.
+- Hidden in regions where Spotify is unavailable (China).
 
-### 2.3 Removed
-Picking audio files from the device is removed: large uploads, and copyright risk on public pages.
+### 2.3 Custom Audio Files (Premium)
+- Picked from the device with `FileKit` (MP3, M4A, AAC, WAV and other formats the platform decodes).
+- Converted on the device to AAC (`.m4a`) of at most 4 MB: about 5.5 minutes at 96 kbps. For a longer file the user picks the section to keep.
+- Uploaded through `POST /api/v1/events/{id}/media` (kind `audio`) and served only through the access-checked audio route, to the owner and members. Never on public link pages (copyright risk of publishing user-uploaded music).
+- Premium: up to 20 custom audio files in use. Free: preview only, paywall on save. Limits: [`premium/SPEC.md`](../premium/SPEC.md).
 
 ---
 
-## 3. Playback Engine (built-in tracks)
+## 3. Playback Engine (built-in tracks and custom audio)
 
 ### 3.1 Features
 - **Looping:** Seamless infinite looping option.
@@ -67,6 +71,7 @@ interface AudioPlayer {
 - Spotify link: shows the title and a Spotify button that opens Spotify.
 
 ### 4.2 Audio Selection Sheet
-- Tab "Built-in": the catalog with preview buttons; Premium tracks carry a Premium badge. Saving a Premium track on a free owner's event shows the paywall.
+- Tab "Built-in": the catalog with preview buttons; Premium tracks carry a Premium badge. Saving one without Premium shows the paywall.
+- Tab "My files": pick a file, preview, trim to a section if it is long. Saving without Premium shows the paywall.
 - Tab "Spotify": paste a link, or instructions to share from Spotify. A fourth Spotify event on the free plan shows the paywall.
 - Remove / detach audio option.

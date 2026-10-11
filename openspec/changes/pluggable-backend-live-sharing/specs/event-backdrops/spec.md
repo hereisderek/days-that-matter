@@ -2,12 +2,12 @@
 
 ## Purpose
 
-Lets owners and editors use a still photo, or with Premium an animated photo from an iPhone Live Photo or a Google Motion Photo, as an event's backdrop, sized automatically so it loads fast in the app and on the web.
+Lets owners and editors use a still photo, or with a paid plan an animated photo from an iPhone Live Photo or a Google Motion Photo, as an event's backdrop, sized automatically so it loads fast in the app and on the web.
 
 ## ADDED Requirements
 
 ### Requirement: Backdrop types
-An event SHALL have at most one backdrop: a still photo, or an animated photo with a still key photo. Animated photos SHALL come from iPhone Live Photos and from Motion Photos in Google's format. A Motion Photo in another vendor's format SHALL be used as a still photo without an error.
+An event SHALL have at most one backdrop: a still photo, or an animated photo with a still key photo. Animated photos SHALL come from iPhone Live Photos and from Motion Photos in Google's format. A motion photo in another vendor's format SHALL be used as a still photo without an error.
 
 #### Scenario: Live Photo
 - **WHEN** a user picks a Live Photo as the backdrop
@@ -18,33 +18,44 @@ An event SHALL have at most one backdrop: a still photo, or an animated photo wi
 - **THEN** the app uses its still image as the backdrop
 
 ### Requirement: Conversion on the device
-The app SHALL convert a backdrop before upload so it fits the limits without the user doing anything. Stills SHALL be JPEG or WebP, at most 1.5 MB and 2560 px on the long edge. The motion part SHALL be an H.264 MP4 without sound, at most 4 MB, 5 seconds and 1280 px on the long edge. The key photo SHALL follow the still limits. The web editor SHALL accept still photos only.
+The app SHALL convert a backdrop before upload so it fits the limits without the user doing anything. Stills and key photos SHALL be JPEG or WebP, at most 1.5 MB and 2560 px on the long edge. The motion part SHALL be an H.264 MP4 without sound, at most 4 MB, 5 seconds and 1280 px on the long edge. The web editor SHALL accept still photos only.
 
 #### Scenario: Large phone photo
 - **WHEN** a user picks a 12 megapixel, 6 MB photo
 - **THEN** the app uploads a still of at most 1.5 MB without asking the user to do anything
 
 #### Scenario: Live Photo with sound
-- **WHEN** a Premium owner saves a Live Photo backdrop
+- **WHEN** a Premium user saves a Live Photo backdrop
 - **THEN** the uploaded motion part is a silent H.264 MP4 of at most 5 seconds and 4 MB
 
-### Requirement: Animated photos are Premium on save
-Any user SHALL be able to pick an animated photo and preview it moving. Saving it SHALL require the event owner's plan to include animated backdrops. Otherwise the app SHALL show the paywall with an option to upgrade and an option to use the still photo instead. The backend SHALL reject an animated backdrop for such an event with `402 premium_required`.
+### Requirement: Photo limits per plan
+The number of photo backdrops and of animated photo backdrops an account has in use SHALL follow the plan table, counting the backdrops that account added on any event. Removing or replacing a backdrop SHALL free its slot. Over a limit, the app SHALL show the paywall and the backend SHALL reject the upload with `402 premium_required`, or `429 quota_exceeded` when no plan raises the limit.
+
+#### Scenario: Free user adds a sixth photo
+- **WHEN** a free user with 5 photo backdrops in use adds a photo to another event
+- **THEN** the paywall appears and the event keeps its previous background
+
+#### Scenario: Premium user at the animated limit
+- **WHEN** a Premium user with 30 animated photos in use saves another one
+- **THEN** the app says the limit is reached and offers to save it as a still
+
+### Requirement: Animated photos need a paid plan to save
+Any user SHALL be able to pick an animated photo and preview it moving. Saving it SHALL require the plan of the user saving it to include animated photos, on their own events and as an editor of someone else's. Otherwise the app SHALL show the paywall with an upgrade option and a "Use still photo" option.
 
 #### Scenario: Free owner saves an animated photo
 - **WHEN** a free user previews a Live Photo backdrop and taps Save
 - **THEN** the paywall appears, and choosing "Use still photo" saves the key photo as a still backdrop
 
-#### Scenario: Editor on a Premium owner's event
+#### Scenario: Free editor on a Premium owner's event
 - **WHEN** a free editor saves an animated photo on an event whose owner has Premium
-- **THEN** the backdrop is saved without a paywall
+- **THEN** the paywall appears for the editor, and the backend would reject the upload with `402 premium_required`
 
-### Requirement: Viewers always see animated photos
-People with access and link visitors SHALL see an animated backdrop as animated, whatever their own plan, as long as the event has one.
+### Requirement: Viewers see animated photos animated
+An animated photo that a paid user saved SHALL appear animated to the owner, members and link visitors, whatever their own plan, and SHALL keep doing so after the uploader's plan ends.
 
 #### Scenario: Free viewer
-- **WHEN** a viewer without Premium opens an event with an animated backdrop
-- **THEN** the backdrop plays like it does for the owner
+- **WHEN** a viewer without Premium opens an event whose Premium editor added an animated photo
+- **THEN** the backdrop plays like it does for the editor
 
 ### Requirement: How animated photos play
 An animated backdrop SHALL play once when the event opens and again when the user touches it, and SHALL then rest on the key photo. Lists, widgets and link previews SHALL show the key photo only. When the device or browser asks for reduced motion, the backdrop SHALL show the key photo only.
@@ -58,7 +69,7 @@ An animated backdrop SHALL play once when the event opens and again when the use
 - **THEN** only the key photo is shown
 
 ### Requirement: Backend enforces types and limits
-The backend SHALL accept only JPEG and WebP stills and key photos, and H.264 MP4 files without an audio track for motion, identified from the file content. It SHALL reject files over the limits with `413 payload_too_large` and wrong or mismatched types with `415 unsupported_media_type`.
+The backend SHALL accept only JPEG and WebP stills and key photos, and H.264 MP4 files without an audio track for motion, identified from the file content. It SHALL reject files over the size limits with `413 payload_too_large` and wrong or mismatched types with `415 unsupported_media_type`. It SHALL accept at most 20 uploads per account per hour.
 
 #### Scenario: Mislabelled file
 - **WHEN** a client uploads a PNG file with content type `image/jpeg`
@@ -83,15 +94,8 @@ Each backdrop SHALL have a dim level from 0 to 0.8, stored as a shared field. Te
 - **THEN** the countdown text changes colour or gains a shadow so its contrast stays at 4.5:1 or more
 
 ### Requirement: Backdrop lifecycle
-When a backdrop is replaced or removed, or its event or owner account is deleted, its files SHALL stop being served within 24 hours. Uploads that no event uses SHALL be deleted within 24 hours.
+When a backdrop is replaced or removed, or its event or uploader account is deleted, its files SHALL stop being served within 24 hours. Uploads that no event uses SHALL be deleted within 24 hours.
 
 #### Scenario: Backdrop replaced
 - **WHEN** an editor replaces a backdrop
 - **THEN** the old file's URL stops working within 24 hours
-
-### Requirement: Upload quota
-Each owner account SHALL be able to store up to 100 MB of backdrop files. Each account SHALL be able to upload up to 20 files per hour. Uploads by an editor SHALL count against the event owner's storage. Over a limit, the backend SHALL return `429 quota_exceeded` and the app SHALL explain why.
-
-#### Scenario: Storage full
-- **WHEN** an owner with 100 MB of backdrops uploads another one
-- **THEN** the upload fails with `429 quota_exceeded` and the app suggests removing old backdrops

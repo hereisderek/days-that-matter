@@ -21,7 +21,7 @@
 4. **Toolchain Discipline:** Do not hardcode dependency versions in `build.gradle.kts`. Always use the Gradle Version Catalog (`gradle/libs.versions.toml`).
 5. **No Platform Code in Domain:** Keep domain entities and use cases strictly pure Kotlin. `:core:model` is also compiled for the backend (JS, JVM), so it may depend only on Kotlin stdlib, kotlinx-serialization and kotlinx-datetime.
 6. **Backend Core and Variants:** all backend behavior lives in `backend/core/`. A variant directory (`backend/cloudflare`, `backend/selfhost`, `backend/vercel`, `backend/firebase`) holds only port implementations (`Store`, `BlobStore`, `LiveHub`), an entry file and deploy config. Performance and low running cost come first.
-7. **Premium Features:** any change to what a plan includes updates the plan table in `:core:model` and [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md) in the same PR. Gating uses the event owner's plan; viewing is never gated.
+7. **Premium Features:** any change to what a plan includes updates the plan table in `:core:model` and [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md) in the same PR. Gating uses the plan of the person saving; viewing is never gated.
 
 ---
 
@@ -36,7 +36,7 @@ Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenS
 - After the change ships: `openspec archive <change>` merges its deltas into `openspec/specs/`.
 - `docs/` keeps architecture and reference material. When a change alters something described there, update the doc in the same PR.
 
-Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-backend-live-sharing/) (backend core with four provider variants, accounts, sync of everything, live links, people access and invites, history, Live Photo and Motion Photo backdrops, audio catalog and Spotify links, Premium plans).
+Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-backend-live-sharing/) (backend core with four provider variants, accounts, sync of everything, live links, people access and invites, history, Live Photo and Motion Photo backdrops, audio catalog, custom audio and Spotify links, plans and native purchases, regions).
 
 ---
 
@@ -46,6 +46,7 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 - **Master Specification:** [`docs/SPEC.md`](docs/SPEC.md)
 - **System Architecture & Modularization:** [`docs/architecture/SYSTEM_ARCHITECTURE.md`](docs/architecture/SYSTEM_ARCHITECTURE.md)
 - **Backend (core, variants, ports, data model, API contract, limits):** [`docs/architecture/BACKEND.md`](docs/architecture/BACKEND.md)
+- **China region (research, plan, open points):** [`docs/architecture/CHINA.md`](docs/architecture/CHINA.md)
 - **Persistence, Room KMP & Sync:** [`docs/architecture/PERSISTENCE_AND_SYNC.md`](docs/architecture/PERSISTENCE_AND_SYNC.md)
 - **Coding Standards & Kotlin Idioms:** [`docs/standards/CODING_STANDARDS.md`](docs/standards/CODING_STANDARDS.md)
 - **Testing Pyramid & QA Strategy:** [`docs/standards/TESTING_STRATEGY.md`](docs/standards/TESTING_STRATEGY.md)
@@ -55,21 +56,21 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 
 ### 4.2 Feature Specifications
 - **Authentication & Accounts:** [`docs/features/auth/SPEC.md`](docs/features/auth/SPEC.md)
-  - Guest mode, sign-in prompt, Sign in with Google and Apple (also creates the account), sessions, account deletion.
+  - Guest mode, sign-in prompt, Google, Apple and email code sign-in (also creates the account), sessions, account deletion.
 - **Event Tracking & Countdown Engine:** [`docs/features/events/SPEC.md`](docs/features/events/SPEC.md)
   - Time calculation algorithms, time zones, recurrence schedules, categorization, filtering, and sorting.
 - **Customization & Visual Theming:** [`docs/features/customization/SPEC.md`](docs/features/customization/SPEC.md)
   - Card styles, color palettes, gradients, photo and animated backdrops, typography presets, auto-contrast.
 - **Media & Background Audio:** [`docs/features/media/SPEC.md`](docs/features/media/SPEC.md)
-  - Built-in audio catalog (free and Premium tracks), Spotify links, playback engine, loop and fade controls.
+  - Built-in audio catalog (free and Premium tracks), custom audio files (Premium), Spotify links, playback engine.
 - **Sharing, Deep Linking & Export:** [`docs/features/sharing/SPEC.md`](docs/features/sharing/SPEC.md)
-  - Public links, people link and invites, live updates, history, web page, App Links / Universal Links, card image export, QR codes.
+  - Public links, invite links with role, use count and expiry, members, live updates, history, web page, App Links / Universal Links, card image export, QR codes.
 - **Home & Lock Screen Widgets:** [`docs/features/widgets/SPEC.md`](docs/features/widgets/SPEC.md)
   - Jetpack Glance (Android) and WidgetKit (iOS) specifications, data synchronization.
 - **Memos & Memory Notes:** [`docs/features/memos/SPEC.md`](docs/features/memos/SPEC.md)
   - Milestone reflections, timeline entries, author attribution, synced across the owner's devices.
 - **Plans & Premium Features:** [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md)
-  - Free, Premium and reserved Premium Plus; the feature table; paywall and gating rules.
+  - Free, Premium and reserved Premium Plus; the limit table; paywall, gating and native store purchases.
 
 ---
 

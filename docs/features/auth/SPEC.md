@@ -3,7 +3,7 @@
 Normative requirements: the [`accounts`](../../../openspec/changes/pluggable-backend-live-sharing/specs/accounts/spec.md) spec. Backend side: [`BACKEND.md`](../../architecture/BACKEND.md) section 8.
 
 ## 1. Overview & Goals
-Users start immediately as a guest with full local use. Anything online needs an account: sync, sharing, accepting invites. Accounts are run by our own backend, so they work the same on every backend provider; there is no Firebase Auth.
+Users start immediately as a guest with full local use, within the free plan's limits. Anything online needs an account: sync, creating links, joining through invites. Opening a public link does not. Accounts are run by our own backend, so they work the same on every backend provider; there is no Firebase Auth.
 
 ---
 
@@ -16,10 +16,13 @@ Users start immediately as a guest with full local use. Anything online needs an
 3. **Sign in with Apple:**
    - iOS: AuthenticationServices. Android: Apple's web sign-in in an in-app browser tab. Web: redirect.
    - Required on iOS because Google sign-in is offered (App Store Review Guideline 4.8).
-4. **Create account = first sign-in:** the first sign-in with a Google or Apple identity creates the account. There is no separate registration form.
-5. **First sign-in on a device:** the guest's local events and memos upload to the account. If the account already has data from another device, both are kept.
-6. **Sessions:** opaque session token, valid until 90 days after last use. Stored in Keychain (iOS) and EncryptedSharedPreferences (Android). On the web, an HttpOnly cookie.
-7. **Later:** email sign-in with one-time codes, for people without Google or Apple accounts (needs an email provider). Email and password is not planned.
+4. **Email code:** the user enters an email address and the 6-digit code sent to it (valid 10 minutes, 5 attempts). No passwords.
+5. **Create account = first sign-in:** the first sign-in with any method creates the account. There is no separate registration form.
+6. **More methods later:** sign-in methods are plug-ins on the backend. Each deployment lists the enabled ones (`GET /config`) and the app shows only those. WeChat and phone codes are candidates for a China region (see [`CHINA.md`](../../architecture/CHINA.md)).
+7. **One account per verified email:** a method whose verified email matches an existing account joins it. Users can add methods in settings.
+8. **First sign-in on a device:** the guest's local events and memos upload to the account. If the account already has data from another device, both are kept.
+9. **Sessions:** opaque session token, valid until 90 days after last use. Stored in Keychain (iOS) and EncryptedSharedPreferences (Android). On the web, an HttpOnly cookie.
+10. **Not planned:** email and password.
 
 ---
 
@@ -36,7 +39,7 @@ data class UserSession(
     val accountId: String,
     val displayName: String,
     val email: String?,                 // verified email from Google or Apple, shown to the user only
-    val linkedProviders: Set<String>,   // "google", "apple"
+    val linkedProviders: Set<String>,   // "google", "apple", "email"
     val plan: Plan,
     val planExpiresAt: Instant?,
     val lastSyncAt: Instant?
@@ -56,15 +59,15 @@ sealed interface AuthState {
 
 ### 4.1 Onboarding & Login Screen (`LoginScreen`)
 - Welcoming splash visual with subtle countdown animation.
-- "Continue with Apple" and "Continue with Google" buttons, equal prominence. The same buttons sign in or create an account.
+- "Continue with Apple", "Continue with Google" and "Continue with email" buttons (only those the region enables). The same buttons sign in or create an account.
 - "Skip for now (Continue as Guest)" option clearly visible to avoid drop-off.
 
 ### 4.2 Sign-In Prompt (`SignInPromptSheet`)
 - Shown to guests on Sync, Share, Invite, opening an invite, and once after the first saved event.
-- Text: "Sign in or create an account to sync your events and share them." Buttons: Apple, Google, "Not now".
+- Text: "Sign in or create an account to sync your events and share them." Buttons: the enabled sign-in methods and "Not now".
 
 ### 4.3 Account Settings Sheet
-- Display name (editable), email, linked providers, plan and "Restore purchases".
+- Display name (editable), email, sign-in methods ("Add sign-in method"), plan, limits used and "Restore purchases".
 - Sync status: last synced time, pending changes, Sync button.
 - "Sign Out": ends this device's session only. Warns when pending changes have not synced.
 - "Delete Account": deletes owned events, memos, links, invites and backdrops on the backend and removes access to events shared with the user (App Store and Google Play account deletion rules). Explains how to cancel an active subscription in the store first.
@@ -72,7 +75,7 @@ sealed interface AuthState {
 ---
 
 ## 5. Security & Error Handling
-- Never log ID tokens, session tokens or emails.
+- Never log ID tokens, session tokens, email codes or emails.
 - Offline: the app keeps working with the cached session and local data.
 - `401 unauthorized` from the backend: ask the user to sign in again, keep local data and pending changes.
 - Provider errors (cancelled, no credentials, network) map to short localized messages.
