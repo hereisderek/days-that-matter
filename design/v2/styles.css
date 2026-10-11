@@ -684,3 +684,34 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .ctx-banner .u { margin-top: 4px; font-size: 12px; }
 .ctx-banner .mark { bottom: 7px; }
 @media (max-width: 520px) { .pctls { display: none; } }
+
+/* ---------- Home: header and pinned carousel stay put, the list scrolls under them ---------- */
+.view.home { display: flex; flex-direction: column; overflow: hidden; }
+.home-top { flex: none; }
+.home-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; -webkit-mask-image: linear-gradient(transparent, #000 14px); mask-image: linear-gradient(transparent, #000 14px); }
+.home-list::-webkit-scrollbar { display: none; }
+/* Centre card in focus; neighbours show a 16 px edge (26 px padding minus 10 px gap). */
+.pins { display: flex; gap: 10px; padding: 2px 16px 4px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; scrollbar-width: none; }
+.pins::-webkit-scrollbar { display: none; }
+.pins.multi { padding-inline: 26px; scroll-padding-inline: 26px; }
+.pin-slot { flex: 0 0 100%; scroll-snap-align: center; scroll-snap-stop: always; }
+.pin-slot .card { box-shadow: 0 12px 30px -18px rgba(17, 30, 24, .5); will-change: transform; }
+.dots { display: flex; justify-content: center; gap: 6px; padding: 10px 0 2px; }
+.dot { position: relative; width: 6px; height: 6px; border-radius: 99px; background: var(--line-2); transition: width .3s var(--ease), background .3s; }
+.dot::after { content: ""; position: absolute; inset: -9px -4px; }
+.dot[aria-current="true"] { width: 18px; background: var(--ink); }
+/* Collapsed while the list is scrolled: title and number on one line. */
+.ctx-hero { transition: height .35s var(--ease); }
+.home.compact .ctx-hero { height: 96px; }
+.home.compact .ctx-hero .top, .home.compact .ctx-hero .m, .home.compact .ctx-hero .tick { display: none; }
+.home.compact .ctx-hero .card-body { justify-content: center; padding: 10px 18px; }
+.home.compact .ctx-hero .card-body > div:last-child { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
+.home.compact .ctx-hero .t { font-size: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.home.compact .ctx-hero .row { margin-top: 0; flex: none; }
+.home.compact .ctx-hero .num { font-size: 44px; }
+.home.compact .ctx-hero .u { font-size: 12.5px; }
+@container (max-height: 760px) { .pins .ctx-hero { height: 204px; } .pins .ctx-hero .num { font-size: 64px; } }
+/* The list row of the centred pin. */
+.list .card.is-focus, .grid .card.is-focus { outline: 2.5px solid var(--accent); outline-offset: 3px; }
+.list .card.pulse, .grid .card.pulse { animation: focusIn .6s var(--spring); }
+@keyframes focusIn { 0% { outline-offset: 12px; outline-color: transparent; transform: scale(.97); } }

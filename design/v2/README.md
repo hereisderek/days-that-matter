@@ -16,7 +16,8 @@ The left panel jumps between screens and switches the theme, the account (Guest 
 
 Things to try:
 
-- Long-press (or right-click) a card on Home. Owned days offer **Pin to top**; the pinned card moves into the big slot and the old one goes back to the list, with Undo. "Grandma's 90th" is shared with you as an editor and offers Edit, History, Report and Leave instead.
+- Swipe the pinned carousel at the top of Home (or tap a dot or the peeking edge). The list below scrolls to the same day and outlines it. Scroll the list yourself and the carousel shrinks to a strip.
+- Long-press (or right-click) a card in the list. Owned days offer **Pin to top**; the day joins the carousel first and stays in the list, with Undo. "Grandma's 90th" is shared with you as an editor and offers Edit, History, Report and Leave instead.
 - Open a day and tap the big number to cycle **Auto**, **Days** and **Y·M·D**.
 - **Customize** › Background › Photo: pick a tile marked LIVE. It moves in the preview. On Free, Save shows the paywall with **Use still photo**.
 - **Share** on "Norway trip": create a public link with a label and expiry, an invite with a role and use count, change a member's role, remove someone.
@@ -46,8 +47,8 @@ The design splits the screen into two layers:
 Principles:
 
 1. **The number leads.** The day count is the largest thing on every card. Labels next to it are short and plain ("days left", "days since").
-2. **One pinned day.** Exactly one owned day can be pinned. It becomes the large card at the top of Home.
-3. **Same customization everywhere.** Background, card style, typeface, text color, darkness and music work the same way for every day, and the card looks the same in the list, the pinned slot, the day page, widgets, share images and the web page.
+2. **Pinned days lead.** Any number of owned days can be pinned. They sit in a carousel at the top of Home, one in focus, and stay in the list below.
+3. **Same customization everywhere.** Background, card style, typeface, text color, darkness and music work the same way for every day, and the card looks the same in the list, the pinned carousel, the day page, widgets, share images and the web page.
 4. **Readable by default.** Text color is chosen from the background automatically. Photos get a dark scrim and a soft gradient behind the text. The editor shows the contrast ratio. The specs require 4.5:1.
 5. **Calm about money and accounts.** Guests can do everything local without signing in. Paid features can be picked and previewed for free; the paywall appears only on Save and always offers a free way out where one exists.
 6. **Soft motion.** Short fades and slides, a light spring on switches, Live Photos that play once. Everything turns off with the system "reduce motion" setting.
@@ -121,14 +122,14 @@ One component, drawn in several sizes.
 
 | Context | Size | Shows |
 | :--- | :--- | :--- |
-| Pinned | full width × 240 | Pin badge, emoji, title, short date, time and zone, big number, live ticker |
+| Pinned (carousel) | full width × 240; minus 52 when several are pinned; 96 tall when collapsed | Pin badge, emoji, title, short date, time and zone, big number, live ticker; collapsed: title and number only |
 | List row | full width × 84 | Emoji, title, pin or shared marker, short date and repeat info, number and unit |
 | Grid tile | half width, 1:1.1 | Emoji, markers, number, unit, title, date |
 | Day page | full screen | Everything, plus the unit switch; Live Photos play here |
 | Widget small / medium | 1:1 / 2:1 | Number, unit, title; medium adds the next three days |
 | Share story / banner | 9:16 (1080×1920) / 1.91:1 (1200×630) | Emoji, title, number, date, optional watermark "Tracked with Days That Matter" |
 
-**Markers:** a pin icon for the pinned day; a people icon for days you share; a people icon and the owner's name ("Mum") for days shared with you.
+**Markers:** a pin icon for pinned days; a people icon for days you share; a people icon and the owner's name ("Mum") for days shared with you.
 
 **Card styles** (maps to `CardStyle`):
 
@@ -162,7 +163,7 @@ Email sign-in is two steps in the same sheet: address, then the 6-digit code ("V
 ### Home
 
 - Header: today's date and "Your days", search, and the account button (initial when signed in). While edits are waiting to sync, the date line reads "Syncing 2 changes…" with a pulsing dot; sync runs on its own within 2 seconds, so this is brief.
-- **Pinned card** at the top, if an owned day is pinned and the setting is on. Hidden while searching or filtering.
+- The header and the **pinned carousel** stay at the top; the list scrolls under them (section 5). The carousel shows when at least one owned day is pinned and the setting is on, and is hidden while searching or filtering.
 - Filter chips: All, Upcoming, Since, **Shared** (signed in only), then the categories.
 - Two sections, **Upcoming** and **Since**, each with a count. The first section header holds the list/grid switch and sort.
 - Long-press or right-click a card. Owner: Pin to top / Unpin, Customize, Share, History, Duplicate, Delete (with Undo). Editor of a shared day: Edit, Share image, History, Report, Leave. Viewer: Share image, Report, Leave.
@@ -181,7 +182,7 @@ Email sign-in is two steps in the same sheet: address, then the 6-digit code ("V
   - **Shared** block: for owners, the people and how many public links, with "Manage people and links"; for members, who owns it, how many people, and what their role allows.
   - **Milestones** (countdown progress, or next milestone and anniversary for past days).
   - **Memos**, owner only, labelled "only you".
-  - **Details**: date, time, time zone (Fixed or Floating), repeat, music; for owners also reminder, pinned, notes, and a History button.
+  - **Details**: date, time, time zone (Fixed or Floating), repeat, music; for owners also reminder, pinned ("Yes, in the carousel"), notes, and a History button.
 
 ### History (sheet)
 
@@ -191,7 +192,7 @@ Owners and editors, signed in. Each revision shows author, time, revision number
 
 - Sticky preview at the top, with a switch to see the card **Pinned** (or **Large** for shared days), in the **List**, or as a **Widget**. Live Photos move in the preview whatever the plan.
 - Tabs:
-  - **Details**: title (1 to 100 characters, counter), emoji, date, optional time, **time zone** (this device, the day's own zone, or Floating, with one line on when to use each), repeat. Owner only: category, **Pin to top** (shows which day it replaces), **Notes** (4,000 characters, never shared). Editors see a note that the owner keeps notes, category, pin and memos. Reminder for everyone (proposal).
+  - **Details**: title (1 to 100 characters, counter), emoji, date, optional time, **time zone** (this device, the day's own zone, or Floating, with one line on when to use each), repeat. Owner only: category, **Pin to top** (says how many days are already in the carousel), **Notes** (4,000 characters, never shared). Editors see a note that the owner keeps notes, category, pin and memos. Reminder for everyone (proposal).
   - **Background**: Photo (shows "3 of 5 photo backdrops" and the Live Photo plan, upload or samples, LIVE tiles, a **Play as Live Photo** switch, focus point), Color, Gradient, Art. Darken slider 0 to 80%. Contrast readout. A note says photos are resized on the phone, location data is removed, and people you share with see them.
   - **Style**: card style with live mini previews, typeface, text color, unit mode.
   - **Sound**: three sources, one per day.
@@ -228,16 +229,18 @@ A home-screen mock with a small and a medium widget, a lock-screen mock with a c
 
 Items marked **New** are proposals not in the current specs; see section 6.
 
-## 5. Pinning rule (differs from the events spec)
+## 5. Pinned carousel
 
-`docs/features/events/SPEC.md` §4.1 still describes a "Pinned Hero Carousel". v2 uses **one** pinned day, as requested.
+This matches the "Pinned Hero Carousel" in `docs/features/events/SPEC.md` §4.1 and adds how it behaves.
 
-- At most one owned `Event.isPinned == true` per user. Pinning clears the flag on the others in the same transaction (a use case such as `PinEventUseCase`); the sync layer sends both changes.
-- After pinning, a message names the day that moved back to the list and offers Undo.
-- Settings › **Big pinned card** hides the large slot; the pin stays and shows as an icon in the list.
+- **Any number of owned days can be pinned.** Newest pin first. Pinning puts the day at the front of the carousel and centres it; the message says it stays in the list, with Undo.
+- **One card in focus.** The centred card is full size. Its neighbours show only a 16 pt edge (26 pt side padding minus a 10 pt gap), scaled to 92% toward the centre and faded to 60%, so you can tell more are there. Swipes snap one card at a time. Dots under the carousel show the count and position; the active dot is a short bar. Tapping a peeking edge or a dot centres that card; tapping the centred card opens the day.
+- **Pinned days stay in the list.** They keep their place in Upcoming or Since, with a pin icon.
+- **The list follows the carousel.** When the carousel settles on a card, the list scrolls (smooth, 14 pt below its top edge) to that day's row and draws a 2.5 pt accent ring around it, with a short settle animation. The ring stays while that card is centred. If the row cannot reach the top (end of the list), the list stops at its end with the row visible. Under reduce motion the list jumps instead of scrolling.
+- **Layout.** Header and carousel are fixed at the top of Home; only the list scrolls, so the carousel stays in view while the list moves. When the user scrolls the list down, the carousel collapses to a 96 pt strip (title and number) and expands again at the top of the list. The scroll that follows a swipe does not collapse it.
+- Hidden while searching or filtering. Settings › **Pinned carousel** turns it off; pins then show only as icons in the list.
 - Pin state is an owner-only field (event-sync spec), so members cannot pin a day shared with them. See gap 10.
-
-The events spec should be updated if this is accepted.
+- Pins need an order field; see gap 2.
 
 ## 6. Missing functionality and recommended additions
 
@@ -250,7 +253,7 @@ Covered by the new specs and removed from this list: what Premium includes, shar
 | # | Item | Why | Touches |
 | :--- | :--- | :--- | :--- |
 | 1 | **Reminders (local notifications)** | Still no spec. Push notifications are out of scope in the OpenSpec change, so reminders must be scheduled on the device: on the day, 1 day, 1 week before, milestone alerts, default time. iOS allows 64 pending; schedule the nearest and refill. Android 13+ needs the permission prompt. | New spec, `Event`, settings |
-| 2 | **Single pin** | Section 5. Spec says carousel. | Events spec §4.1 |
+| 2 | **Pin order** | `Event` has `isPinned` but nothing to order pins by. Add `pinnedAt` (newest first, as in v2), or a `pinOrder` if users should drag to reorder the carousel. Owner-only, like `isPinned`. | Events spec §3 |
 | 3 | **Fields still missing on `Event`** | `sortOrder` (the spec promises custom order), `reminders`, `deletedAt` for an owner-side trash. | Events spec §3, Room, sync |
 | 4 | **Category model** | `Event.categoryId` exists, `Category` does not (name, emoji, color, order, built-in vs custom), and there is no screen to manage them. | Events spec |
 | 5 | **App settings spec** | The auth spec now covers the account sheet. Theme, accent, counting rules, reminders, widgets, language and data are still unspecified. | New spec section |
@@ -299,7 +302,7 @@ These are proposals. Following `AGENTS.md`, specs change only once the design is
 val sortOrder: Long = 0,
 val reminders: List<Reminder> = emptyList(),
 val deletedAt: Instant? = null,
-// isPinned: at most one per owner, enforced by PinEventUseCase
+val pinnedAt: Instant? = null,             // carousel order, newest first; owner-only like isPinned
 
 // Per member, next to the membership (gap 10): pin, category, reminders, sort order for days shared with you.
 data class MemberOverlay(val eventId: String, val isPinned: Boolean, val categoryId: String?, val sortOrder: Long)
@@ -326,9 +329,18 @@ The first revision proposed a blur slider; it was dropped, because the backdrop 
 - **Live Photos:** play the silent MP4 once with Media3 (Android) or AVPlayer (iOS) over the key photo, then show the key photo; never loop. Skip under reduce motion.
 - **Auto contrast for photos:** sample the average luminance of the lower part of the decoded key photo once, store it locally, and raise the default darken value for bright photos.
 - **Live ticker:** recompose only the ticker text once a second, not the card.
+- **Pinned carousel:** `HorizontalPager` with `contentPadding = PaddingValues(horizontal = 26.dp)` and `pageSpacing = 10.dp`; scale and alpha from `currentPageOffsetFraction` in `graphicsLayer`, with the transform origin on the side facing the centre. Follow the list with `snapshotFlow { pagerState.settledPage }` → `listState.animateScrollToItem(index, scrollOffset)`. Collapse the pager when `listState.firstVisibleItemScrollOffset` passes 24 dp, ignoring scrolls started by the follow.
 - **Paywall and sign-in:** use the platforms' own purchase sheet and the official Sign in with Apple and Google buttons; the v2 sheet is the frame around them.
 
 ## 9. Revision history
+
+**Revision 3:**
+
+- Several pinned days in a carousel instead of one: centre card in focus, neighbours show a 16 pt edge, dots, tap to centre or open.
+- Pinned days stay in the list. Swiping the carousel scrolls the list to that day and outlines it.
+- Home layout: header and carousel fixed, list scrolls under them; the carousel collapses to a strip while the list is scrolled.
+- Removed the single-pin rule, so the design matches the events spec's carousel. Gap 2 is now pin order.
+
 
 **Revision 2** (aligned with `pluggable-backend-live-sharing`):
 

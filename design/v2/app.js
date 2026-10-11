@@ -187,15 +187,15 @@ function seed() {
   const yearsAgo = (n, y) => { const d = addDays(t, n); return toISO(new Date(d.getFullYear() - y, d.getMonth(), d.getDate())); };
   const look = (bg, o = {}) => ({ bg, dim: bg.type === 'photo' ? .25 : 0, style: 'glass', font: 'sans', text: 'auto', ...o });
   return [
-    { id: 'norway', title: 'Norway trip', emoji: '🏔️', date: rel(38), time: '09:30', zone: 'Europe/Oslo', category: 'travel', pinned: true, created: rel(-62), reminder: '1w',
+    { id: 'norway', title: 'Norway trip', emoji: '🏔️', date: rel(38), time: '09:30', zone: 'Europe/Oslo', category: 'travel', pinned: true, pinnedAt: 3, created: rel(-62), reminder: '1w',
       notes: 'Rain jackets. Train seats 41 and 42.', audio: { type: 'track', id: 'morning' },
       look: look({ type: 'photo', src: pic(1015), fx: 50, fy: 62 }),
       members: [{ name: 'Lin', role: 'editor' }, { name: 'Jon', role: 'viewer' }], removed: [{ name: 'Sam' }],
       links: [{ label: 'Family chat', token: 'Q7fK2mXw9pLs0aRt4vYb8c', expires: 'Never' }],
       invites: [{ role: 'editor', uses: 5, used: 2, expires: fmtDate(addDays(t, 30)), token: 'Hn3kV0aQ8sLm2PzW5yTc1e' }],
       memos: [{ date: rel(-20), text: 'Booked the night train from Oslo to Bergen.' }] },
-    { id: 'mia', title: "Mia's birthday", emoji: '🎂', date: yearsAgo(23, 7), repeat: 'yearly', category: 'birthday', look: look({ type: 'color', value: '#FADDCB' }, { style: 'clean', font: 'rounded' }) },
-    { id: 'together', title: 'Together', emoji: '💞', date: '2021-05-20', category: 'anniversary', unit: 'days',
+    { id: 'mia', title: "Mia's birthday", emoji: '🎂', date: yearsAgo(23, 7), repeat: 'yearly', category: 'birthday', pinned: true, pinnedAt: 1, look: look({ type: 'color', value: '#FADDCB' }, { style: 'clean', font: 'rounded' }) },
+    { id: 'together', title: 'Together', emoji: '💞', date: '2021-05-20', category: 'anniversary', unit: 'days', pinned: true, pinnedAt: 2,
       audio: { type: 'spotify', kind: 'Playlist', title: 'Our songs', url: 'https://open.spotify.com/playlist/37i9dQZF1DX4OzrY981I1W' },
       look: look({ type: 'photo', src: pic(129), fx: 50, fy: 55 }, { font: 'serif', dim: .22 }),
       memos: [{ date: '2021-05-20', text: 'First walk along the river. It rained the whole time.', tag: 'Day 1' },
@@ -211,7 +211,7 @@ function seed() {
       memos: [{ date: '2024-03-09', text: 'Slept the whole ride home.', tag: 'Day 1' }] },
     { id: 'sugar', title: 'No added sugar', emoji: '🍃', date: rel(-73), category: 'life', look: look({ type: 'gradient', id: 'lagoon' }) },
     { id: 'marathon', title: 'Spring marathon', emoji: '🏃', date: rel(158), category: 'life', unit: 'calendar', look: look({ type: 'art', id: 'hills' }, { style: 'poster', font: 'condensed' }) },
-  ].map((e, i) => ({ repeat: 'none', every: 10, time: null, zone: null, pinned: false, unit: 'auto', created: rel(-30 - i), reminder: 'day', audio: null,
+  ].map((e, i) => ({ repeat: 'none', every: 10, time: null, zone: null, pinned: false, pinnedAt: 0, unit: 'auto', created: rel(-30 - i), reminder: 'day', audio: null,
     notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [], ...e }));
 }
 const seedHistory = () => ({
@@ -235,7 +235,7 @@ const S = {
   screen: 'home', stack: [], anim: '', events: seed(), history: seedHistory(),
   account: { ...ACCOUNT }, plan: 'free', lastSync: Date.now() - 4 * 6e4, pending: 0, firstSavePrompted: false,
   filter: 'all', layout: 'list', sort: 'smart', query: '', searching: false,
-  detailId: 'norway', playing: false, motion: false,
+  detailId: 'norway', playing: false, motion: false, pinIndex: 0,
   draft: null, edTab: 'details', bgTab: 'photo', soundTab: 'builtin', prevCtx: 'hero', trackPreview: null,
   share: { tab: 'link', format: 'story', watermark: true, newLink: false, linkLabel: '', linkExpiry: 'never', inviteRole: 'editor', inviteUses: '5', inviteExpiry: '30' },
   sheet: null, toast: null, after: null, billing: 'year',
@@ -244,7 +244,8 @@ const S = {
 // Guests have no backend: no shared-with-me days, no links, no history.
 const visible = () => S.events.filter(e => S.account || !e.owner);
 const byId = id => S.events.find(e => e.id === id);
-const pinned = () => S.events.find(e => e.pinned && !e.owner);
+// Pinned days, most recently pinned first. Pin is owner-only, so days shared with you can't be pinned.
+const pins = () => visible().filter(e => e.pinned && !e.owner).sort((a, b) => b.pinnedAt - a.pinnedAt);
 const isOwner = ev => !ev.owner;
 const role = ev => ev.owner ? ev.role : 'owner';
 const sharedOut = ev => !!S.account && isOwner(ev) && (ev.members.length > 0 || ev.links.length > 0);
@@ -368,9 +369,9 @@ function card(ev, ctx, attrs = '', motion = false) {
   const style = ['story', 'banner'].includes(ctx) && ev.look.style === 'outline' ? 'clean' : ev.look.style;
   return `<article class="${cardClass(ev, ctx, style)}" style="${cardVars(ev.look)}" ${attrs}>${layers(ev.look, motion)}<div class="card-body">${CTX[ctx](ev, c, v)}</div></article>`;
 }
-function openAttrs(ev) {
+function openAttrs(ev, act = 'open', arg = ev.id) {
   const v = valueFor(ev, ev.unit, calc(ev));
-  return `data-act="open" data-arg="${ev.id}" data-long="${ev.id}" role="button" tabindex="0" aria-label="${esc(`${ev.title}, ${strip(v.pre || '')} ${strip(v.num)} ${strip(v.u)}${ev.owner ? `, shared by ${ev.owner.name}` : ''}`)}"`;
+  return `data-act="${act}" data-arg="${arg}" data-long="${ev.id}" role="button" tabindex="0" aria-label="${esc(`${ev.title}, ${strip(v.pre || '')} ${strip(v.num)} ${strip(v.u)}${ev.owner ? `, shared by ${ev.owner.name}` : ''}`)}"`;
 }
 const catOf = ev => CATS.find(c => c[0] === ev.category) || ['shared', 'Shared', '👥'];
 
@@ -392,9 +393,9 @@ function sortRows(rows) {
 }
 
 function homeView() {
-  const q = S.query.trim().toLowerCase(), pin = pinned();
-  const hero = pin && S.settings.showHero && !q && S.filter === 'all' ? pin : null;
-  let rows = visible().filter(e => e !== hero).map(e => ({ e, c: calc(e) }));
+  const q = S.query.trim().toLowerCase(), pinned = S.settings.showHero && !q && S.filter === 'all' ? pins() : [];
+  S.pinIndex = Math.min(S.pinIndex, Math.max(0, pinned.length - 1));
+  let rows = visible().map(e => ({ e, c: calc(e) }));
   if (q) rows = rows.filter(r => r.e.title.toLowerCase().includes(q));
   if (S.filter === 'shared') rows = rows.filter(r => r.e.owner || sharedOut(r.e));
   if (CATS.some(c => c[0] === S.filter)) rows = rows.filter(r => r.e.category === S.filter);
@@ -404,19 +405,24 @@ function homeView() {
   const tools = `<div class="tools"><button data-act="layout" aria-label="${S.layout === 'list' ? 'Show as grid' : 'Show as list'}">${icon(S.layout === 'list' ? 'grid' : 'list')}</button><button data-act="sort-menu" aria-label="Sort">${icon('sort')}</button></div>`;
   const ctx = S.layout === 'grid' ? 'tile' : 'row';
   const kicker = S.account && S.pending ? `<span class="sync-dot"></span>Syncing ${S.pending} ${S.pending === 1 ? 'change' : 'changes'}…` : new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
-  return `<section class="view home" data-key="home">
+  const carousel = !pinned.length ? '' : `<div class="pins-wrap">
+      <div class="pins${pinned.length > 1 ? ' multi' : ''}" aria-roledescription="carousel" aria-label="Pinned days">${pinned.map((e, i) =>
+        `<div class="pin-slot">${card(e, 'hero', openAttrs(e, 'pin-card', i))}</div>`).join('')}</div>
+      ${pinned.length > 1 ? `<div class="dots">${pinned.map((e, i) => `<button class="dot" data-act="pin-go" data-arg="${i}" aria-label="Show ${esc(e.title)}" aria-current="${i === S.pinIndex}"></button>`).join('')}</div>` : ''}</div>`;
+  return `<section class="view home" data-key="home"><div class="home-top">
     <header class="home-head">
       <div><div class="kicker">${kicker}</div><h1 class="h1">Your days</h1></div>
       <div class="head-btns"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search')}</button><button class="icon-btn ${S.account ? 'av-btn' : ''}" data-act="go" data-arg="settings" aria-label="Settings and account">${S.account ? esc(S.account.name[0]) : icon('user')}</button></div>
     </header>
     ${S.searching ? `<div class="search">${icon('search')}<input data-field="query" placeholder="Search your days" value="${esc(S.query)}" aria-label="Search your days"><button data-act="search" aria-label="Close search">${icon('close')}</button></div>` : ''}
-    ${hero ? `<div class="hero-wrap">${card(hero, 'hero', openAttrs(hero))}</div>` : ''}
+    ${carousel}</div>
+    <div class="home-list">
     <div class="chips" role="group" aria-label="Filter">${filters.map(([k, n]) => `<button class="chip" data-act="filter" data-arg="${k}" aria-pressed="${S.filter === k}">${n}</button>`).join('')}</div>
     ${sections.length ? sections.map(([name, rs], i) => `<div class="sec-head"><h2>${name}<span>${rs.length}</span></h2>${i === 0 ? tools : ''}</div>
       <div class="${S.layout}">${rs.map(r => card(r.e, ctx, openAttrs(r.e))).join('')}</div>`).join('')
       : `<div class="sec-head"><span></span>${tools}</div><div class="empty"><div class="big">🌤️</div><b>${q ? 'No matches' : 'Nothing here yet'}</b>${q ? 'Try another word.' : 'Add a day and give it a photo or a color.'}</div>`}
     <div style="height:130px"></div>
-  </section>
+  </div></section>
   <div class="bottom-fade"></div>
   <button class="fab" data-act="new">${icon('plus')}New day</button>`;
 }
@@ -507,7 +513,7 @@ function detailView() {
         <div class="kv"><span>Repeats</span><span>${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(x => x[0] === ev.repeat)[1]}</span></div>
         ${a ? `<div class="kv"><span>Music</span><span>${esc(audioName(a))}${a.type === 'track' ? ` · ${esc(track(a.id).artist)}` : a.type === 'spotify' ? ' · Spotify' : ''}</span></div>` : ''}
         ${own ? `<div class="kv"><span>Reminder</span><span>${REMINDERS.find(x => x[0] === ev.reminder)[1]}</span></div>
-        <div class="kv"><span>Pinned</span><span>${ev.pinned ? 'Yes, top of Home' : 'No'}</span></div>
+        <div class="kv"><span>Pinned</span><span>${ev.pinned ? 'Yes, in the carousel' : 'No'}</span></div>
         ${ev.notes ? `<div class="kv"><span>Notes</span><span>${esc(ev.notes)}</span></div>` : ''}` : ''}
         ${own && S.account ? `<button class="btn btn-ghost sm" data-act="history" style="margin-top:12px">${icon('history')}History</button>` : ''}</div>
     </div>
@@ -533,7 +539,7 @@ const chips = (items, act, cur) => `<div class="chips-wrap">${items.map(([k, n])
 
 const EDITOR_TABS = {
   details: d => {
-    const own = isOwner(d), other = pinned() && pinned().id !== d.id ? pinned() : null;
+    const own = isOwner(d), n = pins().filter(e => e.id !== d.id).length;
     const zones = [[DEVICE_TZ, `${city(DEVICE_TZ)} (this device)`], ...(d.zone && d.zone !== DEVICE_TZ ? [[d.zone, city(d.zone)]] : []), ['floating', 'Floating']];
     return `<div><div class="flabel"><span>Title</span><span class="opt" id="title-count">${d.title.length}/100</span></div><input class="input title" data-field="title" maxlength="100" value="${esc(d.title)}" placeholder="What are you counting?"></div>
     <div><div class="flabel">Emoji</div><div class="emojis">${EMOJIS.map(e => `<button class="emoji-opt" data-act="emoji" data-arg="${e}" ${pressed(d.emoji, e)} aria-label="Emoji ${e}">${e}</button>`).join('')}</div></div>
@@ -544,7 +550,7 @@ const EDITOR_TABS = {
     <div><div class="flabel">Repeat</div>${chips(REPEATS, 'repeat', d.repeat)}
       ${d.repeat === 'custom' ? `<label class="inline-num">Every <input class="input" type="number" min="2" max="365" data-field="every" value="${d.every}"> days</label>` : ''}</div>
     ${own ? `<div><div class="flabel">Category <span class="opt">only you</span></div>${chips(CATS.map(([k, n, e]) => [k, `${e} ${n}`]), 'cat', d.category)}</div>
-    <div class="switch-row"><div><b>Pin to top</b><small>${d.pinned && other ? `Replaces “${esc(other.title)}”. Only one day is pinned.` : other ? `“${esc(other.title)}” is pinned now` : 'Shows as the big card on Home'}</small></div>
+    <div class="switch-row"><div><b>Pin to top</b><small>${d.pinned ? 'In the carousel at the top of Home, and still in the list' : n ? `Joins ${n} pinned ${n === 1 ? 'day' : 'days'} in the carousel` : 'Shows in a carousel at the top of Home'}</small></div>
       <button class="switch" role="switch" aria-label="Pin to top" aria-checked="${d.pinned}" data-act="draft-pin"></button></div>
     <div><div class="flabel"><span>Notes</span><span class="opt">only you · <span id="notes-count">${d.notes.length}</span>/4,000</span></div><textarea class="input area" data-field="notes" maxlength="4000" rows="3" placeholder="Anything to remember. Never shared.">${esc(d.notes)}</textarea></div>`
       : `<div class="info">${icon('info')}<span>${esc(d.owner.name)} keeps the notes, category, pin and memos. Your changes show up for everyone with access and in history.</span></div>`}
@@ -633,7 +639,7 @@ function settingsView() {
     <div class="group">
       <div class="cell"><span class="ci">${icon('sun')}</span><span class="cl">Theme</span><div class="seg sm">${[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="theme" data-arg="${k}" ${pressed(st.theme, k)}>${n}</button>`).join('')}</div></div>
       <div class="cell"><span class="ci">${icon('palette')}</span><span class="cl">Accent</span><div class="accents">${ACCENTS.map(([k, h]) => `<button style="background:${h}" data-act="accent" data-arg="${k}" aria-label="Accent ${k}" ${pressed(st.accent, k)}></button>`).join('')}</div></div>
-      <div class="cell"><span class="ci">${icon('pin')}</span><span class="cl">Big pinned card<small>Pinned day leads the Home screen</small></span>${sw('showHero', 'Big pinned card')}</div>
+      <div class="cell"><span class="ci">${icon('pin')}</span><span class="cl">Pinned carousel<small>Pinned days at the top of Home</small></span>${sw('showHero', 'Pinned carousel')}</div>
       <div class="cell"><span class="ci">${icon('grid')}</span><span class="cl">Home layout</span><div class="seg sm">${[['list', 'List'], ['grid', 'Grid']].map(([k, n]) => `<button data-act="layout-set" data-arg="${k}" ${pressed(S.layout, k)}>${n}</button>`).join('')}</div></div>
     </div>
     <p class="group-label">Counting</p>
@@ -674,7 +680,7 @@ function widgetLook(ev) {
 }
 
 function widgetsView() {
-  const pin = pinned() || visible()[0];
+  const pin = pins()[0] || visible()[0];
   const next = visible().filter(e => e !== pin).map(e => ({ e, c: calc(e) })).filter(r => !r.c.past).sort((a, b) => a.c.days - b.c.days).slice(0, 3);
   const second = next[0] ? next[0].e : pin;
   const w = widgetLook(pin), c = calc(pin), v = valueFor(pin, 'days', c);
@@ -774,10 +780,10 @@ function shareBody(ev) {
 
 const SHEETS = {
   actions: ({ id }) => {
-    const ev = byId(id), r = role(ev), p = pinned();
+    const ev = byId(id), r = role(ev);
     const item = (act, ic, label, extra = '', cls = '') => `<button class="menu-item ${cls}" data-act="${act}" data-arg="${id}">${icon(ic)}<span class="sp">${label}</span>${extra}</button>`;
     return `<div class="sheet-card">${card(ev, 'row')}</div>
-      ${r === 'owner' ? item('pin', 'pin', ev.pinned ? 'Unpin from top' : 'Pin to top', !ev.pinned && p ? `<small>replaces ${esc(p.title)}</small>` : '') : ''}
+      ${r === 'owner' ? item('pin', 'pin', ev.pinned ? 'Unpin' : 'Pin to top', ev.pinned ? '' : `<small>${pins().length} pinned</small>`) : ''}
       ${r !== 'viewer' ? item('edit', 'palette', r === 'owner' ? 'Customize' : 'Edit') : ''}
       ${item('share', 'share', r === 'owner' ? 'Share' : 'Share image')}
       ${r !== 'viewer' && S.account ? item('history', 'history', 'History') : ''}
@@ -836,12 +842,13 @@ const VIEWS = { home: homeView, detail: detailView, editor: editorView, settings
 
 function render() {
   const old = app.querySelector('.view'), oldSheet = app.querySelector('.sheet'), sheetScroll = oldSheet?.scrollTop, hadToast = !!app.querySelector('.toast');
-  if (old) scrollMem[old.dataset.key] = old.scrollTop;
+  if (old) scrollMem[old.dataset.key] = scroller(old).scrollTop;
   app.innerHTML = statusbar() + VIEWS[S.screen]() + overlays();
   const v = app.querySelector('.view');
   if (S.anim && S.anim !== 'none') v.classList.add('enter-' + S.anim);
   else v.classList.add('no-anim');
-  v.scrollTop = S.anim && S.anim !== 'back' && S.anim !== 'none' ? 0 : scrollMem[v.dataset.key] || 0;
+  scroller(v).scrollTop = S.anim && S.anim !== 'back' && S.anim !== 'none' ? 0 : scrollMem[v.dataset.key] || 0;
+  if (S.screen === 'home') homeSync();
   const sh = app.querySelector('.sheet');
   // Re-rendering under an open sheet or toast must not replay their entrance.
   if (sh && oldSheet && !S.sheetFresh) { sh.style.animation = app.querySelector('.scrim').style.animation = 'none'; sh.scrollTop = sheetScroll; }
@@ -850,6 +857,42 @@ function render() {
   if (S.focus) { const el = app.querySelector(S.focus); if (el) { el.focus(); el.setSelectionRange?.(el.value.length, el.value.length); } S.focus = null; }
   renderPanel();
 }
+const scroller = v => v.querySelector('.home-list') || v;
+
+// ---------- pinned carousel ----------
+// Side cards shrink toward the centred one and fade; returns the index nearest the centre.
+function pinFx(track) {
+  const step = track.firstElementChild.offsetWidth + 10, x = track.scrollLeft / step;
+  // Scale the card, not the slot: snap areas include transforms, so a scaled slot would pull the snap off centre.
+  [...track.children].forEach((s, i) => {
+    const d = Math.min(1, Math.abs(i - x)), c = s.firstElementChild.style;
+    c.transformOrigin = i < x ? 'right center' : 'left center';
+    c.transform = `scale(${1 - d * .08})`; c.opacity = 1 - d * .4;
+  });
+  return Math.round(x);
+}
+let autoScroll = false, autoTimer, pinTimer;
+// Outline the list row of the centred pin; on a swipe, also scroll the list to it.
+function focusRow(scroll) {
+  const id = pins()[S.pinIndex]?.id, list = app.querySelector('.home-list');
+  app.querySelectorAll('.home-list .is-focus').forEach(el => el.classList.remove('is-focus', 'pulse'));
+  const row = id && S.settings.showHero && list?.querySelector(`[data-act="open"][data-arg="${id}"]`);
+  if (!row) return;
+  row.classList.add('is-focus');
+  if (!scroll) return;
+  void row.offsetWidth; row.classList.add('pulse');
+  autoScroll = true; clearTimeout(autoTimer); autoTimer = setTimeout(() => { autoScroll = false; }, 1000); // cleared early by the list's own scroll events
+  const top = list.scrollTop + row.getBoundingClientRect().top - list.getBoundingClientRect().top - 14;
+  list.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+function homeSync() {
+  const list = app.querySelector('.home-list'), track = app.querySelector('.pins');
+  app.querySelector('.home').classList.toggle('compact', list.scrollTop > 24);
+  if (track) { track.scrollLeft = S.pinIndex * (track.firstElementChild.offsetWidth + 10); pinFx(track); }
+  focusRow(false);
+}
+const scrollPins = i => { const t = app.querySelector('.pins'); t.scrollTo({ left: i * (t.firstElementChild.offsetWidth + 10), behavior: 'smooth' }); };
+
 const openSheet = sheet => { S.sheet = sheet; S.sheetFresh = true; render(); };
 
 function go(screen, anim = 'right') { S.stack.push(S.screen); S.screen = screen; S.anim = anim; S.sheet = null; render(); }
@@ -931,11 +974,10 @@ function openEditor(id, tab = 'details') {
 }
 
 function setPinned(id, on) {
-  const before = S.events.map(e => e.pinned), prev = pinned();
-  S.events.forEach(e => { e.pinned = on ? e.id === id : e.pinned && e.id !== id; });
-  const ev = byId(id);
-  toast(on ? (prev && prev.id !== id ? `Pinned “${ev.title}”. “${prev.title}” moved back to the list.` : `Pinned “${ev.title}”`) : 'Unpinned',
-    () => S.events.forEach((e, i) => { e.pinned = before[i]; }));
+  const ev = byId(id), before = { pinned: ev.pinned, pinnedAt: ev.pinnedAt };
+  ev.pinned = on;
+  if (on) { ev.pinnedAt = Date.now(); S.pinIndex = 0; }
+  toast(on ? `Pinned “${ev.title}”. It stays in the list too.` : `Unpinned “${ev.title}”`, () => Object.assign(ev, before));
 }
 
 function signIn(method) {
@@ -970,6 +1012,8 @@ const ACT = {
   back,
   open: a => { S.detailId = a; S.playing = false; S.motion = true; go('detail'); if (calc(byId(a)).today) setTimeout(confetti, 250); },
   motion: (a, el) => { if (!byId(S.detailId).look.bg.animated) return; const bg = el.querySelector('.card-bg'); bg.classList.remove('motion'); void bg.offsetWidth; bg.classList.add('motion'); },
+  'pin-card': a => +a === S.pinIndex ? ACT.open(pins()[+a].id) : scrollPins(+a),
+  'pin-go': a => scrollPins(+a),
   new: () => openEditor(null),
   edit: a => openEditor(a || S.detailId),
   'edit-sound': () => openEditor(S.detailId, 'sound'),
@@ -1052,14 +1096,13 @@ const ACT = {
     d.title = d.title.trim();
     const i = S.events.findIndex(e => e.id === d.id), prev = i < 0 ? null : S.events[i], g = gate(d, prev);
     if (g) return openSheet({ type: 'paywall', g });
-    const prevPin = pinned();
+    if (d.pinned && !prev?.pinned) { d.pinnedAt = Date.now(); S.pinIndex = 0; }
     if (prev) S.events[i] = d; else S.events.push(d);
-    if (d.pinned) S.events.forEach(e => { e.pinned = e.id === d.id; });
     pushRevision(prev, d); queueSync();
     S.draft = null; S.screen = S.stack.pop() || 'home';
     if (!prev) { S.stack.push(S.screen); S.screen = 'detail'; S.detailId = d.id; }
     S.anim = 'fade'; S.motion = true;
-    toast(d.pinned && prevPin && prevPin.id !== d.id ? `Saved and pinned. “${prevPin.title}” moved back to the list.` : S.account && d.owner ? `Saved. ${d.owner.name} and the others see it now.` : 'Saved');
+    toast(d.pinned && !prev?.pinned ? 'Saved and pinned to the top' : S.account && d.owner ? `Saved. ${d.owner.name} and the others see it now.` : 'Saved');
     if (!prev && !S.account && !S.firstSavePrompted) { S.firstSavePrompted = true; S.sheet = { type: 'signin', reason: 'first' }; S.sheetFresh = true; }
     render();
   },
@@ -1148,7 +1191,24 @@ app.addEventListener('pointerdown', e => {
   longTimer = setTimeout(() => { longFired = true; navigator.vibrate?.(10); openSheet({ type: 'actions', id: c.dataset.long }); }, 480);
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => app.addEventListener(t, () => clearTimeout(longTimer)));
-app.addEventListener('scroll', () => clearTimeout(longTimer), true);
+app.addEventListener('scroll', e => {
+  clearTimeout(longTimer);
+  const t = e.target;
+  if (t.classList?.contains('pins')) {
+    const i = pinFx(t);
+    clearTimeout(pinTimer);
+    pinTimer = setTimeout(() => {
+      if (i === S.pinIndex) return;
+      S.pinIndex = i;
+      app.querySelectorAll('.dot').forEach((d, k) => d.setAttribute('aria-current', k === i));
+      focusRow(true);
+    }, 120);
+  } else if (t.classList?.contains('home-list')) {
+    // A scroll we started (carousel follow) must not collapse the carousel; it ends 150 ms after the list stops.
+    if (autoScroll) { clearTimeout(autoTimer); autoTimer = setTimeout(() => { autoScroll = false; }, 150); return; }
+    t.closest('.home').classList.toggle('compact', t.scrollTop > 24);
+  }
+}, true);
 app.addEventListener('contextmenu', e => {
   const c = e.target.closest('[data-long]'); if (!c) return;
   e.preventDefault(); openSheet({ type: 'actions', id: c.dataset.long });
@@ -1176,7 +1236,7 @@ app.addEventListener('change', e => {
 // ---------- prototype panel ----------
 const SCREENS = [
   ['onboarding', 'Welcome', 'Apple, Google or email code; guest in one tap'],
-  ['home', 'Home', 'Long-press a card to pin, share or leave'],
+  ['home', 'Home', 'Swipe the pinned carousel; the list follows'],
   ['detail', 'Day', 'Tap the number to change units'],
   ['editor', 'Customize', 'Photo, Live Photo, style, font, music'],
   ['share', 'Share', 'Live links, invites, people, image'],
@@ -1188,7 +1248,7 @@ function renderPanel() {
   const seg = (label, pairs, cur2, key) => `<div class="pctl"><span>${label}</span><div class="seg sm" role="group" aria-label="${label}">${pairs.map(([k, n]) => `<button data-p${key}="${k}" ${pressed(cur2, k)}>${n}</button>`).join('')}</div></div>`;
   panel.innerHTML = `<div class="brand"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="var(--accent)"/><circle cx="20" cy="21" r="6" fill="var(--on-accent)"/><path d="M10 27.5h20" stroke="var(--on-accent)" stroke-width="3" stroke-linecap="round"/><path d="M20 9.5v3M11.5 13l2 2M28.5 13l-2 2" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/></svg>
     <div><b>Days That Matter</b><small>Design v2 · interactive prototype</small></div></div>
-    <p class="panel-text">Quiet, light chrome. Each day card brings its own photo, color or art. One pinned day leads Home.</p>
+    <p class="panel-text">Quiet, light chrome. Each day card brings its own photo, color or art. Pinned days lead Home in a carousel.</p>
     <nav class="nav" aria-label="Screens">${SCREENS.map(([k, n, hint]) => `<button data-pact="${k}" aria-current="${cur === k}">${n}<small>${hint}</small></button>`).join('')}</nav>
     <div class="pctls">
       ${seg('Theme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.settings.theme, 'theme')}
@@ -1205,9 +1265,9 @@ panel.addEventListener('click', e => {
   if (b.dataset.pacct) { S.account = b.dataset.pacct === 'signed' ? { ...ACCOUNT } : null; S.filter = 'all'; if (S.screen === 'detail' && !visible().includes(byId(S.detailId))) S.screen = 'home'; return render(); }
   if (b.dataset.pplan) { S.plan = b.dataset.pplan; return render(); }
   if (k === 'reset') { Object.assign(S, { events: seed(), history: seedHistory(), account: { ...ACCOUNT }, plan: 'free', pending: 0, firstSavePrompted: false, sheet: null, filter: 'all', query: '', searching: false }); S.settings.dayOne = false; return jump('home'); }
-  if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pinned()?.id, 'background'); }
+  if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pins()[0]?.id, 'background'); }
   if (k === 'detail' || k === 'share') {
-    if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pinned() || visible()[0]).id;
+    if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pins()[0] || visible()[0]).id;
     jump('detail'); if (k === 'share') ACT.share(); return;
   }
   jump(k);
