@@ -155,7 +155,15 @@ Native is chosen because cost comes first and China matters. RevenueCat would sh
 ### D15. Background audio: built-in catalog, custom files for Premium, Spotify links
 
 - Built-in tracks: `backend/core/audio/catalog.json`, files in the blob store (AAC, at most 4 MB). A few free, the rest need the writer's plan to include them. Anyone who can see an event can play its track.
+- Built-in tracks must be free to use worldwide. "Public domain" has two layers: the composition and the recording. A recording of a public domain piece (Beethoven, folk songs) can still be protected, and terms differ by country (the EU protects recordings for 70 years after publication). So each track needs a CC0 or public domain recording, or a royalty-free licence that allows use in an app, and `catalog.json` records `license` and `source` for each.
 - Custom audio files (Premium): the app converts the file to AAC at most 4 MB (about 5 minutes; longer files are trimmed to a section the user picks). Served only through the access-checked audio route, to the owner and members. Not played on public link pages, because publishing user-uploaded music to anyone with a link is a copyright risk.
+- User uploads remain a copyright risk even for members: most user audio is commercial music, and playing it to up to 100 members is distribution, on a paid feature. Mitigations, so the service can rely on hosting safe harbours (US DMCA section 512, EU Digital Services Act notice and action):
+  - the user confirms they have the rights before the first upload, and the terms of service say so;
+  - a Report button on every custom audio file, and a takedown runbook that removes the file within 24 hours;
+  - a repeat-infringer policy: the operator can block an account from uploading audio;
+  - a registered DMCA designated agent (US Copyright Office) before launch;
+  - no download button, no search, no public listing of files.
+  - A stricter option, if counsel prefers: custom audio plays for the owner only. Not chosen now.
 - Spotify links: shared or pasted `open.spotify.com` track, album or playlist links; title from Spotify's public oEmbed endpoint; playing opens Spotify. Free plan: 3 events, counted for the account that set them. Unavailable in China.
 
 Alternatives: in-app Spotify playback (blocked by Spotify's access rules until 250,000 monthly users); public URLs for audio files (anyone could fetch Premium or user-uploaded tracks).
@@ -176,6 +184,8 @@ Alternatives: one global deployment reachable from China (Cloudflare serves main
 - [Free tier caps on Cloudflare] → Budget in BACKEND.md; Workers Paid past about 30,000 page views per day.
 - [Vercel Hobby forbids commercial use; Firebase needs Blaze] → Cloudflare is the primary variant.
 - [Photos and audio on shared events raise abuse, copyright and illegal content risk] → Report link on every page, takedown runbook, Cloudflare CSAM Scanning Tool before launch, custom audio never on public pages, members only.
+- [User-uploaded audio is often copyrighted music] → Rights confirmation, Report button, 24 hour takedown, repeat-infringer block, DMCA agent (D15). Legal review before launch; this design is not legal advice.
+- [A "public domain" built-in track whose recording is still protected] → Only CC0, public domain recordings or licensed tracks, with `license` and `source` recorded per track.
 - [A removed backdrop stays reachable through caches for up to 1 day] → Documented.
 - [Last-write-wins can overwrite a collaborator's change to the same field] → History, restore, and a notice to the writer.
 - [Unlimited invites can spread beyond the intended people] → Default is 1 use; owners see every member, can remove them and cancel the invite; removed members cannot rejoin.
@@ -193,7 +203,6 @@ Alternatives: one global deployment reachable from China (Cloudflare serves main
 
 ## Open Questions
 
-- Initial plan limit values (BACKEND.md section 11 and the premium doc hold proposed numbers).
 - Comments: whether public link visitors can comment at all, and how anonymous comments are moderated (decided in the comments change).
 - Which features go to Premium Plus.
 - China: entity or publisher, cloud provider, Android stores, sign-in methods (CHINA.md).

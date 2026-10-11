@@ -14,6 +14,7 @@ Events can have background music for emotional depth: a built-in track served by
 - A handful of tracks are free (initial catalog: 5); the rest need Premium on the plan of the person saving them. Any track can be previewed.
 - Files: AAC (`.m4a`), at most 4 MB. Downloaded through `GET /api/v1/audio/{trackId}`, which checks access, then cached on the device for offline playback.
 - Anyone who can see an event can play its track, whatever their own plan.
+- Every track must be free to use worldwide: a CC0 or public domain **recording** (a public domain composition is not enough, the recording can still be protected) or a royalty-free licence for app use. `catalog.json` records `license` and `source` per track.
 
 ### 2.2 Spotify Links
 - The user shares a Spotify track, album or playlist from the Spotify app to Days That Matter (Android share intent, iOS share extension), or pastes its `open.spotify.com` link.
@@ -27,6 +28,7 @@ Events can have background music for emotional depth: a built-in track served by
 - Converted on the device to AAC (`.m4a`) of at most 4 MB: about 5.5 minutes at 96 kbps. For a longer file the user picks the section to keep.
 - Uploaded through `POST /api/v1/events/{id}/media` (kind `audio`) and served only through the access-checked audio route, to the owner and members. Never on public link pages (copyright risk of publishing user-uploaded music).
 - Premium: up to 20 custom audio files in use. Free: preview only, paywall on save. Limits: [`premium/SPEC.md`](../premium/SPEC.md).
+- Copyright: before the first upload the user confirms they have the rights. Every custom audio file has a Report button; removed files stop playing within 24 hours; repeat offenders lose audio uploads (design D15).
 
 ---
 

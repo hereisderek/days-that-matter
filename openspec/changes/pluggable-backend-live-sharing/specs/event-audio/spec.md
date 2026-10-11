@@ -14,7 +14,7 @@ An event SHALL have at most one audio choice: a built-in track, a custom audio f
 - **THEN** the event has only the Spotify link
 
 ### Requirement: Built-in track catalog
-The app SHALL list the built-in tracks from the backend with title, artist, duration and whether each is free or Premium. Every user SHALL be able to preview any track. The catalog SHALL be updated without an app release.
+The app SHALL list the built-in tracks from the backend with title, artist, duration and whether each is free or Premium. Every user SHALL be able to preview any track. The catalog SHALL be updated without an app release. Every track SHALL carry a recorded licence that allows worldwide use in the app.
 
 #### Scenario: Browse the catalog
 - **WHEN** a free user opens the audio picker
@@ -45,6 +45,24 @@ A user whose plan includes custom audio SHALL be able to pick an audio file from
 #### Scenario: Free user picks a file
 - **WHEN** a free user picks an audio file and taps Save
 - **THEN** the paywall appears and the event keeps its previous audio
+
+### Requirement: Rights confirmation before uploading audio
+Before a user's first custom audio upload, the app SHALL ask them to confirm that they have the rights to use the file, and SHALL NOT upload until they confirm. An account that the operator blocked from uploading audio SHALL get `403 forbidden` on audio uploads.
+
+#### Scenario: First upload
+- **WHEN** a Premium user saves their first custom audio file
+- **THEN** the app asks them to confirm they have the rights, and uploads only after they confirm
+
+#### Scenario: Blocked uploader
+- **WHEN** an account blocked for repeated copyright reports uploads an audio file
+- **THEN** the response is `403 forbidden` and the app says audio uploads are disabled for the account
+
+### Requirement: Reporting custom audio
+Everyone who can play a custom audio file SHALL be able to report it. After the operator removes a reported file, it SHALL stop playing for everyone within 24 hours, and the event SHALL show no audio.
+
+#### Scenario: Takedown
+- **WHEN** the operator removes a custom audio file after a valid copyright notice
+- **THEN** within 24 hours the file no longer plays in any app or page, and the event shows no audio
 
 ### Requirement: Who hears custom audio
 A custom audio file SHALL play for the owner and the event's members. It SHALL NOT be offered to public link visitors.

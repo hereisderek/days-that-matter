@@ -152,6 +152,7 @@ CREATE TABLE accounts (
   display_name    TEXT NOT NULL,
   plan            TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free','premium','premium_plus')),
   plan_expires_at INTEGER,                      -- derived from purchases; plan counts as free once passed
+  audio_blocked   INTEGER NOT NULL DEFAULT 0,   -- set by the operator for repeated copyright reports
   created_at      INTEGER NOT NULL
 );
 
@@ -535,9 +536,10 @@ Serving: backdrops from the media origin with `Cache-Control: public, max-age=86
 
 `backend/core/audio/catalog.json`:
 ```json
-{"tracks": [{"id": "calm-lofi", "title": "Calm Lo-Fi", "artist": "…", "durationSec": 184, "tier": "free", "bytes": 2950000}]}
+{"tracks": [{"id": "calm-lofi", "title": "Calm Lo-Fi", "artist": "…", "durationSec": 184, "tier": "free", "bytes": 2950000,
+             "license": "CC0-1.0", "source": "https://…"}]}
 ```
-Files are AAC (`.m4a`), at most 4 MB, stored at `audio/{id}.m4a`, uploaded by the operator with the variant's deploy tooling. The catalog ships with the core, so changing it is a deploy, not an app release.
+Files are AAC (`.m4a`), at most 4 MB, stored at `audio/{id}.m4a`, uploaded by the operator with the variant's deploy tooling. Every track needs a recording that is free to use worldwide (CC0, public domain recording, or a royalty-free licence for app use); a public domain composition is not enough, because the recording can still be protected. CI rejects a catalog entry without `license` and `source`. The catalog ships with the core, so changing it is a deploy, not an app release.
 
 ### 10.3 Audio access (`GET /audio/{id}`)
 
@@ -640,7 +642,7 @@ Testing (details in [`TESTING_STRATEGY.md`](../standards/TESTING_STRATEGY.md)):
 
 Operations:
 - Maintenance: `MAINTENANCE=1` makes writes return `503`; reads keep working.
-- Takedown: revoke the reported link and delete the event's media files with the provider's own tools (an SQL statement for D1, SQLite and Turso; the console for Firestore and the blob store). Each variant's README holds the exact commands. An admin API is not planned.
+- Takedown: revoke the reported link, or remove the reported media or custom audio file (clear it from the event, delete the blob), and for repeat copyright reports set `accounts.audio_blocked = 1`, with the provider's own tools (an SQL statement for D1, SQLite and Turso; the console for Firestore and the blob store). Each variant's README holds the exact commands. An admin API is not planned.
 - Daily job: purchase re-checks; media unused for 24 hours; links and invites revoked or expired more than 30 days ago; event tombstones older than 30 days with their revisions and memos; memo tombstones older than 30 days (raising `child_purged_seq`); expired email codes; sessions unused for 90 days; rate counters older than 2 days. Bounded batches of 500 rows.
 - Backups: D1 Time Travel (7 days on Free); self-host copies the volume; Turso and Firestore use their own point-in-time recovery.
 - CI: one workflow `backend.yml` (see [`WORKFLOW_PIPELINE.md`](../ci-cd/WORKFLOW_PIPELINE.md) section 4).
@@ -657,6 +659,7 @@ Needed before the global launch:
 - Licensed audio tracks and the free and Premium split.
 - Android package name and signing key fingerprints for `assetlinks.json`.
 - Abuse contact address, privacy policy owner and jurisdiction.
+- Terms of service (rights to uploaded content, repeat-infringer policy) and a DMCA designated agent registered with the US Copyright Office.
 - For other providers when used: Turso database and Vercel Blob store; a Firebase project on Blaze.
 
 ---

@@ -16,7 +16,7 @@ Normative requirements: the [`premium`](../../../openspec/changes/pluggable-back
 
 ---
 
-## 2. Feature and Limit Table (initial values)
+## 2. Feature and Limit Table
 
 Counts are per account. "Owned events" counts the owner's events. Every other count is what that account added, on its own events or as an editor of someone else's. Events shared with you never count.
 
@@ -31,7 +31,7 @@ Counts are per account. "Owned events" counts the owner's events. Every other co
 | Sync, sharing, invites, history, memos | - | yes (needs an account) | yes | yes |
 | Still photo backdrops | - | within `photos` | within `photos` | |
 
-Fixed limits for every plan (file sizes, links per event, members per event, rate limits) are in `BACKEND.md` section 11.2.
+File sizes are capped on every plan, to prevent abuse: photos at most 1.5 MB (motion part 4 MB), audio files at most 4 MB. The app compresses photos and converts audio automatically when a file is too big, so users never resize anything themselves. Other fixed limits for every plan (links per event, members per event, rate limits) are in `BACKEND.md` section 11.2.
 
 ---
 
