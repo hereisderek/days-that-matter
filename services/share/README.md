@@ -39,8 +39,8 @@ Optional local secrets go in `.dev.vars` (git-ignored), for example `RATE_SALT=d
 | Env | Worker | Host | D1 database | Trigger |
 | :--- | :--- | :--- | :--- | :--- |
 | local | n/a | `localhost:8787` | local miniflare D1 | manual |
-| preview | `dtm-share-preview` | `dtm-share-preview.<account>.workers.dev` | `dtm-share-preview` | push to `master` touching `services/share/**` |
-| production | `dtm-share` | `daysthatmatter.app` (Custom Domain) | `dtm-share` | tag `share-v*.*.*`, environment approval |
+| preview | `dtm-share-preview` | `dtm-share-preview.<account>.workers.dev` | `dtm-share-preview` | none (frozen, not deployed) |
+| production | `dtm-share` | `daysthatmatter.app` (Custom Domain) | `dtm-share` | none (frozen, not deployed) |
 
 `wrangler.jsonc` repeats `vars`, `d1_databases`, `triggers` and `observability` in each `env.*` block because wrangler does not inherit those keys. The `workers.dev` host cannot serve App Links, so only production tests deep links.
 
@@ -68,17 +68,8 @@ Optional local secrets go in `.dev.vars` (git-ignored), for example `RATE_SALT=d
 
 Workflow: [`.github/workflows/share-service.yml`](../../.github/workflows/share-service.yml). Details: [`docs/ci-cd/WORKFLOW_PIPELINE.md`](../../docs/ci-cd/WORKFLOW_PIPELINE.md) section 4.
 
-- Pull request and push: `npm ci`, typecheck, lint, test, `check:assets`, `npm audit --omit=dev --audit-level=high`, dry-run deploy.
-- Push to `master`: the same, then migrations on preview, `wrangler deploy --env preview`, smoke test. Fails while the preview D1 id is still the placeholder.
-- Tag `share-v*.*.*`: the same, then strict placeholder check, production migrations, `wrangler deploy --env production`, smoke test. Waits for environment approval.
-
-Order rule: migrations run before the Worker deploy. A migration must work with the Worker version that is still live (add tables or columns only, no drops in the same release). Creating or pushing a `share-v*` tag needs the project owner's explicit approval.
-
-Manual deploy (needs `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` in the environment):
-
-```bash
-npm run migrate:preview && npm run deploy:preview && BASE_URL=https://<preview-host> npm run smoke
-```
+- Pull request and push: `npm ci`, typecheck, lint, test, `check:assets`, `npm audit --omit=dev --audit-level=high`, dry-run deploy. Nothing else.
+- The deploy jobs were removed on 2026-10-12: this service is frozen and is not deployed.
 
 ## Rollback
 

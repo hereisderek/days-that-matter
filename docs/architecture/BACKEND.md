@@ -536,10 +536,9 @@ Serving: backdrops from the media origin with `Cache-Control: public, max-age=86
 
 `backend/core/audio/catalog.json`:
 ```json
-{"tracks": [{"id": "calm-lofi", "title": "Calm Lo-Fi", "artist": "…", "durationSec": 184, "tier": "free", "bytes": 2950000,
-             "license": "CC0-1.0", "source": "https://…"}]}
+{"tracks": [{"id": "calm-lofi", "title": "Calm Lo-Fi", "artist": "…", "durationSec": 184, "tier": "free", "bytes": 2950000}]}
 ```
-Files are AAC (`.m4a`), at most 4 MB, stored at `audio/{id}.m4a`, uploaded by the operator with the variant's deploy tooling. Every track needs a recording that is free to use worldwide (CC0, public domain recording, or a royalty-free licence for app use); a public domain composition is not enough, because the recording can still be protected. CI rejects a catalog entry without `license` and `source`. The catalog ships with the core, so changing it is a deploy, not an app release.
+Files are AAC (`.m4a`), at most 4 MB, stored at `audio/{id}.m4a`, uploaded by the operator with the variant's deploy tooling. Tracks are public domain recordings. The catalog ships with the core, so changing it is a deploy, not an app release.
 
 ### 10.3 Audio access (`GET /audio/{id}`)
 
@@ -659,7 +658,7 @@ Needed before the global launch:
 - Licensed audio tracks and the free and Premium split.
 - Android package name and signing key fingerprints for `assetlinks.json`.
 - Abuse contact address, privacy policy owner and jurisdiction.
-- Terms of service (rights to uploaded content, repeat-infringer policy) and a DMCA designated agent registered with the US Copyright Office.
+- Terms of service, privacy policy and disclaimer ([`docs/legal/`](../legal/README.md)), and a DMCA designated agent registered with the US Copyright Office.
 - For other providers when used: Turso database and Vercel Blob store; a Firebase project on Blaze.
 
 ---

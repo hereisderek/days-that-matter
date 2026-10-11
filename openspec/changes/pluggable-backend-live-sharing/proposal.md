@@ -43,6 +43,7 @@ None. `openspec/specs/` is empty. Current behavior is described in `docs/feature
 - App: Firebase SDK removed. Ktor client, Google, Apple and email sign-in, sync engine with memos and a Sync button, share and history screens, Live Photo and Motion Photo conversion, paywall with StoreKit 2 (Swift bridge) and Play Billing, audio catalog, custom audio conversion, Spotify links, region selection.
 - API: a new `/api/v1` contract, not compatible with the undeployed share API. Deep link paths `/e/{token}`, `/i/{token}`, `/s/{eventId}`.
 - Infrastructure: Cloudflare adds R2 and a Durable Object namespace. Self-host ships a Docker image. Vercel needs Turso and Vercel Blob. Firebase needs the Blaze plan. App Store Server API key, Google Play service account, store subscription products, an email provider.
+- Legal: terms of service, privacy policy and disclaimer are all new and must exist before launch (accounts, uploads, sharing, purchases, copyright takedown). Coverage and update rules: `docs/legal/README.md`.
 - Docs: new `docs/architecture/BACKEND.md`, `docs/architecture/CHINA.md` and `docs/features/premium/SPEC.md`. Sync, auth, sharing, events, customization, media, memos, testing and CI docs updated. Share service docs marked as superseded.
 
 ## Out of Scope

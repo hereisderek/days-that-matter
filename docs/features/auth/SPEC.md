@@ -61,6 +61,7 @@ sealed interface AuthState {
 - Welcoming splash visual with subtle countdown animation.
 - "Continue with Apple", "Continue with Google" and "Continue with email" buttons (only those the region enables). The same buttons sign in or create an account.
 - "Skip for now (Continue as Guest)" option clearly visible to avoid drop-off.
+- Below the buttons: "By continuing you agree to the Terms of Service and Privacy Policy", both linked ([`docs/legal/`](../../legal/README.md)). Changed terms that need new consent are shown again after the next app start.
 
 ### 4.2 Sign-In Prompt (`SignInPromptSheet`)
 - Shown to guests on Sync, Share, Invite, opening an invite, and once after the first saved event.

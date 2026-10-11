@@ -56,37 +56,15 @@ The backend in `backend/` (see [`BACKEND.md`](../architecture/BACKEND.md)) gets 
 - **Pull request** touching `core/model/**`, `backend/**` or the workflow: `:core:model` and `backend/core` tests (plus the contract drift check with a TypeScript core), store conformance, then the HTTP conformance suite against each variant (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
 - **Push to `master`:** the same, then D1 migrations and deploy to the Cloudflare preview, then the smoke test.
 - **Tag `backend-v*.*.*`:** production deploy to Cloudflare with environment approval. Other providers deploy manually until they are used in production.
-- Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as below. OAuth client secrets, the Apple keys, the Google Play service account, the email provider key, `RATE_SALT`, `EMAIL_CODE_KEY` and `INVITE_KEY` are set per environment with `wrangler secret put`, never in CI.
+- Secrets: GitHub repository secrets `CLOUDFLARE_API_TOKEN` (scoped to Workers, D1 and R2 edit) and `CLOUDFLARE_ACCOUNT_ID`; GitHub environments `preview` and `production` (`production` with required reviewers). OAuth client secrets, the Apple keys, the Google Play service account, the email provider key, `RATE_SALT`, `EMAIL_CODE_KEY` and `INVITE_KEY` are set per environment with `wrangler secret put`, never in CI.
 
-Until task 5.5 removes it, the old share service workflow below stays in place.
+### 4.1 Legacy: Share Service Checks (`share-service.yml`)
+The frozen TypeScript service in `services/share/` keeps a checks-only workflow so the behavior reference stays green: on pull requests and pushes touching `services/share/**`, it runs `npm ci`, typecheck, lint, `vitest`, `npm run check:assets`, `npm audit --omit=dev --audit-level=high` and `wrangler deploy --dry-run`. Its preview and production deploy jobs and the `share-v*.*.*` tag trigger were removed on 2026-10-12: the service is never deployed. Task 5.5 of the OpenSpec change deletes the workflow together with the service.
 
-### 4.0 Legacy: Share Service Pipeline (`share-service.yml`)
-The share service in `services/share/` (Cloudflare Worker + D1, see [`docs/architecture/SHARE_SERVICE.md`](../architecture/SHARE_SERVICE.md)) has its own workflow. It is independent from the app pipelines and only runs for changes under `services/share/**` and the workflow file.
+---
 
-| Secret Name | Description |
-| :--- | :--- |
-| `CLOUDFLARE_API_TOKEN` | Token scoped to Workers and D1 edit |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account id |
-
-Required GitHub repository secrets: `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`. Never commit their values. The Worker secrets `RATE_SALT` and `ADMIN_KEY` are not CI secrets: they are set once per environment with `wrangler secret put`.
-
-| Repository variable | Description |
-| :--- | :--- |
-| `SHARE_PREVIEW_URL` | Preview `workers.dev` URL used by the smoke test |
-| `SHARE_PRODUCTION_URL` | Optional, defaults to `https://daysthatmatter.app` |
-
-GitHub environments `preview` and `production` must exist. `production` needs required reviewers (the approval gate). One-time setup steps are in [`services/share/README.md`](../../services/share/README.md).
-
-### 4.1 Pull Request Verification
-- **Trigger:** pull request touching `services/share/**`.
-- **Steps:** `npm ci`, typecheck, lint, `vitest` (Workers pool with local D1), `npm run check:assets` (placeholder check, design token drift check, JSON validity of the association files), `npm audit --omit=dev --audit-level=high` (production dependencies; the dev toolchain does not ship in the Worker), `wrangler deploy --dry-run` for both environments. The same checks also run on push to `master` and on tags.
-
-### 4.2 Preview Deploy
-- **Trigger:** push to `master` touching `services/share/**`.
-- **Steps:** refuse the placeholder D1 database id, apply D1 migrations to the preview database, then `wrangler deploy --env preview`, then the smoke test (`npm run smoke`: health, create/read/revoke, well-known files with `redirect: manual`).
-
-### 4.3 Production Deploy
-- **Trigger:** tag `share-v*.*.*`, with a required environment approval.
-- **Steps:** same checks, the placeholder check in strict mode (fails while association files contain placeholders), apply D1 migrations to production, `wrangler deploy --env production`, smoke test.
-- **Order rule:** migrations always run before the Worker deploy and must be backward compatible with the previous Worker version.
-- **Rollback:** `wrangler rollback` for the Worker. D1 changes roll forward only.
+## 5. OpenSpec Validation (`openspec.yml`)
+- **Trigger:** pull request or push to `master` touching `openspec/**` or the workflow file; manual run.
+- **Step:** `npx --yes @fission-ai/openspec@1.14.1 validate --all --strict --no-interactive`. Fails on any invalid change or spec (format, missing scenarios, requirement text over 500 characters, missing purpose).
+- **Telemetry:** off (`DO_NOT_TRACK=1`, `OPENSPEC_TELEMETRY=0`).
+- **Version:** pinned. When upgrading the local CLI (`brew upgrade openspec`), bump the version in the workflow in the same PR and run `openspec update` if the release notes ask for it.

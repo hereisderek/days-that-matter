@@ -22,6 +22,7 @@
 5. **No Platform Code in Domain:** Keep domain entities and use cases strictly pure Kotlin. `:core:model` is also compiled for the backend (JS, JVM), so it may depend only on Kotlin stdlib, kotlinx-serialization and kotlinx-datetime.
 6. **Backend Core and Variants:** all backend behavior lives in `backend/core/`. A variant directory (`backend/cloudflare`, `backend/selfhost`, `backend/vercel`, `backend/firebase`) holds only port implementations (`Store`, `BlobStore`, `LiveHub`), an entry file and deploy config. Performance and low running cost come first.
 7. **Premium Features:** any change to what a plan includes updates the plan table in `:core:model` and [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md) in the same PR. Gating uses the plan of the person saving; viewing is never gated.
+8. **Legal Documents:** a change that touches what users upload or share, what data is collected or stored and where, third-party services, plans or prices, or retention updates the terms of service, privacy policy or disclaimer in [`docs/legal/`](docs/legal/README.md) in the same PR, following its checklist and update process.
 
 ---
 
@@ -47,6 +48,7 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 - **System Architecture & Modularization:** [`docs/architecture/SYSTEM_ARCHITECTURE.md`](docs/architecture/SYSTEM_ARCHITECTURE.md)
 - **Backend (core, variants, ports, data model, API contract, limits):** [`docs/architecture/BACKEND.md`](docs/architecture/BACKEND.md)
 - **China region (research, plan, open points):** [`docs/architecture/CHINA.md`](docs/architecture/CHINA.md)
+- **Legal documents (terms, privacy policy, disclaimer: coverage checklist and update triggers):** [`docs/legal/README.md`](docs/legal/README.md)
 - **Persistence, Room KMP & Sync:** [`docs/architecture/PERSISTENCE_AND_SYNC.md`](docs/architecture/PERSISTENCE_AND_SYNC.md)
 - **Coding Standards & Kotlin Idioms:** [`docs/standards/CODING_STANDARDS.md`](docs/standards/CODING_STANDARDS.md)
 - **Testing Pyramid & QA Strategy:** [`docs/standards/TESTING_STRATEGY.md`](docs/standards/TESTING_STRATEGY.md)
@@ -85,4 +87,4 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 | **Run Desktop (JVM)** | `./gradlew :composeApp:run` |
 | **Run Web (Wasm)** | `./gradlew :composeApp:wasmJsBrowserDevelopmentRun` |
 | **List OpenSpec changes / specs** | `openspec list` / `openspec list --specs` |
-| **Validate OpenSpec** | `openspec validate --all --strict` |
+| **Validate OpenSpec** | `openspec validate --all --strict` (CI: `.github/workflows/openspec.yml`) |

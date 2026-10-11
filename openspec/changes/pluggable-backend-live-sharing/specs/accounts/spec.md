@@ -57,6 +57,17 @@ When a user signs in with a method whose verified email matches the verified ema
 - **WHEN** a user who signed up with an email code later signs in with Google using the same verified address
 - **THEN** they land in the same account with the same events
 
+### Requirement: Terms of service and privacy policy
+Creating an account SHALL require agreeing to the terms of service and the privacy policy, shown as links on the sign-in screen in the app and on the web. The terms SHALL state that users may only upload photos and audio they own or have the rights to use. When the terms change in a way that needs new consent, the app SHALL ask signed-in users to agree again.
+
+#### Scenario: Sign-up
+- **WHEN** a user without an account sees the sign-in screen
+- **THEN** it says that continuing means agreeing to the terms and privacy policy, with links to both
+
+#### Scenario: Upload without a prompt
+- **WHEN** a Premium user uploads a photo or a custom audio file
+- **THEN** the app asks no rights question; the terms already cover it
+
 ### Requirement: First sign-in uploads local data
 When a guest signs in on a device, their local events and memos SHALL upload to the account. If the account already has data from another device, both sets SHALL be kept, even if the total is above the plan's event limit.
 

@@ -29,7 +29,7 @@ Nothing is deployed. No Cloudflare account, D1 database or domain is configured 
 
 ## 2. Known CI state
 
-The `Deploy preview` job fails on every push to `master` at the step `Refuse placeholder D1 id`. This is intended: `wrangler.jsonc` still has all-zero D1 `database_id` values. It goes green after step A3 below.
+Since 2026-10-12 the workflow only runs checks; the deploy jobs were removed because the service is frozen and never deployed (see section 0). The earlier `Deploy preview` failures at `Refuse placeholder D1 id` no longer happen.
 
 ## 3. TODO: owner actions (block deployment and launch)
 

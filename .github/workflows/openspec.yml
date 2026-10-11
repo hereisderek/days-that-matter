@@ -1,0 +1,34 @@
+name: OpenSpec
+
+# Validates the spec-driven changes and specs in openspec/ (workflow: AGENTS.md section 3).
+on:
+  pull_request:
+    paths:
+      - 'openspec/**'
+      - '.github/workflows/openspec.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'openspec/**'
+      - '.github/workflows/openspec.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate OpenSpec changes and specs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # OpenSpec sends anonymous usage telemetry unless one of these is set.
+      DO_NOT_TRACK: '1'
+      OPENSPEC_TELEMETRY: '0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # Pinned to the version the repo was initialised with (openspec/config.yaml, schema spec-driven).
+      - run: npx --yes @fission-ai/openspec@1.14.1 validate --all --strict --no-interactive
