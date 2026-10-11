@@ -1,0 +1,26 @@
+schema: spec-driven
+
+context: |
+  Days That Matter is a countdown and milestone app. The app is Kotlin Multiplatform with Compose Multiplatform,
+  Android and iOS first; desktop and web apps come later.
+  The backend is Kotlin. It shares the :core:model module (models, validation, merge rules, countdown engine)
+  with the app, compiles to JS, and runs on Cloudflare Workers, a self-hosted Node server, Vercel Functions or
+  Firebase Cloud Functions through one adapter per provider.
+  Architecture reference: docs/architecture/BACKEND.md. Feature docs: docs/features/.
+  Offline first: every edit works without a network. Guests use the app without the backend until they share.
+  Privacy: shared content is an allow-list. Notes, memos, audio and owner identifiers never reach non-owners.
+  Write plainly: short sentences, no marketing language.
+
+rules:
+  proposal:
+    - State what is out of scope
+  specs:
+    - Describe observable behavior of the app, the share web page and the HTTP API; keep provider and library choices in design.md
+    - State every limit (size, count, duration) as a number
+    - Every requirement must hold on every supported backend provider
+  design:
+    - For each decision, list the alternatives considered and why they lost
+    - State the effect on each provider adapter (cloudflare, selfhost, vercel, firebase) when it differs
+  tasks:
+    - Each task names its verification (a test, a command or an observable result)
+    - Backend tasks include a conformance suite run for the adapters they touch

@@ -14,7 +14,7 @@ Enables users to attach ambient music or nostalgic sound clips to their mileston
 
 ### 2.2 Storage & Upload Pipeline
 - Selected audio files are copied to app cache directory.
-- When signed in, files upload to Firebase Storage at `/users/{userId}/audio/{eventId}.{ext}` with upload progress notification.
+- Audio stays on the device in this phase. It is not synced and never shared. Syncing audio through the backend needs a larger upload path than the 4 MB backend limit (see [`BACKEND.md`](../../architecture/BACKEND.md) section 11) and is planned separately.
 - Offline playback uses the cached local copy.
 
 ### 2.3 Playback Engine Features

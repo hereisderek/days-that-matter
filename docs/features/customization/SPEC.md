@@ -10,7 +10,7 @@ Empowers users to transform simple dates into personalized visual art. Offers cu
 ### 2.1 Backgrounds
 1. **Curated Color Presets:** Carefully selected minimal, pastel, and vibrant palettes.
 2. **Gradients:** Multi-stop linear and radial gradients with adjustable angle.
-3. **Local Photos & Images:** User-selected images from device gallery via multiplatform `FileKit`. Compressed and cached locally, synced to cloud storage for authenticated users.
+3. **Photo & Animated Backdrops:** A still photo, or a short animation (video, iOS Live Photo, GIF, animated WebP) with a still poster. Picked via `FileKit` and the platform photo pickers, compressed on the device (stills at most 1.5 MB and 2560 px; animations at most 4 MB, 10 s, 1280 px, silent), uploaded to the backend when the event is synced or shared. Location and camera metadata are removed. Reduced motion shows the poster. Requirements: the [`event-backdrops`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-backdrops/spec.md) spec.
 4. **Curated Wallpapers:** Bundled high-resolution nature, abstract, and festive wallpapers.
 5. **Dark Mode Adaptation:** Automatic darkening / scrim overlay applied in dark mode.
 
@@ -43,7 +43,7 @@ data class EventCustomization(
     val cardStyle: CardStyle = CardStyle.Glassmorphic,
     val typography: TypographyStyle = TypographyStyle.ModernSans,
     val textColorOverride: String? = null,
-    val dimBackgroundFactor: Float = 0.2f // 0.0 to 1.0 scrim overlay
+    val dimBackgroundFactor: Float = 0.2f // 0.0 to 0.8 scrim overlay; shared as backdrop.dim
 )
 
 @Serializable
@@ -51,8 +51,17 @@ sealed interface BackgroundConfig {
     @Serializable data class SolidColor(val hexColor: String) : BackgroundConfig
     @Serializable data class LinearGradient(val colors: List<String>, val angleDegrees: Float) : BackgroundConfig
     @Serializable data class ImagePreset(val presetId: String) : BackgroundConfig
-    @Serializable data class CustomImage(val localPath: String, val remoteUrl: String? = null) : BackgroundConfig
+    @Serializable data class Photo(
+        val kind: BackdropKind,                 // Still or Animated
+        val localPath: String?,                 // device cache; null until downloaded
+        val mediaId: String? = null,            // set after upload
+        val posterMediaId: String? = null,      // animated only
+        val posterLocalPath: String? = null
+    ) : BackgroundConfig
 }
+
+@Serializable
+enum class BackdropKind { Still, Animated }
 
 @Serializable
 enum class CardStyle {

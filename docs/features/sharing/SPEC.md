@@ -1,94 +1,101 @@
 # Feature Specification: Sharing, Deep Linking & Social Export
 
 ## 1. Overview & Goals
-Allows users to share their milestone events with friends, family, or social media followers through multiple rich formats: deep links, interactive web pages, exportable high-resolution images, and QR codes.
+Users share milestone events with friends, family or followers through live links, a web page, exported images and QR codes. A shared event is the event itself, not a copy: when the owner or an editor changes it, every open link page and app shows the change.
 
-Links are backed by the share service (Cloudflare Worker + D1 + Static Assets, free tier), not by Firebase. Architecture, data model and the REST API contract are in [`docs/architecture/SHARE_SERVICE.md`](../../architecture/SHARE_SERVICE.md). Implementation plan: [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](../../plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md).
+Normative requirements (OpenSpec change [`pluggable-backend-live-sharing`](../../../openspec/changes/pluggable-backend-live-sharing/)):
+- [`event-sharing`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-sharing/spec.md): links, people link, invites, roles, allow-list, deep links.
+- [`share-web`](../../../openspec/changes/pluggable-backend-live-sharing/specs/share-web/spec.md): web page states, live changes, web sign-in, web editing.
+- [`event-history`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-history/spec.md): revisions and restore.
+- [`event-backdrops`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-backdrops/spec.md): photo and animated backdrops.
+
+Backend API and data model: [`docs/architecture/BACKEND.md`](../../architecture/BACKEND.md).
 
 ---
 
-## 2. Deep Linking Architecture
+## 2. Links
 
-### 2.1 URL Structure
-- **Primary Universal / App Link:** `https://daysthatmatter.app/e/{shareToken}`
-- **Fallback Custom Scheme:** `daysthatmatter://event?token={shareToken}`
-- `{shareToken}` is 22 base64url characters (128 bits of randomness). Anyone with the link can view the shared snapshot. There is no way to list or search shares.
+### 2.1 Link Types
+| Type | Per event | Who can open | Can edit | Sign-in |
+| :--- | :--- | :--- | :--- | :--- |
+| Public link | up to 10 active, each with an optional label and expiry (1 to 365 days) | anyone with the URL | no | not needed |
+| People link | at most 1 | people the owner invited | editors only | needed |
 
-### 2.2 Share Lifecycle (in the app)
-1. **Create:** the app sends a snapshot of the event (title, emoji, date, time, time zone, recurrence, theme) to `POST /api/v1/shares`. The service returns the link and a one-time `manageToken`.
-2. **Store:** the app stores the `manageToken` per shared event in secure storage (Keychain / EncryptedSharedPreferences / Secure Storage) and records the share in a local `shares` table so the owner can see active links.
-3. **Update:** after the owner edits the event, the app can republish the snapshot with `PUT` (shares are snapshots, not live sync).
-4. **Revoke:** the owner can revoke a link at any time with `DELETE`. The link then shows "no longer available". Revocation is permanent; a new link must be created to share again.
-5. **Expiry:** the owner can set an expiry of 1 to 365 days. Default is no expiry.
-6. **Lost token:** if the manage token is lost (for example guest data is cleared), the link cannot be updated or revoked. The share UI warns about this. There is no recovery in v1.
-7. **Offline:** creating, updating and revoking need the network. They are queued as pending operations in the sync engine and the link is shown only after the service confirms. A queued revoke shows as "Revoking" until confirmed.
+- Both use `https://daysthatmatter.app/e/{token}`. The token is 22 base64url characters (128 bits). There is no way to list or search links.
+- People join through invites: `https://daysthatmatter.app/i/{token}`, single use, role viewer or editor, valid 7 days. The first signed-in person who accepts gets the role. The owner sees who accepted and can change roles or remove people. People can leave.
+- Roles: **viewer** sees the event live. **editor** also edits the shared fields and backdrop and sees history. **owner** also manages links and people, edits notes, pin and category, and deletes the event. At most 50 people per event.
+- Custom scheme fallback: `daysthatmatter://e/{token}` and `daysthatmatter://i/{token}`.
 
-### 2.3 Deep Link Interception & Resolution
-1. **App Installed:**
-   - Android App Links & iOS Universal Links intercept the URL directly without browser bounce.
-   - The app validates the token format (22 base64url chars), then calls `GET https://daysthatmatter.app/api/v1/shares/{shareToken}`.
-   - Presents a bottom sheet preview of the shared event.
-   - User can tap **"Import to My Events"** to clone a local copy (new id, new owner, same time zone), or simply view the live countdown.
-   - A 404 shows "Link not found". A 410 shows "This link is no longer available". A network error shows "Needs a connection", with the last seen snapshot if cached.
-2. **App Not Installed (Web Fallback):**
-   - The link opens the share page served by the service (`GET /e/{shareToken}`).
-   - Renders the interactive countdown card in the browser with live ticking seconds, using the same rules as the app's countdown engine.
-   - Displays smart banners: iOS Smart App Banner (`apple-itunes-app` meta tag), and on Android an in-page "Open in App" / "Get it on Google Play" banner. Desktop shows the card and a QR code of the same URL.
-   - The page is not indexed by search engines (`noindex`).
+### 2.2 Share Flow in the App
+1. **Public link:** Share sheet → "Public link" → optional label and expiry → link created and copied. A guest gets an anonymous account on the first link, after a one-time warning that guest links cannot be managed from another device.
+2. **People:** Share sheet → "People" → "Invite" with a role → the invite URL is handed to the system share sheet. Requires sign-in with Google or Apple; a guest's data is kept when they sign in.
+3. **Manage:** the share screen lists links (copy, rename, change expiry, revoke), people (role, remove) and pending invites (cancel). It loads from the backend, so it is the same on every signed-in device.
+4. **Offline:** link, invite and people actions need a connection and are disabled offline. Event edits work offline and sync later (see [`PERSISTENCE_AND_SYNC.md`](../../architecture/PERSISTENCE_AND_SYNC.md)).
 
-### 2.4 Association Files
+### 2.3 What Is Shared
+Shared fields: title, emoji, date, time, time zone, unit mode, recurrence, theme, backdrop. Never shared: notes, pin state, category, memos, audio. Public links carry no names or account data. People links show the display names of the owner and the people with access.
+
+### 2.4 Time Zone Semantics
+`timeZone` is an IANA name or null. A fixed zone means everyone sees the same instant. Null means "floating": each viewer's local zone is used (New Year, birthdays). An event with no time counts to 00:00 in that zone. See [`docs/features/events/SPEC.md`](../events/SPEC.md).
+
+---
+
+## 3. Deep Link Resolution
+1. **App installed:** App Links (Android) and Universal Links (iOS) open `/e/` and `/i/` URLs in the app. The app calls `GET /api/v1/links/{token}` and shows the event, live. For a people link it uses the signed-in session; without one it offers sign-in. A signed-in user can add a public-link event to their own events as a copy ("Save a copy").
+2. **App not installed:** the URL opens the web page (section 4).
+3. **Errors:** `404` "Link not found"; `410` "This link is no longer available"; `401` sign in; `403` "Ask the owner for an invite"; network error "Needs a connection", with the last seen version if cached.
+
+### 3.1 Association Files
 - `https://daysthatmatter.app/.well-known/assetlinks.json` (Android) and `https://daysthatmatter.app/.well-known/apple-app-site-association` (iOS, no file extension).
 - Served as static files with `Content-Type: application/json`, no redirects, no authentication.
-- iOS matches the path pattern `/e/*`. Android verifies the same host with the Play App Signing and upload key fingerprints.
-- Team ID, bundle id, package name and fingerprints are placeholders until the apps are published (see the share service doc, section 11).
-- Deep links are only testable on the production domain. `workers.dev` hosts cannot be verified.
+- iOS matches the paths `/e/*` and `/i/*`. Android verifies the same host with the Play App Signing and upload key fingerprints.
+- Team ID, bundle id, package name and fingerprints are placeholders until the apps are published.
+- Deep links are testable only on the production domain.
 
-### 2.5 Web Page States
+---
+
+## 4. Web Page
+- Server-rendered countdown card with live ticking seconds, same rules as the app's engine (shared test vectors).
+- Live changes: WebSocket notices or polling every 20 seconds, depending on the backend provider. Revoking a link or removing a person switches open pages to the right state.
+- People link and invite pages offer Sign in with Google and Sign in with Apple through redirects. No third-party scripts.
+- Editors get an Edit button (shared fields, backdrop) and a History panel with restore.
+- Backdrop: still photo or silent looping animation with a poster; poster only under reduced motion or data saver.
+- Smart banners on iOS and Android, none on desktop. Desktop shows the card without a QR code.
+- Not indexed by search engines. Public link previews show title, countdown text and the backdrop still; people links show a generic preview.
+
 | State | HTTP | Page |
 | :--- | :--- | :--- |
-| Active | 200 | Countdown card, banners |
+| Visible | 200 | Countdown card, banners, Edit and History for editors |
+| People link, not signed in | 401 | Sign-in options, no event details |
+| Signed in without access | 403 | "Ask the owner for an invite", no event details |
+| Revoked, expired or event deleted | 410 | "This link is no longer available" |
 | Unknown or malformed token | 404 | "Link not found" |
-| Revoked or expired | 410 | "This link is no longer available", no event details |
-| Service error or free-tier limit reached | 503 or static fallback | Short message; the app link buttons still work |
-
-### 2.6 Time Zone Semantics
-The share payload carries `timeZone` (IANA name, or null) and an optional `targetTime`. A fixed zone means everyone sees the same instant. Null means "floating": each viewer's local zone is used (New Year, birthdays). An event with no time counts to 00:00 in that zone. The app chooses the value when sharing; the default is the owner's zone at share time. The `Event` model has no time zone field today, so the events spec needs a matching update when the client work starts.
+| Service error or provider limit | 503 | Short message; app link buttons still work |
 
 ---
 
-## 3. Image & Social Export
+## 5. Image & Social Export
 
-### 3.1 High-Resolution Card Export
+### 5.1 High-Resolution Card Export
 - Offscreen rendering of the event card at 1080x1920 (9:16 Instagram Story aspect ratio) or 1200x630 (horizontal social banner).
-- Includes the event title, countdown counter, custom typography, and optional subtle watermark ("Tracked with Days That Matter").
+- Includes the event title, countdown counter, custom typography, the backdrop (poster frame for animations) and an optional subtle watermark ("Tracked with Days That Matter").
 - Native system share sheet invokes with image attachment for direct sharing to Instagram, WhatsApp, X/Twitter, or saving to Camera Roll.
 
-### 3.2 QR Code Sharing
-- In-app QR code generator encoding `https://daysthatmatter.app/e/{shareToken}`.
-- The QR code is generated on the device from the URL, so it works offline once a link exists. The service does not generate QR codes.
-- Allows instant in-person sharing from device to device using camera scanner.
+### 5.2 QR Code Sharing
+- In-app QR code generator encoding a link URL. Generated on the device, so it works offline once a link exists. The backend does not generate QR codes.
 
 ---
 
-## 4. Security & Permissions
+## 6. Security & Privacy Summary
+- Read access to a public link: possession of its token. Read access through the people link: a signed-in account with a grant. Write access: owner or editor session.
+- Link tokens are stored in clear so owners can copy them on any device; invite and session tokens are stored hashed (see `BACKEND.md` sections 8 and 14).
+- Unknown, malformed and purged tokens give identical `404` responses.
+- Shared content is an allow-list (section 2.3). Backdrop files have location and camera metadata removed.
+- Every page has a report link. Takedown revokes the link and deletes the media.
 
-The service replaces the former Firestore security rules (`shared_events`, `allow read: if true`), which would have allowed listing all shares. Authorization model:
-
-| Action | Requirement |
-| :--- | :--- |
-| Read (`GET /shares/{token}`, `GET /e/{token}`) | The unguessable share token. No list or search endpoint. |
-| Create (`POST /shares`) | None beyond rate limits: per IP, 50 active shares per install id, and a global daily cap (10,000 creates per day). No account needed, so guests can share. |
-| Update, revoke | The `manageToken` returned at creation (Bearer). Only its SHA-256 hash is stored. Wrong token and unknown share give the same 404. |
-
-Data rules:
-- Shared payload is an allow-list: title, emoji, date, time, time zone, unit mode, recurrence, theme ids and gradient. Maximum 8 KB.
-- **Memos are not shared in v1.** The "Include Memos in Share" option and collaborative memos (`AccessMode.CollaborativeMemos`) are deferred, because they need authenticated writes and carry spam and PII risk. Notes, owner id, email, names, wallpapers and audio are never shared.
-- Raw tokens are not stored. IP addresses and install ids are not logged.
-- Revoking a share clears its data immediately. Expired shares have their data cleared by the nightly job. The row is removed 30 days later. D1 Time Travel can keep deleted data recoverable for 7 days.
-- The service runs on Cloudflare's free plan. The request cap (100,000 per day) is a known availability limit, see the share service doc, section 10.
-
-## 5. Out of Scope (v1)
-- Live sync of owner edits to existing links beyond manual republish.
-- Memos and collaboration on shared events.
-- Images or audio in shares.
-- Recovering a lost manage token.
+## 7. Out of Scope (this change)
+- Comments, including anonymous comments visible only to the owner (planned; see the change's design D12).
+- Memos in shares and collaborative memos.
+- Audio in shares.
+- Push notifications for changes.
+- Email invites (invites are URLs the owner sends).
