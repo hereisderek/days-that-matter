@@ -9,8 +9,8 @@ The app helps users track meaningful moments in their lives—past anniversaries
 1. **Uncompromising User Experience:** Fluid 60/120fps animations, intuitive gesture navigation, instant offline responsiveness, and zero visual clutter.
 2. **Precision & Depth:** Multi-unit countdown calculations down to seconds, intelligent recurring events, and time-zone resilience.
 3. **Emotional Resonance:** Rich customization including bespoke card aesthetics, typography, full-bleed imagery, and atmospheric background audio.
-4. **Universal Accessibility:** Seamless operation across Android, iOS, Desktop (JVM), and Web (Wasm), with native home-screen and lock-screen widgets.
-5. **Privacy & Offline-First:** Full offline utility powered by local SQLite/Room, optional cloud sync via Firebase with end-to-end security rules.
+4. **Universal Accessibility:** Android and iOS first, with native home-screen and lock-screen widgets. Desktop (JVM) and Web (Wasm) apps follow. Shared events open in any browser.
+5. **Privacy & Offline-First:** Full offline utility powered by local SQLite/Room. Guests keep everything on the device. Signed-in users sync everything through our own backend, which can run on several providers.
 
 ---
 
@@ -24,11 +24,12 @@ The app helps users track meaningful moments in their lives—past anniversaries
 | **JDK Runtime** | JDK 21 LTS | Temurin / OpenJDK 21 |
 | **Android Targets** | Compile SDK 35/36, Min SDK 26 | 16KB page alignment compliant |
 | **iOS Targets** | iOS 16.0+ | Compose Multiplatform UI + native WidgetKit |
-| **Desktop Target** | macOS (ARM/x64), Windows, Linux | JVM 21, Skiko GPU-accelerated |
-| **Web Target** | Kotlin/Wasm | Canvas-based rendering with JS fallback |
+| **Desktop Target** (later) | macOS (ARM/x64), Windows, Linux | JVM 21, Skiko GPU-accelerated |
+| **Web Target** (later) | Kotlin/Wasm | Canvas-based rendering with JS fallback |
 | **Local Persistence**| Room KMP 2.7+ | Multiplatform SQLite with reactive Flow queries |
-| **Cloud Backend** | Firebase (Auth, Firestore, Storage)| Multiplatform SDK with strict security rules |
-| **Share Service** | Cloudflare Workers + D1 + Static Assets (free tier) | Share links, web fallback page, association files; see `docs/architecture/SHARE_SERVICE.md` |
+| **Backend** | `backend/core/` (Kotlin/JS or TypeScript, chosen by measured CPU time and cost) + one variant per provider; rules from `:core:model` | Accounts, sync, sharing, history, backdrops, audio, plans, share web page. Variants: Cloudflare (Workers, D1, R2, Durable Objects; primary), self-host (Node, SQLite), Vercel (Functions, Turso, Blob), Firebase (Functions, Firestore, Storage). See [`architecture/BACKEND.md`](architecture/BACKEND.md) |
+| **Purchases** | StoreKit 2 (Swift bridge) / Play Billing Library | Premium subscriptions, verified by the backend directly with Apple and Google. See [`features/premium/SPEC.md`](features/premium/SPEC.md) |
+| **Network Client** | Ktor + kotlinx-serialization | One HTTP API on every backend provider |
 | **Dependency Inj.** | Koin 4.0+ | Compose ViewModel integration |
 
 ---
@@ -51,7 +52,7 @@ The codebase adheres strictly to **Clean Architecture** with unidirectional data
                             │ implemented by
 ┌───────────────────────────┴────────────────────────────┐
 │                       Data Layer                       │
-│    (Local DB: Room KMP, Remote: Firebase/Ktor, Cache)  │
+│   (Local DB: Room KMP, Remote: backend API via Ktor)   │
 └────────────────────────────────────────────────────────┘
 ```
 
@@ -69,20 +70,27 @@ All feature-specific requirements, data models, UI flows, and edge cases are iso
 
 | Feature Area | Folder Location | Scope & Highlights |
 | :--- | :--- | :--- |
-| **Authentication** | [`docs/features/auth/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/auth/SPEC.md) | Guest mode, Email/Password, Google Sign-In, Session sync |
-| **Event Engine** | [`docs/features/events/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/events/SPEC.md) | Countdown engine, recurring cadences, sorting, categorization |
-| **Customization** | [`docs/features/customization/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/customization/SPEC.md) | Theming, card styles, typography, color palettes, custom images |
-| **Media & Audio** | [`docs/features/media/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/media/SPEC.md) | Ambient music playback, audio uploads, loop/fade controls |
-| **Sharing & Links** | [`docs/features/sharing/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/sharing/SPEC.md) | Universal / App Links, web preview fallback, card image export, QR, share service API |
-| **Widgets** | [`docs/features/widgets/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/widgets/SPEC.md) | Android Glance widgets, iOS WidgetKit, Lock-screen complications |
-| **Memos** | [`docs/features/memos/SPEC.md`](file:///workspace/myapp/days-that-matter/docs/features/memos/SPEC.md) | Event milestone memories, collaborative notes, timestamps |
-| **Share Service** | [`docs/architecture/SHARE_SERVICE.md`](file:///workspace/myapp/days-that-matter/docs/architecture/SHARE_SERVICE.md) | Cloudflare Worker + D1 architecture, REST API contract, security, free-tier budget, `services/share/` layout |
-| **Share Service Plan** | [`docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](file:///workspace/myapp/days-that-matter/docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md) | Milestones, PR breakdown, acceptance criteria, test plan |
-| **Data & Sync** | [`docs/architecture/PERSISTENCE_AND_SYNC.md`](file:///workspace/myapp/days-that-matter/docs/architecture/PERSISTENCE_AND_SYNC.md) | Room KMP schema, Firestore collections, offline reconciliation |
+| **Authentication** | [`docs/features/auth/SPEC.md`](features/auth/SPEC.md) | Guest mode, sign-in prompt, Google, Apple and email code sign-in, sessions |
+| **Event Engine** | [`docs/features/events/SPEC.md`](features/events/SPEC.md) | Countdown engine, recurring cadences, sorting, categorization |
+| **Customization** | [`docs/features/customization/SPEC.md`](features/customization/SPEC.md) | Theming, card styles, typography, color palettes, still and animated (Live/Motion) photo backdrops |
+| **Media & Audio** | [`docs/features/media/SPEC.md`](features/media/SPEC.md) | Built-in audio catalog, custom audio (Premium), Spotify links, loop/fade controls |
+| **Sharing & Links** | [`docs/features/sharing/SPEC.md`](features/sharing/SPEC.md) | Public links, invite links (role, use count, expiry), members, live updates, history, web page, App Links, card export, QR |
+| **Widgets** | [`docs/features/widgets/SPEC.md`](features/widgets/SPEC.md) | Android Glance widgets, iOS WidgetKit, Lock-screen complications |
+| **Memos** | [`docs/features/memos/SPEC.md`](features/memos/SPEC.md) | Event milestone memories, collaborative notes, timestamps |
+| **Premium** | [`docs/features/premium/SPEC.md`](features/premium/SPEC.md) | Plans, feature table, paywall and gating rules |
+| **China** | [`docs/architecture/CHINA.md`](architecture/CHINA.md) | Why China is a separate region, plan, open points |
+| **Backend** | [`docs/architecture/BACKEND.md`](architecture/BACKEND.md) | Core and provider variants, ports, data model, REST API contract, limits, free-tier budget |
+| **Data & Sync** | [`docs/architecture/PERSISTENCE_AND_SYNC.md`](architecture/PERSISTENCE_AND_SYNC.md) | Room KMP schema, sync protocol with the backend, offline reconciliation |
 
 ---
 
-## 5. Quality & Compliance Standards
+## 5. Spec-Driven Changes
+
+Behavior changes are written as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in [`openspec/changes/`](../openspec/changes/). Archived changes form the behavior specs in [`openspec/specs/`](../openspec/specs/). The active change is [`pluggable-backend-live-sharing`](../openspec/changes/pluggable-backend-live-sharing/). See `AGENTS.md` section 3 for the workflow.
+
+---
+
+## 6. Quality & Compliance Standards
 
 1. **Testing:**
    - 100% unit test coverage for mathematical time calculation algorithms and use cases.

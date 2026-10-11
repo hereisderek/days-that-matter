@@ -10,7 +10,7 @@ Sensitive signing certificates and Firebase configurations are never committed d
 
 | Secret Name | Description | Target Destination |
 | :--- | :--- | :--- |
-| `GOOGLE_SERVICES_JSON_BASE64` | Android Firebase configuration | `composeApp/google-services.json` |
+| `GOOGLE_SERVICES_JSON_BASE64` | Android Firebase configuration. To be removed: the app no longer uses Firebase (task 7.8 of the OpenSpec change `pluggable-backend-live-sharing`) | `composeApp/google-services.json` |
 | `PROD_KEYSTORE_BASE64` | Android production signing keystore | `docs/keystore/prod.keystore` |
 | `KEYSTORE_PASSWORD` | Password for `prod.keystore` | Environment Variable |
 | `KEY_ALIAS` | Key alias in `prod.keystore` | Environment Variable |
@@ -49,7 +49,18 @@ Sensitive signing certificates and Firebase configurations are never committed d
 
 ---
 
-## 4. Share Service Pipeline (`share-service.yml`)
+## 4. Backend Pipeline (`backend.yml`, planned)
+
+The backend in `backend/` (see [`BACKEND.md`](../architecture/BACKEND.md)) gets one workflow, added by task 5.3 of the OpenSpec change `pluggable-backend-live-sharing`:
+
+- **Pull request** touching `core/model/**`, `backend/**` or the workflow: `:core:model` and `backend/core` tests (plus the contract drift check with a TypeScript core), store conformance, then the HTTP conformance suite against each variant (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
+- **Push to `master`:** the same, then D1 migrations and deploy to the Cloudflare preview, then the smoke test.
+- **Tag `backend-v*.*.*`:** production deploy to Cloudflare with environment approval. Other providers deploy manually until they are used in production.
+- Secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID` as below. OAuth client secrets, the Apple keys, the Google Play service account, the email provider key, `RATE_SALT`, `EMAIL_CODE_KEY` and `INVITE_KEY` are set per environment with `wrangler secret put`, never in CI.
+
+Until task 5.5 removes it, the old share service workflow below stays in place.
+
+### 4.0 Legacy: Share Service Pipeline (`share-service.yml`)
 The share service in `services/share/` (Cloudflare Worker + D1, see [`docs/architecture/SHARE_SERVICE.md`](../architecture/SHARE_SERVICE.md)) has its own workflow. It is independent from the app pipelines and only runs for changes under `services/share/**` and the workflow file.
 
 | Secret Name | Description |

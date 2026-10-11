@@ -27,6 +27,13 @@ The engine uses `kotlinx-datetime` and computes time relative to the user's loca
 - **Monthly:** Advances to the same day next month (with leap year / end-of-month clamping, e.g. Jan 31 &rarr; Feb 28).
 - **Weekly / Custom Cadence:** Repeats every N days.
 
+### 2.4 Time Zones
+- `timeZone` is an IANA zone id or null.
+- A fixed zone means every viewer sees the same instant (a flight, a launch). New events default to the device's zone.
+- Null means "floating": the viewer's local zone is used (New Year, birthdays).
+- An event with no `targetTime` counts to 00:00 in its zone.
+- The engine lives in `:core:model`, so the app and the backend compute the same result. The share page's `countdown.js` is checked against test vectors generated from this engine.
+
 ---
 
 ## 3. Data Models
@@ -42,10 +49,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Event(
     val id: String,
-    val title: String,
-    val notes: String? = null,
+    val title: String,                          // 1 to 100 characters
+    val emoji: String? = null,                  // at most one grapheme
+    val notes: String? = null,                  // owner only, at most 4,000 characters
     val targetDate: LocalDate,
     val targetTime: LocalTime? = null,
+    val timeZone: String? = null,               // IANA id; null = floating (section 2.4)
+    val unitMode: UnitMode = UnitMode.Auto,
     val recurrence: RecurrenceRule = RecurrenceRule.None,
     val isPinned: Boolean = false,
     val categoryId: String? = null,
@@ -54,6 +64,9 @@ data class Event(
     val createdAt: Instant,
     val updatedAt: Instant
 )
+
+@Serializable
+enum class UnitMode { Auto, Days, Calendar }   // Auto: days, then h/m/s under 48 hours
 
 @Serializable
 sealed interface RecurrenceRule {

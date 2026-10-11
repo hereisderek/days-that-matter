@@ -2,6 +2,18 @@
 
 Status as of 2026-10-10. Design: [`SHARE_SERVICE.md`](../architecture/SHARE_SERVICE.md). Original plan: [`SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](SHARE_SERVICE_IMPLEMENTATION_PLAN.md).
 
+## 0. Direction change (2026-10-12)
+
+The TypeScript service is frozen and will not be deployed. It is replaced by one backend core with provider variants (Cloudflare first), with sync, live links, people access, history, photo backdrops, audio and Premium plans. The core language (Kotlin/JS or TypeScript) is chosen by a measured spike; if TypeScript wins, this service's code is its starting point: [`BACKEND.md`](../architecture/BACKEND.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). Its `tasks.md` replaces section 5 below.
+
+What still applies from this file:
+- A1, A2, A4, A5: Cloudflare account, API token, GitHub secrets and environments. The new backend also needs an R2 bucket and the media subdomain.
+- A3 and A6: still needed, with the new backend's database and secrets (`RATE_SALT`, OAuth secrets).
+- B1 to B6 and C1 to C6: still needed for the new backend's launch (BACKEND.md section 15). The asset checks move to `backend/core/web/`.
+- E1 (fail closed without `RATE_SALT`), E5 (read rate limits), E8 (pinned Actions) and E9 (traffic alert) carry over to the new backend workflow.
+
+What no longer applies: A7, B7 (`share-v*` tags; the new tag is `backend-v*.*.*`), E2, E3, E4, E6, E7, and section 5.
+
 ## 1. What is done (merged to `master`)
 
 | PR | Content |
