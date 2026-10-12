@@ -37,7 +37,9 @@ Behavior changes are planned with [OpenSpec](https://github.com/Fission-AI/OpenS
 - After the change ships: `openspec archive <change>` merges its deltas into `openspec/specs/`.
 - `docs/` keeps architecture and reference material. When a change alters something described there, update the doc in the same PR.
 
-Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-backend-live-sharing/) (backend core with four provider variants, accounts, sync of everything, live links, people access and invites, history, Live Photo and Motion Photo backdrops, audio catalog, custom audio and Spotify links, plans and native purchases, regions).
+Active changes:
+- [`pluggable-backend-live-sharing`](openspec/changes/pluggable-backend-live-sharing/) (backend core with four provider variants, accounts, sync of everything, live links, people access and invites, history, read-only web pages, Live Photo and Motion Photo backdrops, audio catalog, custom audio library and Spotify links, plans, promotions and native purchases, data export and inactive accounts, regions).
+- [`design-v2-features`](openspec/changes/design-v2-features/) (unit modes, card sizes, memo badge, archive, pinned carousel, notifications, smart days as a draft). Builds on the change above.
 
 ---
 
@@ -58,21 +60,23 @@ Active change: [`pluggable-backend-live-sharing`](openspec/changes/pluggable-bac
 
 ### 4.2 Feature Specifications
 - **Authentication & Accounts:** [`docs/features/auth/SPEC.md`](docs/features/auth/SPEC.md)
-  - Guest mode, sign-in prompt, Google, Apple and email code sign-in (also creates the account), sessions, account deletion.
+  - Guest mode, sign-in prompt, Google, Apple and email code sign-in in the app (also creates the account), sessions, account deletion, data export, inactive accounts.
 - **Event Tracking & Countdown Engine:** [`docs/features/events/SPEC.md`](docs/features/events/SPEC.md)
-  - Time calculation algorithms, time zones, recurrence schedules, categorization, filtering, and sorting.
+  - Time calculation algorithms, six unit modes, time zones, recurrence schedules, categorization, filtering, sorting, pinned carousel, archive, smart days (draft).
 - **Customization & Visual Theming:** [`docs/features/customization/SPEC.md`](docs/features/customization/SPEC.md)
-  - Card styles, color palettes, gradients, photo and animated backdrops, typography presets, auto-contrast.
+  - Card styles and sizes, color palettes, gradients, photo and animated backdrops with dim and blur, typography presets, auto-contrast.
 - **Media & Background Audio:** [`docs/features/media/SPEC.md`](docs/features/media/SPEC.md)
-  - Built-in audio catalog (free and Premium tracks), custom audio files (Premium), Spotify links, playback engine.
+  - Built-in audio catalog (free and Premium tracks), custom audio library (Premium), Spotify links and previews, playback engine.
 - **Sharing, Deep Linking & Export:** [`docs/features/sharing/SPEC.md`](docs/features/sharing/SPEC.md)
-  - Public links, invite links with role, use count and expiry, members, live updates, history, web page, App Links / Universal Links, card image export, QR codes.
+  - Public links, invite links with role, use count and expiry, members, live updates, history, read-only web page, App Links / Universal Links, card image export, QR codes.
 - **Home & Lock Screen Widgets:** [`docs/features/widgets/SPEC.md`](docs/features/widgets/SPEC.md)
   - Jetpack Glance (Android) and WidgetKit (iOS) specifications, data synchronization.
 - **Memos & Memory Notes:** [`docs/features/memos/SPEC.md`](docs/features/memos/SPEC.md)
-  - Milestone reflections, timeline entries, author attribution, synced across the owner's devices.
+  - Milestone reflections, timeline entries, author attribution, synced across the owner's devices, memo badge on Home cards.
+- **Notifications:** [`docs/features/notifications/SPEC.md`](docs/features/notifications/SPEC.md)
+  - Local reminders, push notifications for changes to shared days and being added to a day, opt-in offers and news, device registration.
 - **Plans & Premium Features:** [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md)
-  - Free, Premium and reserved Premium Plus; the limit table; paywall, gating and native store purchases.
+  - Free, Premium and reserved Premium Plus; the limit table; paywall, gating, native store purchases and promotional grants.
 
 ---
 

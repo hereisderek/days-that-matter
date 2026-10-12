@@ -2,20 +2,20 @@
 
 ## Purpose
 
-Shows a shared event in any browser with a live countdown and live changes, lets people join through invites, and lets signed-in editors change the event and see its history without the app.
+Shows an event shared through a public link in any browser, with a live countdown and live changes. Invite and member links lead to the app. The web is read-only: no sign-in, editing, history or joining.
 
 ## ADDED Requirements
 
 ### Requirement: Page states
-Public link, invite and member pages SHALL respond with `200` and the event when the visitor may see it, `401` with sign-in options when a session is needed, `403` with an "ask the owner" message for a signed-in visitor without access, `410` "no longer available" for a revoked, expired or deleted link or event, and `404` "link not found" otherwise. Only `200` responses SHALL contain event details.
+The public link page SHALL respond with `200` and the event when the link is active, `410` "no longer available" for a revoked, expired or deleted link or event, and `404` "link not found" otherwise. Only `200` responses of the public link page SHALL contain event details. Invite and member pages SHALL always respond with `200` and the generic landing page (requirement "Invite and member landing pages").
 
 #### Scenario: Expired public link
 - **WHEN** a visitor opens a public link that expired yesterday
 - **THEN** the response is `410` and the page shows "no longer available" without the title
 
-#### Scenario: Member page without a session
-- **WHEN** someone opens a member page in a browser without a session
-- **THEN** the response is `401` and the page shows sign-in options and no event details
+#### Scenario: Member link in a browser
+- **WHEN** someone opens a member link in a browser
+- **THEN** the response is `200` with the generic "Open in the app" page and no event details
 
 ### Requirement: Countdown matches the app
 The page SHALL compute the countdown with the same rules as the app: units, past and future, day of event, recurrence, time zone and floating time. The page and the app SHALL pass the same set of test vectors, generated from the app's countdown engine.
@@ -39,33 +39,26 @@ An open page SHALL show changes to the event, and loss of access, without a relo
 - **WHEN** a page has been hidden for an hour and the event changed meanwhile
 - **THEN** it made no requests while hidden and shows the current event as soon as it is visible
 
-### Requirement: Web sign-in and joining
-Invite and member pages SHALL offer the deployment's sign-in methods, including email codes, which also create an account on first use, and SHALL return the visitor to the same page afterwards. The invite page SHALL show the event name, owner name and role, and a Join button. A signed-in visitor SHALL be able to sign out from the page.
+### Requirement: Web pages are read-only
+Share web pages SHALL NOT offer sign-in, joining, editing or history, and SHALL NOT set cookies. Sign-in, joining, editing and history SHALL happen in the app.
 
-#### Scenario: Join on the web with email
-- **WHEN** a visitor without an account opens an invite link, signs in with an email code and taps Join
-- **THEN** an account is created and the browser shows the event on its member page with the invited role
+#### Scenario: No cookies
+- **WHEN** a visitor opens a public link page, an invite page or a member page
+- **THEN** no response sets a cookie and no page shows a sign-in option
 
-### Requirement: Editing on the web
-Editors SHALL be able to edit title, emoji, date, time, time zone, unit mode, recurrence, theme, a still photo backdrop and its dim level from the member page. Animated photos and audio SHALL be changed in the app; the page SHALL say so. Invalid input SHALL show an error next to the field. Saved changes SHALL reach other open pages and apps as live changes.
+### Requirement: Invite and member landing pages
+In a browser, an invite link SHALL show a generic page that says "You're invited to a day in Days That Matter. Open it in the app to join.", with a button that opens the app and links to the app stores of the deployment's region. A member link SHALL show a generic "Open in the app" page with the same buttons. These pages SHALL show no event details and SHALL be identical for every token or event id, valid or not, apart from the request id.
 
-#### Scenario: Editor changes the date
-- **WHEN** an editor changes the date on the web and saves
-- **THEN** the countdown on the page updates and the owner's app shows the new date
+#### Scenario: Invite opened on a desktop browser
+- **WHEN** someone opens a valid invite link in a desktop browser
+- **THEN** the page shows the generic invite text and store links, and no event name, owner name or role
 
-#### Scenario: Editor uploads a still photo
-- **WHEN** an editor with photo slots left on their plan picks an 8 MB photo on the web
-- **THEN** the page compresses it to at most 1.5 MB, uploads it and shows it as the backdrop
-
-### Requirement: History on the web
-Owners and editors SHALL be able to open the event's history from the member page, see the author, time and changed fields of each revision, and restore one.
-
-#### Scenario: Restore from the web
-- **WHEN** an editor restores an earlier revision from the page
-- **THEN** the page and every other open page show the restored values
+#### Scenario: Unknown invite token
+- **WHEN** someone opens an invite link with an unknown token in a browser
+- **THEN** the response equals the response for a valid invite, apart from the request id
 
 ### Requirement: Audio on the page
-When the event has a built-in track, the page SHALL show a play button and SHALL NOT start audio on its own. When the event has a Spotify link, the page SHALL show its name and a "Listen on Spotify" link and SHALL NOT load Spotify content. A custom audio file SHALL be playable on member pages and SHALL NOT be offered on public link pages.
+When the event has a built-in track, the page SHALL show a play button and SHALL NOT start audio on its own. When the event has a Spotify link, the page SHALL show its name and a "Listen on Spotify" link and SHALL NOT load Spotify content. A custom audio file SHALL NOT be offered on any web page.
 
 #### Scenario: Built-in Premium track on a public link
 - **WHEN** a visitor without an account opens a public link of an event with a Premium built-in track and taps play
@@ -94,7 +87,7 @@ Share pages SHALL NOT be indexed by search engines, SHALL NOT load third-party s
 - **THEN** the page shows the text literally and no script runs
 
 ### Requirement: Open in app
-On iOS and Android the page SHALL offer to open the event in the app, or to install the app. On desktop the page SHALL show the event without app banners.
+On iOS and Android the public link page SHALL offer to open the event in the app, or to install the app. On desktop it SHALL show the event without app banners.
 
 #### Scenario: Android visitor without the app
 - **WHEN** an Android visitor without the app opens a public link

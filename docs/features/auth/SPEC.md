@@ -12,17 +12,19 @@ Users start immediately as a guest with full local use, within the free plan's l
    - Instant access on first launch without registration. All data stays in Room on the device.
    - When the guest taps Sync, Share or Invite, opens an invite, or saves their first event (once), the app shows "Sign in or create an account" with "Not now" where the action can wait.
 2. **Sign in with Google:**
-   - Android: Credential Manager. iOS: Google Sign-In SDK. Web: redirect (authorization code flow, handled by the backend).
+   - Android: Credential Manager. iOS: Google Sign-In SDK.
 3. **Sign in with Apple:**
-   - iOS: AuthenticationServices. Android: Apple's web sign-in in an in-app browser tab. Web: redirect.
+   - iOS: AuthenticationServices. Android: Apple's web sign-in in an in-app browser tab; the backend's callback hands the result to the app and keeps no browser session.
    - Required on iOS because Google sign-in is offered (App Store Review Guideline 4.8).
 4. **Email code:** the user enters an email address and the 6-digit code sent to it (valid 10 minutes, 5 attempts). No passwords.
 5. **Create account = first sign-in:** the first sign-in with any method creates the account. There is no separate registration form.
 6. **More methods later:** sign-in methods are plug-ins on the backend. Each deployment lists the enabled ones (`GET /config`) and the app shows only those. WeChat and phone codes are candidates for a China region (see [`CHINA.md`](../../architecture/CHINA.md)).
 7. **One account per verified email:** a method whose verified email matches an existing account joins it. Users can add methods in settings.
 8. **First sign-in on a device:** the guest's local events and memos upload to the account. If the account already has data from another device, both are kept.
-9. **Sessions:** opaque session token, valid until 90 days after last use. Stored in Keychain (iOS) and EncryptedSharedPreferences (Android). On the web, an HttpOnly cookie.
-10. **Not planned:** email and password.
+9. **Sessions:** opaque session token, valid until 90 days after last use. Stored in Keychain (iOS) and EncryptedSharedPreferences (Android).
+10. **No sign-in on the web:** share web pages are read-only and set no cookies (design D17). Sign-in happens in the app.
+11. **Not planned:** email and password.
+12. **Inactive accounts:** an account with no signed-in use for 24 months (placeholder, owner to confirm) gets two emails 3 months apart, each with a data download link, and is deleted 3 months after the second, like a user-requested deletion. Any signed-in use stops this. Accounts with an active subscription or plan grant are never inactive. Details: [`BACKEND.md`](../../architecture/BACKEND.md) section 17.
 
 ---
 
@@ -69,6 +71,7 @@ sealed interface AuthState {
 
 ### 4.3 Account Settings Sheet
 - Display name (editable), email, sign-in methods ("Add sign-in method"), plan, limits used and "Restore purchases".
+- "Download my data": emails a link to a page with `data.json` (account, days, memos, history the user wrote, sharing settings, audio library list) and each uploaded file. At most 1 request per day; the link works for 30 days.
 - Sync status: last synced time, pending changes, Sync button.
 - "Sign Out": ends this device's session only. Warns when pending changes have not synced.
 - "Delete Account": deletes owned events, memos, links, invites and backdrops on the backend and removes access to events shared with the user (App Store and Google Play account deletion rules). Explains how to cancel an active subscription in the store first.

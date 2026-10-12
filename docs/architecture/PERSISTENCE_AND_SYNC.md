@@ -1,6 +1,6 @@
 # Persistence & Synchronization Specification
 
-Behavior requirements: `event-sync` and `event-history` specs in the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/). Backend side: [`BACKEND.md`](BACKEND.md).
+Behavior requirements: `event-sync` and `event-history` specs in the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/); archive, pins and reminders in the change [`design-v2-features`](../../openspec/changes/design-v2-features/). Backend side: [`BACKEND.md`](BACKEND.md).
 
 ## 1. Offline-First Principles
 - All event creations, edits, deletions, and memo logs execute locally first against the SQLite database via **Room KMP**.
@@ -28,12 +28,14 @@ data class EventEntity(
     @ColumnInfo(name = "target_date") val targetDateEpochDays: Int,
     @ColumnInfo(name = "target_time_seconds") val targetTimeSeconds: Int?,
     @ColumnInfo(name = "time_zone") val timeZone: String?,                  // IANA id, null = floating
-    @ColumnInfo(name = "unit_mode") val unitMode: String,                   // auto, days, calendar
+    @ColumnInfo(name = "unit_mode") val unitMode: String,                   // auto, days, weeks, hours, calendar, workdays
     @ColumnInfo(name = "recurrence_json") val recurrenceJson: String,
-    @ColumnInfo(name = "theme_json") val themeJson: String,
-    @ColumnInfo(name = "backdrop_json") val backdropJson: String?,          // kind, stillId, motionId, dim, local cache paths
-    @ColumnInfo(name = "audio_json") val audioJson: String?,                // library trackId or Spotify url/title/artist
-    @ColumnInfo(name = "is_pinned") val isPinned: Boolean,                  // local only for shared-with-me events
+    @ColumnInfo(name = "theme_json") val themeJson: String,                 // includes size (small, medium, large)
+    @ColumnInfo(name = "backdrop_json") val backdropJson: String?,          // kind, stillId, motionId, dim, blur, local cache paths
+    @ColumnInfo(name = "audio_json") val audioJson: String?,                // built-in trackId, custom mediaId/title, or Spotify url/title/artist
+    @ColumnInfo(name = "pinned_at") val pinnedAtEpochMillis: Long?,         // owner only; null = not pinned; always null for shared-with-me events
+    @ColumnInfo(name = "archived_at") val archivedAtEpochMillis: Long?,     // owner-only field, or the member's own archive (membership)
+    @ColumnInfo(name = "reminders_json") val remindersJson: String?,        // owner-only field, or the member's own reminders (membership)
     @ColumnInfo(name = "category_id") val categoryId: String?,              // local only for shared-with-me events
     @ColumnInfo(name = "role") val role: String,                            // owner, editor, viewer
     @ColumnInfo(name = "server_rev") val serverRev: Int?,                   // null = never on the backend
@@ -59,8 +61,11 @@ data class MemoEntity(
 
 @Dao
 interface EventDao {
-    @Query("SELECT * FROM events WHERE is_deleted = 0 ORDER BY is_pinned DESC, target_date ASC")
-    fun observeEvents(): Flow<List<EventEntity>>
+    @Query("SELECT * FROM events WHERE is_deleted = 0 AND archived_at IS NULL ORDER BY target_date ASC")
+    fun observeEvents(): Flow<List<EventEntity>>                            // Home list; the carousel orders by pinned_at DESC
+
+    @Query("SELECT * FROM events WHERE is_deleted = 0 AND archived_at IS NOT NULL ORDER BY archived_at DESC")
+    fun observeArchived(): Flow<List<EventEntity>>
 
     @Query("SELECT * FROM events WHERE id = :id AND is_deleted = 0")
     fun observeEventById(id: String): Flow<EventEntity?>
@@ -76,7 +81,7 @@ interface EventDao {
 }
 ```
 
-The session token is kept in secure storage (Keychain, EncryptedSharedPreferences), never in Room. Links, invites and people are not cached in Room; the share screen loads them from the backend.
+The session token is kept in secure storage (Keychain, EncryptedSharedPreferences), never in Room. Links, invites and people are not cached in Room; the share screen loads them from the backend. The custom audio library is not in Room either: the audio picker loads `GET /me/library` (ETag) and keeps the last response for offline use. Push registration (`PUT /me/devices/{installId}`) is not part of sync.
 
 ---
 
@@ -85,9 +90,10 @@ The session token is kept in secure storage (Keychain, EncryptedSharedPreference
 Shared rules (`:core:model`): field sets, validation, patch apply, plan table. The app and the backend apply the same rules.
 
 1. **Push** (signed in only), in order of `updated_at`:
-   - Pending backdrop files are uploaded first (`POST /events/{id}/media`); the returned ids replace the local paths in the patch.
+   - Pending backdrop files are uploaded first (`POST /events/{id}/media`), and pending custom audio files to the library (`POST /me/library`); the returned ids replace the local paths in the patch.
    - Events with `server_rev == null`: `PUT /events/{id}` with the full document. This also covers the first sign-in on a device, when all guest events are new to the account.
    - `is_deleted`: `DELETE /events/{id}` (owner), or leave (`DELETE /events/{id}/members/me`) for shared-with-me events. On success the row is removed.
+   - For shared-with-me events, `archivedAt` and `reminders` in `pending_patch` go to `PATCH /events/{id}/membership` (`{archived, reminders}`); they never reach the event.
    - Otherwise: `PATCH /events/{id}` with `{baseRev: server_rev, patch: pending_patch}`. On success, store the returned document and `rev`, clear `pending_patch`. If `overwritten` is not empty, show a notice naming the replaced fields.
    - Memos: `PUT`, `PATCH` or `DELETE /events/{id}/memos/{memoId}` the same way.
 2. **Pull**:

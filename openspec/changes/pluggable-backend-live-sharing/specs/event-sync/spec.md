@@ -43,7 +43,7 @@ The backend SHALL merge concurrent edits field by field. Edits to different fiel
 - **THEN** the event shows 17:00, history shows both changes, and the owner's app says it replaced the editor's change
 
 ### Requirement: Owner-only fields and memos
-Notes, pin state, category and memos SHALL be visible to and editable by the owner only. Editors, viewers and link visitors SHALL NOT receive them. A non-owner write that contains an owner-only field SHALL be rejected with `403` and error code `field_not_allowed`.
+Notes, pin state (`pinnedAt`), category, archive state (`archivedAt`) and memos SHALL be visible to and editable by the owner only. Editors, viewers and link visitors SHALL NOT receive them. A non-owner write that contains an owner-only field SHALL be rejected with `403` and error code `field_not_allowed`.
 
 #### Scenario: Editor syncs an event with notes and memos
 - **WHEN** an editor's app syncs a shared event whose owner wrote notes and memos

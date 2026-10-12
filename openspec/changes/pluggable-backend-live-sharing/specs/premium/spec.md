@@ -67,7 +67,7 @@ Users SHALL buy Premium as an App Store or Google Play subscription inside the a
 - **THEN** their account has Premium on every device
 
 ### Requirement: Backend verifies purchases with the stores
-The backend SHALL decide an account's plan from purchase records it verified with Apple or Google, never from what the app reports. After a purchase or restore, the plan SHALL be active on the backend within 1 minute. Renewals, refunds and expiry SHALL update the plan within 24 hours.
+The backend SHALL decide an account's plan from purchase records it verified with Apple or Google and from operator grants, never from what the app reports. After a purchase or restore, the plan SHALL be active on the backend within 1 minute. Renewals, refunds and expiry SHALL update the plan within 24 hours.
 
 #### Scenario: Plan after purchase
 - **WHEN** a user completes a purchase and saves an animated photo 10 seconds later
@@ -80,3 +80,14 @@ The backend SHALL decide an account's plan from purchase records it verified wit
 #### Scenario: Refund
 - **WHEN** Apple refunds a Premium subscription
 - **THEN** within 24 hours the account is on the free plan and its existing content keeps working
+
+### Requirement: Promotional grants
+The operator SHALL be able to grant a plan to an account for a period, without a store purchase (for example, free Premium for a month). An account's plan SHALL be the highest of its active store purchases and its active grants. When a grant ends, the rule "Limits never delete content" SHALL apply: content added and quota used during the grant SHALL stay and keep working, and only adding more above the plan's limits SHALL be blocked.
+
+#### Scenario: Promotion ends
+- **WHEN** a free user gets a one-month Premium grant, adds 3 animated photos and 15 events, and the grant ends
+- **THEN** all 15 events and the 3 animated photos keep working for everyone, and creating another event or saving another animated photo shows the paywall
+
+#### Scenario: Grant and subscription
+- **WHEN** a user with an active grant also buys Premium in the store
+- **THEN** the account stays on Premium, and it remains Premium after the grant ends while the subscription is active

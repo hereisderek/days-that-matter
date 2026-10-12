@@ -59,3 +59,17 @@ The operator SHALL be able to put the backend in maintenance mode. In maintenanc
 #### Scenario: Save during maintenance
 - **WHEN** maintenance mode is on and an editor saves a change in the app
 - **THEN** the backend returns `503 service_unavailable` and the app keeps the change queued for later
+
+### Requirement: Operator storage report
+The backend SHALL give the operator a storage report per account through `GET /api/v1/admin/storage` and a page at `/admin/storage`. Each row SHALL show the account id, display name, plan, file counts (still, motion, audio), bytes (media, documents), total bytes and last activity. The report SHALL be sortable by bytes (default, highest media bytes first), file count or last activity, 50 rows per page, with the same order on every supported provider.
+
+#### Scenario: Largest accounts first
+- **WHEN** the operator opens the storage report without choosing an order
+- **THEN** it lists at most 50 accounts, the one with the most bytes of photos and audio first
+
+### Requirement: Operator access
+The storage report SHALL require the operator token (`Authorization: Bearer <ADMIN_TOKEN>`), which the apps never hold, and SHALL be limited to 60 requests per hour per IP. It SHALL be the only operator API.
+
+#### Scenario: No operator token
+- **WHEN** a client calls the storage report without the operator token, or with a wrong one
+- **THEN** the response is `401 unauthorized` and contains no account data

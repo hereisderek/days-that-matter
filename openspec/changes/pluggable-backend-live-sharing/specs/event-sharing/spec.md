@@ -61,22 +61,22 @@ The owner SHALL be able to create invite links, each with a role (viewer or edit
 - **THEN** no use is taken and the invite works when opened again
 
 ### Requirement: Joining through an invite
-Opening an invite SHALL open the app when it is installed and the web page otherwise. A receiver who is not signed in SHALL be asked to sign in or create an account, in the app or on the web, then SHALL see the event name, the owner's name and the role, and join. Joining SHALL add the event to the receiver's account with that role.
+Opening an invite SHALL open the app when it is installed. A receiver who is not signed in SHALL be asked in the app to sign in or create an account, then SHALL see the event name, the owner's name and the role, and join. Joining SHALL add the event to the receiver's account with that role. Joining SHALL happen only in the app; in a browser, an invite SHALL show the generic landing page (share-web spec).
 
 #### Scenario: App installed, not signed in
 - **WHEN** a receiver with the app installed but not signed in taps an editor invite
 - **THEN** the app opens, asks them to sign in or create an account, shows the invite, and after "Join" lists the event as editable on their home screen
 
 #### Scenario: App not installed
-- **WHEN** a receiver without the app opens an invite in a browser
-- **THEN** the web page asks them to sign in or create an account, and after "Join" shows the event with the invited role
+- **WHEN** a receiver without the app opens an invite in a browser, installs the app from the page's store link and opens the invite again
+- **THEN** the browser page showed no event details, and the app now shows the invite with the event name, owner and role, and a Join button
 
 #### Scenario: Owner or member opens an invite
 - **WHEN** the owner, or a person who is already a member, opens an invite
 - **THEN** the event opens and no use is taken
 
 ### Requirement: Members
-Members SHALL see the event in their app, marked as shared, and on the web at the event's member page, which needs sign-in and membership. Viewers SHALL see the event and its live changes. Editors SHALL also edit the shared fields, backdrop and audio, and see history. Only the owner SHALL manage links, invites and members, edit owner-only fields and memos, and delete the event. An event SHALL have at most 100 members.
+Members SHALL see the event in their app, marked as shared. A member link (`/s/{eventId}`) SHALL open the event in the app for members; in a browser it SHALL show the generic landing page. Viewers SHALL see the event and its live changes. Editors SHALL also edit the shared fields, backdrop and audio, and see history. Only the owner SHALL manage links, invites and members, edit owner-only fields and memos, and delete the event. An event SHALL have at most 100 members.
 
 #### Scenario: Viewer tries to edit
 - **WHEN** a viewer's client sends an edit
@@ -86,16 +86,16 @@ Members SHALL see the event in their app, marked as shared, and on the web at th
 - **WHEN** an editor's client calls the endpoint that creates a link
 - **THEN** the response is `403 forbidden`
 
-#### Scenario: Member page without membership
-- **WHEN** a signed-in person who is not a member opens an event's member page
-- **THEN** the page says to ask the owner for an invite and shows no event details
+#### Scenario: Member link without membership
+- **WHEN** a signed-in person who is not a member opens an event's member link in the app
+- **THEN** the app says to ask the owner for an invite and shows no event details
 
 ### Requirement: Change or remove members
 The owner SHALL be able to change a member's role or remove them, and a member SHALL be able to leave. Each change SHALL apply from the member's next request and SHALL reach their open pages and apps as a live change. A removed member SHALL NOT be able to rejoin through any invite until the owner allows them again.
 
-#### Scenario: Remove an editor whose page is open
-- **WHEN** the owner removes an editor who has the event open on the web
-- **THEN** the editor's page shows that access was removed within 30 seconds and a save from it is rejected
+#### Scenario: Remove an editor who has the event open
+- **WHEN** the owner removes an editor who has the event open in the app
+- **THEN** the editor's app shows that access was removed within 30 seconds and a save from it is rejected
 
 #### Scenario: Removed member reopens an unlimited invite
 - **WHEN** a removed member opens an unlimited invite of the same event
@@ -120,7 +120,7 @@ An unknown, malformed or purged link or invite token SHALL produce the same "not
 - **THEN** the status, headers and body equal those for an unknown well-formed token, apart from the request id
 
 ### Requirement: Links open the app when installed
-Public links (`/e/{token}`), invites (`/i/{token}`) and member pages (`/s/{eventId}`) SHALL open the app on Android and iOS when it is installed, and the web page otherwise.
+Public links (`/e/{token}`), invites (`/i/{token}`) and member links (`/s/{eventId}`) SHALL open the app on Android and iOS when it is installed. Otherwise a public link SHALL open the event's web page, and invites and member links SHALL open the generic landing page.
 
 #### Scenario: App installed
 - **WHEN** a user with the app installed taps a public link in a chat

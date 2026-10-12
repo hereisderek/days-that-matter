@@ -30,6 +30,11 @@ Provides glanceable countdowns on mobile home screens and lock screens, keeping 
   - `TimelineProvider` pre-computes entries for the next 7 days with daily refresh policies.
   - Midnight timeline reloading (`reloadTimelines(ofKind:)`).
 
+### 2.3 Rules shared by both platforms
+- Archived days are not offered when the user picks a day for a widget.
+- Widgets ignore the card size (Small, Medium, Large) and show no memo badge.
+- Animated backdrops show their key photo only.
+
 ---
 
 ## 3. Deep Linking from Widgets
