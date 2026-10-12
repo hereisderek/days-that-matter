@@ -40,7 +40,7 @@ Order: groups 1 and 2 need only `:core:model` and the app; groups 3 and 4 need t
 
 ## 5. Docs and legal
 
-- [ ] 5.1 Update the privacy policy and terms in `docs/legal/` for push tokens, locale and time zone per device, their retention, and opt-in offers and news; verify the checklist in `docs/legal/README.md`.
+- [x] 5.1 Update the privacy policy and terms in `docs/legal/` for push tokens, locale and time zone per device, their retention, and opt-in offers and news; verify the checklist in `docs/legal/README.md`.
 - [ ] 5.2 Update `docs/features/*` and BACKEND.md for anything the work changed; verify by review in the PR.
 
 ## Workflow follow-up
