@@ -15,7 +15,7 @@ context: |
 rules:
   proposal:
     - State what is out of scope
-    - In Impact, state the legal impact: none, or which of the terms, privacy policy and disclaimer in docs/legal/ change (triggers in docs/legal/README.md)
+    - "In Impact, state the legal impact: none, or which of the terms, privacy policy and disclaimer in docs/legal/ change (triggers in docs/legal/README.md)"
   specs:
     - Name the plan (free, premium) for every gated feature and keep docs/features/premium/SPEC.md in step
     - Describe observable behavior of the app, the share web page and the HTTP API; keep provider and library choices in design.md

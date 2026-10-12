@@ -1,6 +1,6 @@
 # Backend Architecture & API Contract
 
-Status: design, not implemented. Behavior requirements: OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/) (specs in its `specs/` folder). Decisions and alternatives: its [`design.md`](../../openspec/changes/pluggable-backend-live-sharing/design.md). Work order: its [`tasks.md`](../../openspec/changes/pluggable-backend-live-sharing/tasks.md). China: [`CHINA.md`](CHINA.md).
+Status: design, not implemented. Behavior requirements: OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/) (specs in its `specs/` folder), and for unit modes, Home, notifications and smart days the change [`design-v2-features`](../../openspec/changes/design-v2-features/). Decisions and alternatives: its [`design.md`](../../openspec/changes/pluggable-backend-live-sharing/design.md). Work order: its [`tasks.md`](../../openspec/changes/pluggable-backend-live-sharing/tasks.md). China: [`CHINA.md`](CHINA.md).
 
 This document replaces [`SHARE_SERVICE.md`](SHARE_SERVICE.md), which describes the frozen TypeScript service in `services/share/`.
 
@@ -13,6 +13,8 @@ This document replaces [`SHARE_SERVICE.md`](SHARE_SERVICE.md), which describes t
 - Core language: Kotlin/JS or TypeScript, whichever wins the spike on CPU time, startup and bundle size (design D1, results in section 13). Either way the rules come from `:core:model`, the Kotlin module the app uses.
 - Purchases are verified with Apple and Google directly (no RevenueCat). Sign-in: Google, Apple, email codes, as plug-ins.
 - A region is one deployment. The global region runs on Cloudflare; a China region would be a separate deployment (section 16).
+- Share web pages are read-only (design D17): the public link page shows the event; invite and member links open the app. No browser sessions, no cookies.
+- Push notifications go out through APNs and FCM (change `design-v2-features`, section 18).
 - No web framework beyond a tiny router, no ORM, no server-side media processing.
 
 ---
@@ -21,8 +23,8 @@ This document replaces [`SHARE_SERVICE.md`](SHARE_SERVICE.md), which describes t
 
 ```
   Android / iOS app (KMP)              Browser (share pages)
-  Ktor client, :core:model             HTML + countdown.js, live.js, editor.js
-        |  /api/v1/*  (Bearer)                |  /e, /i, /s, /auth, /api/v1 (cookie)
+  Ktor client, :core:model             HTML + countdown.js, live.js (read-only)
+        |  /api/v1/*  (Bearer)                |  /e, /i, /s, /export, /admin, /api/v1 (no cookies)
         v                                     v
  +----------------------------------------------------------------------+
  | Variant entry (backend/<provider>/): converts the platform request,   |
@@ -56,8 +58,9 @@ backend/
   core/                     all backend behavior
     src/                    router, handlers, ports, SqlStore, identity providers, purchase verifiers, pages, audio
     migrations/             SQLite migrations, shared by D1, self-host and Turso
-    web/                    share page assets: share.css, countdown.js, live.js, editor.js, fonts, og/, .well-known/, test vectors
+    web/                    share page assets: share.css, countdown.js, live.js, admin.js (operator page), fonts, og/, .well-known/, test vectors
     audio/catalog.json      built-in track list
+    smart/catalog.json      seasonal smart day templates (draft, change design-v2-features)
     contract/               generated from :core:model; only when the core is TypeScript (task 2.8)
     conformance/            black-box HTTP suite every variant must pass
   cloudflare/               Worker entry, D1 driver, R2 store, EventRoom Durable Object, wrangler.jsonc
@@ -79,8 +82,9 @@ interface Store {                       // use-case level; one call = one transa
     suspend fun applyPatch(eventId: String, author: String, baseRev: Int, patch: JsonObject, now: Long): PatchResult
     suspend fun manifest(accountId: String): List<ManifestEntry>
     suspend fun joinInvite(tokenHash: String, accountId: String, now: Long): JoinResult
-    // ... about 45 operations: accounts, identities, email codes, sessions, events, revisions, memos,
-    //     links, invites, members, media, purchases, rate counters, purge
+    // ... about 60 operations: accounts, identities, email codes, sessions, events, revisions, memos,
+    //     links, invites, members, media and library, purchases, grants, exports, devices, rate counters,
+    //     storage report, purge
 }
 
 interface SqlDriver {                   // the only persistence code SQL variants write
@@ -128,7 +132,7 @@ interface PurchaseVerifier {            // apple, google; later Chinese Android 
 | Live mode | `ws`: Durable Object `EventRoom` per event, Hibernation API | `ws`: in-process hub | `poll` | `poll` |
 | Mailer | HTTP mail API | SMTP or HTTP mail API | HTTP mail API | HTTP mail API |
 | Daily job | Cron Trigger `0 3 * * *` | timer in the process | Vercel Cron calling `/api/v1/internal/daily` with `CRON_SECRET` | `onSchedule` |
-| Static files | Static Assets, `run_worker_first: ["/e/*","/i/*","/s/*","/auth/*","/api/*"]` | served by the Node entry | `public/` + rewrites | Firebase Hosting + rewrites to the function |
+| Static files | Static Assets, `run_worker_first: ["/e/*","/i/*","/s/*","/auth/*","/export/*","/admin/*","/api/*"]` | served by the Node entry | `public/` + rewrites | Firebase Hosting + rewrites to the function |
 | Plan needed | Workers Free | your server | Hobby is non-commercial only; Pro for a commercial app | Blaze (pay as you go) |
 | Platform body limit | 100 MB | none | 4.5 MB | 32 MB |
 
@@ -151,10 +155,18 @@ CREATE TABLE accounts (
   id              TEXT PRIMARY KEY,             -- uuid
   display_name    TEXT NOT NULL,
   plan            TEXT NOT NULL DEFAULT 'free' CHECK (plan IN ('free','premium','premium_plus')),
-  plan_expires_at INTEGER,                      -- derived from purchases; plan counts as free once passed
+  plan_expires_at INTEGER,                      -- derived from purchases and grants; plan counts as free once passed
   audio_blocked   INTEGER NOT NULL DEFAULT 0,   -- set by the operator for repeated copyright reports
+  media_bytes     INTEGER NOT NULL DEFAULT 0,   -- sum of bytes of the account's media rows; changed in the same write as each insert and delete
+  media_files     INTEGER NOT NULL DEFAULT 0,   -- number of the account's media rows; same rule
+  last_active_at  INTEGER NOT NULL,             -- last authenticated request from any device, written at most once per day
+  inactive_notice_1_at INTEGER,                 -- inactive accounts: first email sent (section 17); NULL after any signed-in use
+  inactive_notice_2_at INTEGER,                 -- second email sent
   created_at      INTEGER NOT NULL
 );
+CREATE INDEX idx_accounts_media_bytes ON accounts(media_bytes);   -- storage report (section 14)
+CREATE INDEX idx_accounts_media_files ON accounts(media_files);
+CREATE INDEX idx_accounts_last_active ON accounts(last_active_at); -- storage report and inactive accounts job
 
 CREATE TABLE identities (
   provider       TEXT NOT NULL,                 -- 'google' | 'apple' | 'email' | later 'wechat', 'phone'
@@ -177,8 +189,7 @@ CREATE TABLE email_codes (
 
 CREATE TABLE sessions (
   token_hash   TEXT PRIMARY KEY,                -- SHA-256 hex of the session token
-  account_id   TEXT NOT NULL,
-  client       TEXT NOT NULL CHECK (client IN ('app','web')),
+  account_id   TEXT NOT NULL,                   -- app sessions only; the web has none (design D17)
   created_at   INTEGER NOT NULL,
   last_used_at INTEGER NOT NULL                 -- written at most once per day per session
 ) WITHOUT ROWID;
@@ -191,6 +202,7 @@ CREATE TABLE events (
   doc              TEXT NOT NULL,               -- JSON, shared + owner-only fields, <= 16384 bytes
   audio_kind       TEXT,                        -- 'library' | 'custom' | 'spotify' | NULL
   audio_set_by     TEXT,                        -- account that set the audio, for the Spotify count
+  audio_media_id   TEXT,                        -- custom audio: the library file, for "used on N days" and garbage collection
   child_seq        INTEGER NOT NULL DEFAULT 0,  -- bumped by every memo (later comment) write
   child_purged_seq INTEGER NOT NULL DEFAULT 0,  -- highest seq of purged child tombstones
   updated_at       INTEGER NOT NULL,
@@ -198,6 +210,7 @@ CREATE TABLE events (
 );
 CREATE INDEX idx_events_owner ON events(owner_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_events_spotify ON events(audio_set_by) WHERE audio_kind = 'spotify' AND deleted_at IS NULL;
+CREATE INDEX idx_events_audio_media ON events(audio_media_id) WHERE audio_media_id IS NOT NULL AND deleted_at IS NULL;
 
 CREATE TABLE revisions (
   event_id      TEXT NOT NULL,
@@ -252,6 +265,8 @@ CREATE TABLE members (
   account_id TEXT NOT NULL,
   role       TEXT NOT NULL CHECK (role IN ('viewer','editor','removed')),   -- 'removed' blocks rejoining
   invite_id  TEXT,                              -- invite used to join
+  archived_at INTEGER,                          -- the member's own archive; never shown to others (change design-v2-features)
+  reminders  TEXT,                              -- the member's own reminder choices, JSON like the owner-only `reminders` field
   created_at INTEGER NOT NULL,
   PRIMARY KEY (event_id, account_id)
 ) WITHOUT ROWID;
@@ -260,15 +275,17 @@ CREATE INDEX idx_members_account ON members(account_id) WHERE role <> 'removed';
 CREATE TABLE media (
   id           TEXT PRIMARY KEY,                -- 22 chars base64url; blob key m/{id}.{ext} or a/{id}.m4a
   uploader_id  TEXT NOT NULL,                   -- plan gates and counts use the uploader
-  event_id     TEXT NOT NULL,
+  event_id     TEXT,                            -- backdrops: the event; NULL for custom audio (library files, used by any number of events)
   kind         TEXT NOT NULL CHECK (kind IN ('still','motion','audio')),
   content_type TEXT NOT NULL,
   bytes        INTEGER NOT NULL,
   width        INTEGER,
   height       INTEGER,
   duration_ms  INTEGER,
+  title        TEXT,                            -- custom audio: title shown in the library, at most 200 characters
+  library_removed_at INTEGER,                   -- custom audio: removed from the uploader's library (section 10.4)
   created_at   INTEGER NOT NULL,
-  unused_since INTEGER                          -- set when no event references it; purged 24 h later
+  unused_since INTEGER                          -- set when nothing uses the file (backdrops: no event; audio: no event and out of the library); purged 24 h later
 );
 CREATE INDEX idx_media_uploader ON media(uploader_id, kind) WHERE unused_since IS NULL;
 CREATE INDEX idx_media_unused ON media(unused_since) WHERE unused_since IS NOT NULL;
@@ -286,6 +303,37 @@ CREATE TABLE purchases (
 ) WITHOUT ROWID;
 CREATE INDEX idx_purchases_account ON purchases(account_id);
 CREATE INDEX idx_purchases_expiry ON purchases(expires_at) WHERE status IN ('active','grace');
+
+CREATE TABLE grants (                           -- plans granted by the operator without a store purchase (promotions)
+  id         TEXT PRIMARY KEY,
+  account_id TEXT NOT NULL,
+  plan       TEXT NOT NULL CHECK (plan IN ('premium','premium_plus')),
+  starts_at  INTEGER NOT NULL,
+  ends_at    INTEGER NOT NULL,
+  reason     TEXT NOT NULL                      -- for the operator, e.g. 'promo-2026-11'
+);
+CREATE INDEX idx_grants_account ON grants(account_id);
+
+CREATE TABLE exports (                          -- data export links (section 17)
+  token_hash TEXT PRIMARY KEY,                  -- SHA-256 hex of the 22-char token
+  account_id TEXT NOT NULL,
+  reason     TEXT NOT NULL CHECK (reason IN ('request','inactive')),
+  created_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL                   -- request: 30 days; inactive: the deletion date
+) WITHOUT ROWID;
+CREATE INDEX idx_exports_account ON exports(account_id);
+
+CREATE TABLE devices (                          -- push registration (change design-v2-features, section 18)
+  install_id   TEXT PRIMARY KEY,                -- random per app install
+  account_id   TEXT NOT NULL,
+  platform     TEXT NOT NULL CHECK (platform IN ('ios','android')),
+  push_token   TEXT NOT NULL,
+  locale       TEXT NOT NULL,                   -- BCP 47 tag, for notification text
+  time_zone    TEXT NOT NULL,                   -- IANA id
+  kinds        TEXT NOT NULL,                   -- JSON array of enabled push kinds: 'changes', 'added', 'offers'
+  last_seen_at INTEGER NOT NULL                 -- written at most once per day; the row is removed after 90 days
+) WITHOUT ROWID;
+CREATE INDEX idx_devices_account ON devices(account_id);
 
 CREATE TABLE rate_counters (
   key          TEXT NOT NULL,                   -- e.g. 'code:email:<hash>', 'upload:acct:<id>'
@@ -305,17 +353,21 @@ Comments (later change) get a `comments` table shaped like `memos`, using the sa
 | `identities` | `identities/{provider}:{subject}` (query by `email`) |
 | `email_codes` | `emailCodes/{emailHash}` |
 | `sessions` | `sessions/{tokenHash}` |
-| `events` | `events/{id}` with `ownerId`, `rev`, `doc`, `audioKind`, `audioSetBy`, `childSeq`, `childPurgedSeq`, `deletedAt` |
+| `accounts` (storage and inactivity fields) | `mediaBytes`, `mediaFiles`, `lastActiveAt`, `inactiveNotice1At`, `inactiveNotice2At` on `accounts/{id}`, with indexes for the storage report and the inactive accounts job |
+| `events` | `events/{id}` with `ownerId`, `rev`, `doc`, `audioKind`, `audioSetBy`, `audioMediaId`, `childSeq`, `childPurgedSeq`, `deletedAt` |
 | `revisions` | `events/{id}/revisions/{rev zero-padded to 10 digits}` |
 | `memos` | `events/{id}/memos/{memoId}` (query by `seq`) |
 | `links` | `links/{token}` (query by `eventId`) |
 | `invites` | `invites/{tokenHash}` (query by `eventId`) |
-| `members` | `members/{eventId}_{accountId}` (query by `accountId` or `eventId`) |
-| `media` | `media/{id}` (query by `uploaderId`, `kind`) |
+| `members` | `members/{eventId}_{accountId}` with `archivedAt`, `reminders` (query by `accountId` or `eventId`) |
+| `media` | `media/{id}`, `eventId` null for library audio (query by `uploaderId`, `kind`) |
 | `purchases` | `purchases/{store}_{originalId hash}` |
+| `grants` | `grants/{id}` (query by `accountId`) |
+| `exports` | `exports/{tokenHash}` (query by `accountId`) |
+| `devices` | `devices/{installId}` (query by `accountId`) |
 | `rate_counters` | `counters/{key}_{windowStart}` with `FieldValue.increment` |
 
-Patch, memo writes (which bump `childSeq`), invite join (which bumps `useCount`) and plan-count checks run in Firestore transactions.
+Patch, memo writes (which bump `childSeq`), invite join (which bumps `useCount`), media inserts and deletes (which change `mediaBytes` and `mediaFiles`) and plan-count checks run in Firestore transactions.
 
 ---
 
@@ -326,7 +378,7 @@ Patch, memo writes (which bump `childSeq`), invite join (which bumps `useCount`)
 - Base URL `https://<domain>/api/v1`. JSON, UTF-8. Timestamps are ISO-8601 UTC strings (`2026-10-12T15:04:05Z`).
 - Requests are validated strictly: unknown fields give `400 invalid_payload`. Clients ignore unknown fields in responses.
 - JSON bodies at most 64 KB. Uploads at most 4,194,304 bytes.
-- App auth: `Authorization: Bearer st_<43 chars>`. Web auth: cookie `__Host-dtm_session`. Unsafe methods with the cookie also need `Origin: https://<domain>` and `X-DTM-CSRF: 1`.
+- Auth: `Authorization: Bearer st_<43 chars>` from the app. Share web pages have no sessions and set no cookies (design D17). Operator routes take `Authorization: Bearer <ADMIN_TOKEN>` (section 14).
 - No CORS headers on any route. Every response has `X-Request-Id`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
 - Error body: `{"error": {"code": "invalid_payload", "message": "title: too long", "details": {"field": "title"}}}`.
 
@@ -344,24 +396,30 @@ Patch, memo writes (which bump `childSeq`), invite join (which bumps `useCount`)
   "timeZone": "Europe/Paris",
   "unitMode": "auto",
   "recurrence": {"type": "yearly", "originalYear": 2027, "days": null},
-  "theme": {"paletteId": "violet", "cardStyle": "glass", "typography": "modern", "gradient": ["#8B5CF6", "#3B82F6"]},
+  "theme": {"paletteId": "violet", "cardStyle": "glass", "typography": "modern", "gradient": ["#8B5CF6", "#3B82F6"], "size": "medium"},
   "backdrop": {
-    "kind": "animated", "stillId": "Pz8...", "motionId": "Hq3...", "dim": 0.3,
+    "kind": "animated", "stillId": "Pz8...", "motionId": "Hq3...", "dim": 0.3, "blur": 0,
     "stillUrl": "https://media.<domain>/m/Pz8....jpg", "motionUrl": "https://media.<domain>/m/Hq3....mp4"
   },
   "audio": {"kind": "spotify", "url": "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M", "title": "Today's Top Hits", "artist": "Spotify"},
   "notes": "Book the photographer",
-  "pinned": true,
+  "pinnedAt": "2026-10-01T08:00:00Z",
   "categoryId": "anniversaries",
+  "archivedAt": null,
+  "reminders": {"daysBefore": [0, 7], "time": "09:00"},
   "updatedAt": "2026-10-12T15:04:05Z"
 }
 ```
 
 - Shared fields: `title`, `emoji`, `targetDate`, `targetTime`, `timeZone`, `unitMode`, `recurrence`, `theme`, `backdrop`, `audio`.
-- Owner-only fields: `notes`, `pinned`, `categoryId`. Present only in the owner's projection. Memos are owner-only too.
+- Owner-only fields: `notes`, `pinnedAt` (null = not pinned; the carousel shows newest first), `categoryId`, `archivedAt` (null = not archived), `reminders`. Present only in the owner's projection. Memos are owner-only too. A write that sets `archivedAt` also clears `pinnedAt`. Members keep their own archive and reminders on their membership (`PATCH /events/{id}/membership`).
 - `backdrop.kind` is `still` (only `stillId`) or `animated` (`stillId` is the key photo, `motionId` the MP4). `*Url` fields are set by the server and ignored in writes.
-- `audio` is one of `{"kind":"library","trackId":"calm-lofi"}`, `{"kind":"custom","mediaId":"…","title":"…"}` or `{"kind":"spotify","url","title","artist"}`. Public link projections drop `custom` audio. Spotify URLs must be `https://open.spotify.com/` track, album or playlist URLs (an `intl-xx/` segment is allowed, the query is dropped); title and artist come from the app (oEmbed), at most 200 characters.
+- `audio` is one of `{"kind":"library","trackId":"calm-lofi"}`, `{"kind":"custom","mediaId":"…","title":"…"}` or `{"kind":"spotify","url","title","artist"}`. A `custom` `mediaId` must be a file in the writer's own library (section 10.4). Public link projections drop `custom` audio. Spotify URLs must be `https://open.spotify.com/` track, album or playlist URLs (an `intl-xx/` segment is allowed, the query is dropped); title and artist come from the app (oEmbed), at most 200 characters.
 - Field rules (title 1 to 100 characters, emoji one grapheme, dates 1900 to 2200, IANA zone or null, colours `#RRGGBB`, ids `^[a-z0-9_-]{1,32}$`, notes at most 4,000 characters, `backdrop.dim` 0 to 0.8) come from `:core:model`.
+- `unitMode`: `auto`, `days`, `weeks`, `hours`, `calendar` or `workdays` ([events spec](../features/events/SPEC.md) section 2.1).
+- `theme.size`: `small`, `medium` (default when missing) or `large`. Home list only; other views ignore it.
+- `backdrop.blur`: 0 to 16, default 0. A blur radius in points at a 390 pt card width, scaled with the card. Applies to photo and art backdrops; the app and the public link page render it, the server never blurs. Art presets are not in the API yet; when `theme` gains a preset id, `backdrop.blur` applies to them too.
+- `reminders`: `null` or `{"daysBefore": [...], "time": "HH:MM"}` with `daysBefore` a subset of `0`, `1`, `7` and `time` default `09:00` local. Scheduled on the device, never by the server.
 - `theme` and `backdrop` together carry the app's `EventCustomization` ([customization spec](../features/customization/SPEC.md)). Customization fields the web page cannot render yet are added to `theme` as optional fields when the page supports them; additive fields do not change the API version.
 
 Memo:
@@ -374,19 +432,25 @@ Memo:
 | Method | Path | Who | Purpose |
 | :--- | :--- | :--- | :--- |
 | GET | `/health` | anyone | `{"status":"ok","version":"…"}` |
-| GET | `/config` | anyone | `{"region":"global","live":"ws","signIn":["apple","google","email"],"stores":["apple","google"],"features":{"spotify":true}}`, cacheable |
+| GET | `/config` | anyone | `{"region":"global","live":"ws","signIn":["apple","google","email"],"stores":["apple","google"],"features":{"spotify":true},"ui":{"memoBadge":"top-right"}}`, cacheable. `ui` holds display settings the operator changes without an app release; `memoBadge` is `top-left` or `top-right` (default) |
 | POST | `/auth/token` | anyone (rate limited) | `{provider, idToken, nonce}` for Google and Apple: sign in, creating the account on first use |
 | POST | `/auth/email/start` | anyone (rate limited) | `{email}`: sends a 6-digit code. Always `202`, whether or not the address has an account |
 | POST | `/auth/email/verify` | anyone (rate limited) | `{email, code}`: sign in, creating the account on first use |
 | POST | `/auth/signout` | session | ends this session |
 | GET, PATCH, DELETE | `/me` | session | account, plan and limits used; change display name; delete account |
 | POST | `/me/identities` | session | add a sign-in method (same bodies as sign-in) |
+| GET | `/me/library` | session | custom audio library, newest first: `{"audio":[{mediaId, title, durationSec, bytes, createdAt, usedBy}]}`, ETag (section 10.4) |
+| POST | `/me/library` | session | raw M4A body, `Content-Type: audio/mp4`, `X-Media-Title` (percent-encoded UTF-8, at most 200 characters), same checks as section 10.1 → `{mediaId}` |
+| DELETE | `/me/library/{mediaId}` | session (uploader) | removes the file from the library → `204`; days that use it keep playing it |
+| POST | `/me/export` | session | emails a data export link to the account's email → `202`; at most 1 per day (section 17) |
+| PUT, DELETE | `/me/devices/{installId}` | session | push registration `{platform, pushToken, locale, timeZone, kinds}`; `DELETE` on sign-out (section 18) |
 | GET | `/sync` | session | manifest `{"events":[{id, rev, role, childSeq}]}`, ETag |
 | POST | `/events/fetch` | session | `{ids}` (at most 100): documents projected by role |
 | GET | `/events/{id}` | owner, member | one document, ETag |
 | PUT | `/events/{id}` | session | create (owned-event limit applies); repeating with the same owner returns the current document |
 | PATCH | `/events/{id}` | owner, editor | `{baseRev, patch}` → `{event, overwritten}` |
 | DELETE | `/events/{id}` | owner | delete the event, its memos, links, invites, members and media |
+| PATCH | `/events/{id}/membership` | member | `{archived, reminders}`: the member's own archive and reminders; never shown to others |
 | GET | `/events/{id}/children?after=` | owner | `{memos, seq, reset}` |
 | PUT, PATCH, DELETE | `/events/{id}/memos/{memoId}` | owner | create (idempotent), patch, delete a memo |
 | GET | `/events/{id}/revisions?before=&limit=` | owner, editor | history page, newest first, at most 50 |
@@ -402,16 +466,19 @@ Memo:
 | DELETE | `/events/{id}/members/{accountId}` | owner (removes and blocks rejoining), or the member (`me`, leaves) |
 | DELETE | `/events/{id}/removed/{accountId}` | owner | "Allow again": lifts the block |
 | GET | `/links/{token}` | anyone | public link view, ETag |
-| POST | `/events/{id}/media` | owner, editor | raw body, `Content-Type`, `X-Media-Kind: still|motion|audio` → `{mediaId, url}` |
+| POST | `/events/{id}/media` | owner, editor | backdrop files: raw body, `Content-Type`, `X-Media-Kind: still|motion` → `{mediaId, url}`. Custom audio goes to `POST /me/library` |
 | GET | `/audio/catalog` | anyone | built-in tracks, ETag, cacheable |
 | GET | `/audio/{id}?event=` or `?link=` | see section 10.3 | a built-in track or a custom audio file |
 | POST | `/purchases/apple` | session, or none for a guest | `{signedTransactions}` (JWS from StoreKit 2) → `{plan, expiresAt}` |
 | POST | `/purchases/google` | session, or none for a guest | `{productId, purchaseToken}` → `{plan, expiresAt}` |
 | POST | `/purchases/apple/notifications` | Apple (signed payload) | App Store Server Notifications V2 |
 | GET | `/live?event={id}` or `/live?link={token}` | as for reads | WebSocket upgrade, `ws` mode only |
+| GET | `/admin/storage?order=bytes_desc\|files_desc\|last_active_desc&limit=50&after=` | operator (`ADMIN_TOKEN`) | storage report per account, default `bytes_desc` (section 14) |
+| GET | `/holidays/{region}/{year}` | anyone | draft (smart days): public holiday set of a region, ETag, cacheable |
+| GET | `/smart/catalog` | anyone | draft (smart days): seasonal templates with their season windows, ETag, cacheable |
 | POST | `/internal/daily` | `CRON_SECRET` (vercel only) | runs the daily job |
 
-Page routes (HTML): `GET /e/{token}` (public link), `GET /i/{token}` (invite), `GET /s/{eventId}` (member page), `GET /auth/{google|apple}/start?return=`, `GET|POST /auth/{google|apple}/callback`, `GET|POST /auth/email` (code form), `POST /auth/signout`. Self-host only: `GET /m/{file}`.
+Page routes (HTML): `GET /e/{token}` (public link: the event, view only); `GET /i/{token}` and `GET /s/{eventId}` (generic landing pages that open the app, identical for every token or id, design D17); `GET /export/{token}` and `GET /export/{token}/{file}` (data export, section 17); `GET /admin/storage` (operator page). `POST /auth/apple/callback` receives Sign in with Apple's form POST for the Android app and redirects to the app (section 8); it sets no cookie. Self-host only: `GET /m/{file}`.
 
 ### 7.4 Selected bodies
 
@@ -431,7 +498,7 @@ Public link view (`GET /links/{token}`):
   "live": {"mode": "ws", "url": "wss://<domain>/api/v1/live?link=…"}
 }
 ```
-Member view (`GET /events/{id}` for a member) adds `role` and `members: [{"name","role"}]`.
+Member view (`GET /events/{id}` for a member) adds `role`, `members: [{"name","role"}]`, and from the membership `archived` (true or false) and `reminders`.
 
 Sharing (`GET /events/{id}/sharing`):
 ```json
@@ -456,24 +523,42 @@ Children (`GET /events/{id}/children?after=38`):
  "seq": 41, "reset": false}
 ```
 
+Library (`GET /me/library`):
+```json
+{"audio": [{"mediaId": "Qm7…", "title": "First dance", "durationSec": 214, "bytes": 2580000, "createdAt": "2026-10-12T15:04:05Z", "usedBy": 2}]}
+```
+
+Membership (`PATCH /events/{id}/membership`):
+```json
+{"archived": true, "reminders": {"daysBefore": [1], "time": "09:00"}}
+```
+
+Storage report (`GET /admin/storage`):
+```json
+{"rows": [{"accountId": "…", "displayName": "Mum", "plan": "premium",
+           "files": {"still": 41, "motion": 12, "audio": 7},
+           "bytes": {"media": 98123456, "documents": 412000}, "totalBytes": 98535456,
+           "lastActiveAt": "2026-10-11T08:00:00Z"}],
+ "next": "…"}
+```
+
 ### 7.5 Error codes
 
 | HTTP | `code` | Meaning |
 | :--- | :--- | :--- |
 | 400 | `invalid_payload` | Validation failed. `details.field` names the field |
 | 400 | `invalid_code` | Email code wrong, expired or out of attempts |
-| 401 | `unauthorized` | No session, expired session or bad ID token |
-| 401 | `sign_in_required` | Invite or member page without a session |
+| 401 | `unauthorized` | No session, expired session, bad ID token, or a missing or wrong operator token |
 | 402 | `premium_required` | The writer's plan does not include this. `details.feature` names it (`animated_backdrop`, `premium_audio`, `custom_audio`, `photos`, `spotify_events`, `events`) |
 | 403 | `forbidden` | Role too low, not a member, or removed |
 | 403 | `field_not_allowed` | Non-owner wrote an owner-only field |
 | 404 | `not_found` | Unknown, malformed or purged id or token. Identical for all of these |
 | 409 | `conflict` | Event or memo id already used by another account |
-| 410 | `revoked`, `expired`, `deleted` | Link revoked or expired, event deleted |
+| 410 | `revoked`, `expired`, `deleted` | Link or export link revoked or expired, event deleted |
 | 410 | `invite_full`, `invite_expired`, `invite_revoked` | Invite has no uses left, is past its expiry, or was revoked |
 | 413 | `payload_too_large` | Body or file over its limit |
 | 415 | `unsupported_media_type` | Wrong content type, or file content does not match |
-| 429 | `rate_limited` | Too many requests, `Retry-After` set |
+| 429 | `rate_limited` | Too many requests (including a second data export on the same day), `Retry-After` set |
 | 429 | `quota_exceeded` | A count limit that no plan raises (paid limits, links per event, members per event) |
 | 500 | `internal_error` | `details.requestId` set |
 | 503 | `service_unavailable` | Maintenance mode or provider limit reached |
@@ -483,17 +568,19 @@ Children (`GET /events/{id}/children?after=38`):
 ## 8. Accounts, sessions, plans and purchases
 
 - **Google and Apple** (app): Credential Manager and Google Sign-In (iOS) for Google; AuthenticationServices (iOS) and an in-app browser tab (Android) for Apple. The app sends the ID token and its nonce; the core checks signature (JWKS cached per instance), `iss`, `aud`, `exp` and `nonce`.
-- **Web sign-in**: `/auth/{provider}/start` sets a 10 minute `__Host-dtm_oauth` cookie (state, PKCE verifier, nonce, return path; `SameSite=None` because Apple returns with a cross-site form POST) and redirects. The callback exchanges the code server to server (Apple's client secret is an ES256 JWT signed by the core), creates the session, sets `__Host-dtm_session` (`HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=7776000`) and redirects to the return path (must start with `/e/`, `/i/` or `/s/`).
+- **Sign in with Apple on Android**: the app opens Apple's authorize URL in an in-app browser tab with `response_mode=form_post`, its own `state` and the SHA-256 of its nonce. Apple posts `code`, `id_token`, `state` and, on first sign-in, `user` to `POST /auth/apple/callback`. The core stores nothing there and answers with a redirect to the app (Android intent URL for `daysthatmatter://auth/apple`) carrying those values. The app checks `state` and signs in with `POST /auth/token` like iOS. No cookie and no browser session: the web has no sign-in (design D17).
 - **Email codes**: the address is trimmed and lower-cased. A 6-digit code from a CSPRNG is stored as an HMAC with `EMAIL_CODE_KEY`, valid 10 minutes, dead after 5 wrong attempts. Limits: 5 codes per address per hour, 20 per IP per hour. The response never says whether an account exists. The email contains only the code and the app name.
 - **Linking**: a new identity whose verified email matches an existing verified identity joins that account. `POST /me/identities` adds a method explicitly.
 - **Sessions**: `st_` + 43 chars base64url (256 bits), stored as SHA-256. Valid until 90 days after last use.
+- **Activity**: an authenticated request sets `accounts.last_active_at` (at most one write per day) and clears `inactive_notice_1_at` and `inactive_notice_2_at` (section 17).
 - **First sign-in on a device**: the app uploads local events (`PUT /events/{id}`) and memos. Uploads above the owned-event limit are accepted for this first upload only, so nothing local is lost.
-- **Deletion**: deletes owned events (with revisions, memos, links, invites, members, media), the account's memberships, uploads, identities and sessions. Revisions they authored on other events keep `author_id = NULL`. Store subscriptions are not cancelled by the backend; the app tells the user how.
+- **Deletion**: deletes owned events (with revisions, memos, links, invites, members, media), the account's memberships, uploads (library included), identities, sessions, grants, exports and devices. Inactive accounts are deleted the same way (section 17). Revisions they authored on other events keep `author_id = NULL`. Store subscriptions are not cancelled by the backend; the app tells the user how.
 - **Purchases (native)**:
   - Apple: the app buys with StoreKit 2 (Swift bridge) and sets `appAccountToken` to the account id when signed in. It sends `jwsRepresentation` of each current entitlement to `POST /purchases/apple`. The core verifies the JWS signature and `x5c` chain to Apple Root CA G3, `bundleId` and `environment`, then stores the purchase. App Store Server Notifications V2 (signed the same way) report renewals, grace periods, expiry and refunds.
   - Google: the app buys with Play Billing Library and sends the purchase token. The core gets an OAuth token for the service account (RS256 JWT, cached 1 hour), calls `purchases.subscriptionsv2.get`, acknowledges new purchases and stores the result.
   - Guests: purchases are stored with `account_id = NULL`; the app sends them again after sign-in to attach them. "Restore purchases" resends current entitlements.
-  - Plan: the highest plan among the account's active or grace purchases. The daily job re-checks purchases past `expires_at` (App Store Server API status, Play API). A gated write whose plan looks expired triggers one re-check before rejecting.
+  - Plan: the highest plan among the account's active or grace purchases and active grants. The daily job re-checks purchases past `expires_at` (App Store Server API status, Play API) and grants past `ends_at`. A gated write whose plan looks expired triggers one re-check before rejecting.
+- **Promotions (grants)**: the operator gives an account a plan for a period without a store purchase, for example one month of Premium, by adding a `grants` row with the provider's own tools (an SQL insert on D1, SQLite and Turso; the console on Firestore; exact commands in each variant's README). The same command sets the account's `plan` and `plan_expires_at` to the highest of its purchases and grants, so requests read no extra rows; the daily job does the same for grants that ended. When a grant ends, the lapsed-plan rule applies: nothing added during the grant is removed or hidden; only adding more above the plan's limits is blocked.
 - **Gating**: on writes that add paid content or count against a limit, the core loads the writer's plan and counts and checks the plan table from `:core:model` (values in [`docs/features/premium/SPEC.md`](../features/premium/SPEC.md)). Existing content is never removed or hidden.
 
 ---
@@ -514,10 +601,10 @@ Children (`GET /events/{id}/children?after=38`):
 | :--- | :--- | :--- |
 | `still` (also the key photo of an animated backdrop) | JPEG, WebP | 1.5 MB, long edge 2560 px (clients target 2048 px) |
 | `motion` | MP4, H.264 video track only, no audio track | 4 MB, 5 s, long edge 1280 px |
-| `audio` (custom audio) | M4A (AAC), no video track | 4 MB |
+| `audio` (custom audio, uploaded to the library with `POST /me/library`) | M4A (AAC), no video track | 4 MB |
 
 Client side:
-- Still: Android decodes with `ImageDecoder` and encodes WebP (quality 80, lower in steps); iOS uses an ImageIO thumbnail at 2048 px and JPEG quality 0.82, lower in steps; the web editor uses canvas `toBlob('image/webp')` with a JPEG fallback.
+- Still: Android decodes with `ImageDecoder` and encodes WebP (quality 80, lower in steps); iOS uses an ImageIO thumbnail at 2048 px and JPEG quality 0.82, lower in steps. There is no web upload (design D17).
 - iPhone Live Photo: `PHAssetResource` gives the key photo and the paired video (MOV, often HEVC, with sound). `AVAssetExportSession` with an H.264 1280 px preset and a composition without the audio track produces the motion part.
 - Google Motion Photo: the XMP `Container:Directory` (or legacy `MicroVideoOffset`) gives the offset of the MP4 appended to the JPEG or HEIC file. The app cuts it out and runs Media3 Transformer (H.264, 1280 px, audio removed). Files without this metadata are treated as stills.
 - Custom audio: iOS `AVAssetExportSession` (Apple M4A preset), Android Media3 Transformer (audio only, AAC). The app picks a bitrate so the result is at most 4 MB (96 kbps gives about 5.5 minutes) and asks for a section when the file is longer.
@@ -528,9 +615,9 @@ Server side (core, no decoding):
 3. Read dimensions (JPEG SOF, WebP VP8/VP8L/VP8X, MP4 `tkhd`), duration (`mvhd`) and codecs (`avc1`, `mp4a`). Reject `motion` with a sound track or a `©xyz` location atom, and `audio` with a video track.
 4. Remove JPEG APP1 to APP15 segments except ICC, and WebP `EXIF` and `XMP ` chunks.
 5. Check the uploader's plan and counts (`photos`, `animated_backdrop`, `custom_audio`) and the hourly upload limit.
-6. `BlobStore.put`, insert the `media` row with `unused_since = now` until an event references it.
+6. `BlobStore.put`, insert the `media` row, and add its bytes to `accounts.media_bytes` and 1 to `accounts.media_files` in the same write. Backdrop files get `unused_since = now` until an event references them. Library audio starts with `unused_since` NULL, because the library uses it.
 
-Serving: backdrops from the media origin with `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`. The daily job deletes files with `unused_since` older than 24 hours. Display: the still first; for animated, `<video muted playsinline poster=still>` plays once on load and on tap, then shows the still; under `prefers-reduced-motion` the video element is not created.
+Serving: backdrops from the media origin with `Cache-Control: public, max-age=86400` and `X-Content-Type-Options: nosniff`. The daily job deletes files with `unused_since` older than 24 hours and subtracts them from the uploader's counters. Display: the still first; for animated, `<video muted playsinline poster=still>` plays once on load and on tap, then shows the still; under `prefers-reduced-motion` the video element is not created. Blur: CSS `filter: blur()` on the backdrop layer with the radius `backdrop.blur × card width / 390`. The app uses `Modifier.blur` on Android 12 and later and iOS, and draws a pre-blurred, downscaled bitmap below Android 12.
 
 ### 10.2 Built-in catalog
 
@@ -544,8 +631,17 @@ Files are AAC (`.m4a`), at most 4 MB, stored at `audio/{id}.m4a`, uploaded by th
 
 - Free built-in track: anyone, `Cache-Control: public, max-age=604800`.
 - Premium built-in track: a caller whose plan includes `premium_audio`, or a caller who names an event it can read (`?event=` with a session, `?link=` with an active public link) whose audio is this track. `Cache-Control: private, max-age=604800`. Otherwise `402 premium_required`.
-- Custom audio file: the owner and members of the event that uses it (`?event=` with a session). Never through a public link. Otherwise `404 not_found`.
+- Custom audio file: the uploader (library preview, without `?event=`), and the owner and members of an event that uses it (`?event=` with a session). Never through a public link or on a web page. Otherwise `404 not_found`.
 - Served by streaming `BlobStore.get`, so it works on every variant. The app caches files, so each device downloads a file once.
+
+### 10.4 Custom audio library
+
+- The library is the account's `media` rows of kind `audio` with `library_removed_at IS NULL`, newest first. `usedBy` counts events (not deleted) whose `audio_media_id` is the file.
+- A `{"kind":"custom","mediaId"}` audio write needs a file the writer uploaded and still has in their library, and a writer's plan that includes `custom_audio` (else `402 premium_required`, also for a file already in the library). It sets `events.audio_media_id` and clears the file's `unused_since`.
+- `DELETE /me/library/{mediaId}` sets `library_removed_at`. Days that use the file keep it. When the file is out of the library and no event uses it (after this delete, an audio change, or an event deletion), the core sets `unused_since = now`; the daily job deletes it 24 hours later.
+- Plan count `custom_audio`: the uploader's audio rows with `unused_since IS NULL`, that is, in the library or used by a day. Removing a file frees the slot only when no day uses it; the app says so.
+- The library list is per account. Members never see another account's library, and `GET /me/library` returns only the caller's files.
+- Spotify links are never library entries.
 
 ---
 
@@ -560,7 +656,7 @@ The plan table in `:core:model` is the source of truth; [`docs/features/premium/
 | Owned events | 10 | 500 | as Premium until decided |
 | Photo backdrops in use (still or animated) | 5 | 300 | |
 | Animated photos in use | 0 | 30 | |
-| Custom audio files in use | 0 | 20 | |
+| Custom audio files in use (in the library or used by a day) | 0 | 20 | |
 | Built-in tracks | free tracks | all | |
 | Spotify events (set by the account) | 3 | no separate limit | |
 
@@ -587,6 +683,13 @@ The plan table in `:core:model` is the source of truth; [`docs/features/premium/
 | Email codes | 5 per address per hour, 20 per IP per hour; 10 minutes; 5 attempts |
 | Sign-in attempts | 30 per hour per IP |
 | Live polling | 20 s visible, 60 s after 10 min idle, none hidden |
+| Custom audio title | 200 characters |
+| Data export requests | 1 per day per account; link valid 30 days, or until the deletion date for inactive accounts |
+| Inactive account | 24 months without signed-in use (placeholder, owner to confirm); emails at 0 and 3 months; deletion at 6 months |
+| Operator API | 60 requests per hour per IP |
+| Push devices | removed 90 days after the device last contacted the backend |
+| Change notifications | 1 per hour per person per day |
+| Offers and news notifications | 2 per month per device, opt-in |
 
 Per-IP counters use `SHA-256(ip + ":" + yyyymmdd + ":" + RATE_SALT)`. Raw IPs are never stored or logged. The core refuses to start without `RATE_SALT`, `EMAIL_CODE_KEY` and `INVITE_KEY`.
 
@@ -627,10 +730,12 @@ Decision: (pending). Criteria: Kotlin/JS only if warm CPU ≤ 1.25 × TypeScript
 ## 14. Security, testing and operations
 
 Security:
-- Tokens: public link `[A-Za-z0-9_-]{22}` (128 bits, clear text); invite same format, stored as SHA-256 plus AES-GCM ciphertext under `INVITE_KEY`; session `st_` + 43 chars, stored hashed; email codes as HMAC. Token format is checked before any store access.
-- Page headers: `Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://media.<domain>; media-src 'self' https://media.<domain>; font-src 'self'; connect-src 'self' wss://<domain>; form-action 'self'; base-uri 'none'; frame-ancestors 'none'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests`, plus `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`, `Strict-Transport-Security: max-age=31536000`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
+- Tokens: public link `[A-Za-z0-9_-]{22}` (128 bits, clear text); invite same format, stored as SHA-256 plus AES-GCM ciphertext under `INVITE_KEY`; data export same format, stored as SHA-256; session `st_` + 43 chars, stored hashed; email codes as HMAC. Token format is checked before any store access.
+- Operator token: `ADMIN_TOKEN`, at least 32 random bytes, a deployment secret. Sent only as `Authorization: Bearer`, compared in constant time, never in URLs, logs or the apps. Unset means the operator routes answer `401` to everyone. The `/admin/storage` page keeps the token in memory only (no storage, no cookie). 60 requests per hour per IP. Rotate by changing the secret.
+- The share web sets no cookies and has no forms (design D17).
+- Page headers: `Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://media.<domain>; media-src 'self' https://media.<domain>; font-src 'self'; connect-src 'self' wss://<domain>; form-action 'none'; base-uri 'none'; frame-ancestors 'none'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests`, plus `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`, `Strict-Transport-Security: max-age=31536000`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`.
 - HTML escaping and the JSON data blob rules are unchanged from `services/share/` (`SHARE_SERVICE.md` section 7.1).
-- Logs: one JSON line per request with `ts`, `route`, `status`, `reqId`, `rateLimited`. Never bodies, titles, memo text, emails, codes, tokens, cookies, `Authorization`, purchase tokens, IPs or Spotify URLs.
+- Logs: one JSON line per request with `ts`, `route`, `status`, `reqId`, `rateLimited`. Never bodies, titles, memo text, emails, codes, tokens, cookies, `Authorization`, purchase tokens, push tokens, IPs or Spotify URLs.
 
 Testing (details in [`TESTING_STRATEGY.md`](../standards/TESTING_STRATEGY.md)):
 - `:core:model` tests on every target; core unit tests.
@@ -641,8 +746,9 @@ Testing (details in [`TESTING_STRATEGY.md`](../standards/TESTING_STRATEGY.md)):
 
 Operations:
 - Maintenance: `MAINTENANCE=1` makes writes return `503`; reads keep working.
-- Takedown: revoke the reported link, or remove the reported media or custom audio file (clear it from the event, delete the blob), and for repeat copyright reports set `accounts.audio_blocked = 1`, with the provider's own tools (an SQL statement for D1, SQLite and Turso; the console for Firestore and the blob store). Each variant's README holds the exact commands. An admin API is not planned.
-- Daily job: purchase re-checks; media unused for 24 hours; links and invites revoked or expired more than 30 days ago; event tombstones older than 30 days with their revisions and memos; memo tombstones older than 30 days (raising `child_purged_seq`); expired email codes; sessions unused for 90 days; rate counters older than 2 days. Bounded batches of 500 rows.
+- Takedown: revoke the reported link, or remove the reported media or custom audio file (clear it from the event, delete the blob), and for repeat copyright reports set `accounts.audio_blocked = 1`, with the provider's own tools (an SQL statement for D1, SQLite and Turso; the console for Firestore and the blob store). Each variant's README holds the exact commands, also for grants (section 8) and offers and news (section 18). A minimal operator API: the storage report only.
+- Storage report: `GET /api/v1/admin/storage?order=bytes_desc|files_desc|last_active_desc&limit=50&after=` and the page `/admin/storage` (asks for the token, shows a sortable table; same-origin `admin.js` only). Rows: `{accountId, displayName, plan, files: {still, motion, audio}, bytes: {media, documents}, totalBytes, lastActiveAt}`. `bytes_desc` (default) orders by `accounts.media_bytes`, `files_desc` by `media_files`, `last_active_desc` by `last_active_at`, each one index read on every store. File counts per kind and document bytes (event and memo documents of owned events) are computed for the rows on the page only. `after` is the cursor from the previous page's `next`.
+- Daily job: purchase re-checks; grants that ended; inactive account steps (section 17); expired export links; push devices unused for 90 days; media unused for 24 hours; links and invites revoked or expired more than 30 days ago; event tombstones older than 30 days with their revisions and memos; memo tombstones older than 30 days (raising `child_purged_seq`); expired email codes; sessions unused for 90 days; rate counters older than 2 days. Bounded batches of 500 rows.
 - Backups: D1 Time Travel (7 days on Free); self-host copies the volume; Turso and Firestore use their own point-in-time recovery.
 - CI: one workflow `backend.yml` (see [`WORKFLOW_PIPELINE.md`](../ci-cd/WORKFLOW_PIPELINE.md) section 4).
 
@@ -652,8 +758,9 @@ Operations:
 
 Needed before the global launch:
 - Domain on a Cloudflare zone, plus `media.<domain>` for R2.
-- Apple: Team ID, bundle id, App Store id, a Services ID for web sign-in, a Sign in with Apple private key, subscription products, an In-App Purchase key for the App Store Server API, the notification URL set in App Store Connect.
-- Google: OAuth client ids for Android, iOS and web, the web client secret, Play subscription products, a service account with Play Console financial access.
+- Apple: Team ID, bundle id, App Store id, a Services ID for Sign in with Apple on Android (return URL `/auth/apple/callback`), a Sign in with Apple private key, subscription products, an In-App Purchase key for the App Store Server API, the notification URL set in App Store Connect, and an APNs auth key for push (change `design-v2-features`).
+- Google: OAuth client ids for Android, iOS and the server (the audience of ID tokens), Play subscription products, a service account with Play Console financial access, and a Firebase project with a service account for FCM HTTP v1 (change `design-v2-features`).
+- `ADMIN_TOKEN` for the storage report, and the inactive account period (24 months is a placeholder).
 - Email provider account and a sending domain with SPF, DKIM and DMARC.
 - Licensed audio tracks and the free and Premium split.
 - Android package name and signing key fingerprints for `assetlinks.json`.
@@ -666,3 +773,85 @@ Needed before the global launch:
 ## 16. Regions
 
 A region is one deployment with its own domain, data, sign-in methods, stores and features, reported by `GET /config`. Accounts and data never cross regions. The app picks the region once per install: on iOS from the App Store storefront country, on Android by build (China Android builds go to Chinese stores). The global region is Cloudflare. China would use the self-host variant on a mainland cloud; requirements and open points are in [`CHINA.md`](CHINA.md).
+
+---
+
+## 17. Inactive accounts and data export
+
+Operator notes. Decision: design D18 of the change `pluggable-backend-live-sharing`. Requirements: its `accounts` spec ("Inactive accounts", "Notice before deleting an inactive account", "Data export request", "Data export contents").
+
+### 17.1 Rules
+
+- **Inactive:** no signed-in use for 24 months (placeholder, owner to confirm). Signed-in use is any authenticated request from any device; it sets `accounts.last_active_at` at most once per day and clears both notice columns.
+- **Never inactive:** an account with an `active` or `grace` purchase, or a grant whose `ends_at` is in the future.
+- **Schedule:**
+
+| When | What happens |
+| :--- | :--- |
+| Day 0: `last_active_at` older than 24 months, no notice yet | Export link created (reason `inactive`, expires on the deletion date = day 0 + 6 months). Email 1 sent. `inactive_notice_1_at = now`. |
+| `inactive_notice_1_at` + 3 months, no notice 2 yet | New export link. Email 2 sent with the deletion date: day 0 + 6 months, or 3 months after email 2 if email 2 went out late. `inactive_notice_2_at = now`. |
+| The later of `inactive_notice_1_at` + 6 months and `inactive_notice_2_at` + 3 months | Account deleted exactly like a user-requested deletion (section 8). Its owned days' links show "no longer available". |
+| Signed-in use at any point before deletion | Both notice columns set to NULL. The 24 months start again. Export links keep working until they expire. |
+
+- **Data export:** `data.json` (account, owned events with all fields, days shared with the account with shared fields and role, memos, revisions the account authored, sharing settings, library list) plus every file the account uploaded. Page `/export/{token}` lists `data.json` and each file with its own link (`/export/{token}/data.json`, `/export/{token}/files/{mediaId}.{ext}`). `data.json` is built when downloaded, streamed page by page from the store. No ZIP on Workers (10 ms CPU); self-host may offer a ZIP. Links last 30 days (user request) or until the deletion date (inactive).
+- **User request:** Settings › Account › "Download my data" calls `POST /me/export`: at most 1 per day, link sent to the account's email address.
+
+### 17.2 Daily job steps
+
+Run inside the daily job, in bounded batches of 500 accounts, after purchase re-checks (so a renewed subscription exempts the account the same day):
+1. Accounts with `last_active_at < now - 24 months`, `inactive_notice_1_at IS NULL`, not exempt: create the export, send email 1, set `inactive_notice_1_at`.
+2. Accounts with `inactive_notice_1_at < now - 3 months` and `inactive_notice_2_at IS NULL`, not exempt: create a new export, send email 2, set `inactive_notice_2_at`.
+3. Accounts with `inactive_notice_1_at < now - 6 months` and `inactive_notice_2_at < now - 3 months`, not exempt: delete the account through the account deletion path. The second condition guarantees 3 months after email 2 even when it went out late.
+4. Export rows past `expires_at`: delete.
+
+An account that became exempt after a notice (new subscription or grant) gets both notice columns cleared instead. Month arithmetic is calendar months in UTC. If email sending fails, the step is retried on the next run and the account moves on only once the mail provider accepted the email. On Workers Free a run makes at most 50 subrequests, so it sends at most 40 emails; the rest go out on the following days, and each account's dates count from its own notices.
+
+### 17.3 Email texts
+
+Plain text, in the account's language when known, otherwise English. `{date}` is the deletion date.
+
+Email 1, subject "Your Days That Matter account will be deleted on {date}":
+```
+You have not used your Days That Matter account since {lastActive}.
+We will delete the account, its days, memos and files on {date}.
+To keep the account, open the app and sign in before that date.
+To download your data first: {exportUrl} (works until {date}).
+Why: {termsUrl}
+```
+
+Email 2, subject "Reminder: your Days That Matter account will be deleted on {date}":
+```
+This is the second and last notice.
+We will delete your Days That Matter account, its days, memos and files on {date}.
+To keep the account, open the app and sign in before that date.
+To download your data first: {exportUrl} (works until {date}).
+```
+
+Export requested in the app, subject "Your Days That Matter data":
+```
+Download your data here: {exportUrl}
+The link works until {expiryDate}.
+```
+
+### 17.4 Check or pause
+
+- Check: accounts with a notice, `SELECT id, last_active_at, inactive_notice_1_at, inactive_notice_2_at FROM accounts WHERE inactive_notice_1_at IS NOT NULL ORDER BY inactive_notice_1_at;` (D1, SQLite, Turso; on Firestore, query `accounts` by `inactiveNotice1At`). Accounts due for notice 1 in the next 30 days: `last_active_at` between now minus 24 months and that plus 30 days.
+- Pause everything: set `INACTIVE_JOB=0` in the deployment config. The daily job then skips steps 1 to 3; export expiry still runs. Set it back to `1` to resume; overdue steps run on the next day.
+- Keep one account: set its `last_active_at` to now and both notice columns to NULL (one SQL statement, or the console on Firestore). The 24 months start again.
+- Open point: what to do when a notice email bounces or the account has no email address. Proposal: keep the schedule; the terms say so.
+
+---
+
+## 18. Notifications
+
+Change [`design-v2-features`](../../openspec/changes/design-v2-features/) (design D6 and D7, `notifications` spec). Feature doc: [`notifications/SPEC.md`](../features/notifications/SPEC.md).
+
+- **Reminders** are local notifications scheduled by the app. The backend only syncs the choices (`reminders`, owner-only on the event or on the membership). No server job.
+- **Push kinds** sent by the core: `changes` (someone else changed a day you own or are a member of), `added` (someone added you to a day; no trigger until adding people by name is decided) and `offers` (offers and news, opt-in, at most 2 per month per device).
+- **Devices:** `PUT /me/devices/{installId}` `{platform, pushToken, locale, timeZone, kinds}` after sign-in and when any value changes (at most once per day otherwise, to refresh `last_seen_at`). `DELETE` on sign-out. Tokens are removed on sign-out, when APNs answers `410` or `400 BadDeviceToken` or FCM answers `UNREGISTERED`, and by the daily job after 90 days without contact.
+- **Changes:** after an accepted event write or restore, recipients are the owner and members except the author, minus anyone who archived the day, minus devices without `changes`. One `rate_counters` key per person and event with a 1-hour window keeps it to one notification per day per person per hour. Text: "{editor} changed the {field} of {title}", in the device's locale. Never notes or memo text.
+- **Delivery:** APNs `POST https://api.push.apple.com/3/device/{token}` over HTTP/2 with an ES256 provider token (reused up to 1 hour); FCM HTTP v1 `POST https://fcm.googleapis.com/v1/projects/{project}/messages:send` with an access token from the service account (cached 1 hour). Both are outbound `fetch` from the core, enabled by configuration.
+- **Cost on Cloudflare:** sending runs after the response (`waitUntil`). Workers Free allows 50 subrequests per invocation, so fan-out past 40 sends continues in the event's `EventRoom` Durable Object, 40 per alarm. Whether Workers `fetch` reaches APNs over HTTP/2 needs a spike (task 3.1 of the change); the fallback is FCM for both platforms.
+- **Other variants:** self-host, Vercel and Firebase run on Node, which speaks HTTP/2 (`node:http2`); no subrequest limit.
+- **Offers and news:** the operator sends them with a runbook command per variant. The core skips devices without `offers` and devices that got 2 that month.
+- **China:** no FCM; see [`CHINA.md`](CHINA.md) open points.

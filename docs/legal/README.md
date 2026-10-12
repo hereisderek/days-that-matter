@@ -22,7 +22,7 @@ Each region gets its own set. The China region needs documents under Chinese law
 
 ## 2. Must cover (from the current design)
 
-Sources: [`BACKEND.md`](../architecture/BACKEND.md), [`premium/SPEC.md`](../features/premium/SPEC.md), [`sharing/SPEC.md`](../features/sharing/SPEC.md), [`media/SPEC.md`](../features/media/SPEC.md) and the OpenSpec change [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/).
+Sources: [`BACKEND.md`](../architecture/BACKEND.md), [`premium/SPEC.md`](../features/premium/SPEC.md), [`sharing/SPEC.md`](../features/sharing/SPEC.md), [`media/SPEC.md`](../features/media/SPEC.md), [`notifications/SPEC.md`](../features/notifications/SPEC.md) and the OpenSpec changes [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/) and [`design-v2-features`](../../openspec/changes/design-v2-features/).
 
 ### Terms of service
 - [ ] Accounts: sign-in with Google, Apple or email codes; one account per verified email; guests keep data on the device only.
@@ -32,20 +32,26 @@ Sources: [`BACKEND.md`](../architecture/BACKEND.md), [`premium/SPEC.md`](../feat
 - [ ] Sharing: public links can be opened by anyone with the link; invite links add members with viewer or editor roles; owners decide what they share and with whom.
 - [ ] Copyright: notice-and-takedown, counter-notice, DMCA designated agent contact, repeat-infringer policy (audio uploads blocked, then account termination).
 - [ ] Built-in audio: public domain recordings; Premium tracks for subscribers.
-- [ ] Spotify links: links to a third-party service; we do not host or play Spotify content.
+- [ ] Spotify links: links to a third-party service; we do not host Spotify content. Where Spotify allows it, the app plays a short preview through Spotify's own player; full tracks play in Spotify.
 - [ ] Subscriptions: billed by Apple or Google, auto-renewal, cancelling in the store, refunds handled by the store, plan limits, what happens when a plan ends (existing content stays).
+- [ ] Promotions: we may grant Premium for a period without a purchase (for example, free Premium for a month); when it ends, content added during it stays and only adding more above the free limits is blocked.
+- [ ] Custom audio library: removing a file from the library does not stop it playing on days that use it; it is deleted once no day uses it.
 - [ ] Account deletion and what it removes.
+- [ ] Inactive accounts: accounts unused for 24 months (placeholder, owner to confirm) may be deleted after two emails 3 months apart, each with a data download link; deletion 3 months after the second email. Accounts with an active subscription or promotion are never deleted for inactivity. What happens when the emails do not arrive (open point; proposal: the schedule still applies).
+- [ ] Offers and news notifications: opt-in only, at most 2 per month, can be turned off in Settings.
 - [ ] Service availability, maintenance, limitation of liability, governing law and venue (owner input).
 - [ ] Changes to the terms and how users are told.
 - [ ] Minimum age (owner input).
 
 ### Privacy policy
-- [ ] Data collected: account (email, display name, sign-in provider ids), events, memos, edit history, photos (location and camera metadata removed), audio files, Spotify links, purchase records, session cookie on the web.
+- [ ] Data collected: account (email, display name, sign-in provider ids), last activity date, events, memos, edit history, photos (location and camera metadata removed), audio files and the audio library list, Spotify links, purchase records and plan grants, and per device for notifications: push token, locale, time zone and the enabled kinds. The web sets no cookies.
+- [ ] Notifications: reminders are scheduled on the device; push notifications go through Apple (APNs) and Google (FCM) and carry a day's title, an editor's display name and the changed field, never notes or memo text. Offers and news only with opt-in.
+- [ ] Spotify previews play through Spotify's own player, which may set its own cookies or collect data under Spotify's privacy policy.
 - [ ] Not collected: no analytics, no third-party trackers on share pages, raw IP addresses not stored (hashed daily for rate limits), no content in logs.
-- [ ] Where data is stored and who processes it: the hosting provider per region (Cloudflare for the global region), the email provider, Apple and Google for sign-in and purchases.
+- [ ] Where data is stored and who processes it: the hosting provider per region (Cloudflare for the global region), the email provider, Apple and Google for sign-in, purchases and push notifications, Spotify for previews.
 - [ ] Who sees what: public link visitors see shared fields only; members see shared fields and display names; notes and memos stay with the owner.
-- [ ] Retention: deleted events and memos 30 days, unused uploads 24 hours, sessions 90 days after last use, provider backups (D1 Time Travel 7 days).
-- [ ] User rights: access, correction, deletion (account deletion in the app), and rights under GDPR, CCPA and other applicable laws; contact address.
+- [ ] Retention: deleted events and memos 30 days, unused uploads 24 hours (a removed library audio file stays while a day uses it), sessions 90 days after last use, push tokens until sign-out or 90 days unused, data export links 30 days (or until the deletion date for inactive accounts), inactive accounts deleted after 24 months without use and two notices, provider backups (D1 Time Travel 7 days).
+- [ ] User rights: access and portability ("Download my data" in the app: a `data.json` file and the uploaded files, at most once per day), correction, deletion (account deletion in the app), and rights under GDPR, CCPA and other applicable laws; contact address.
 - [ ] Children (owner input on minimum age).
 - [ ] Changes to the policy.
 

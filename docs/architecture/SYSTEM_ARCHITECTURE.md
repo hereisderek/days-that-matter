@@ -76,6 +76,7 @@ days-that-matter/
 │   ├── eventeditor/      # Creation/editing form, recurrence, customization, backdrop and audio pickers
 │   ├── sharing/          # Public links, invite links, join flow, members, history and restore
 │   ├── premium/          # Paywall, restore purchases, plan state (StoreKit 2 bridge, Play Billing)
+│   ├── notifications/    # Local reminders, push registration, notification settings
 │   └── memos/            # Milestone reflections and timeline notes
 ├── platform/
 │   ├── android/          # Glance AppWidgets, credentials, Motion Photo extraction and Media3 Transformer

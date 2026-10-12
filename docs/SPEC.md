@@ -71,12 +71,13 @@ All feature-specific requirements, data models, UI flows, and edge cases are iso
 | Feature Area | Folder Location | Scope & Highlights |
 | :--- | :--- | :--- |
 | **Authentication** | [`docs/features/auth/SPEC.md`](features/auth/SPEC.md) | Guest mode, sign-in prompt, Google, Apple and email code sign-in, sessions |
-| **Event Engine** | [`docs/features/events/SPEC.md`](features/events/SPEC.md) | Countdown engine, recurring cadences, sorting, categorization |
-| **Customization** | [`docs/features/customization/SPEC.md`](features/customization/SPEC.md) | Theming, card styles, typography, color palettes, still and animated (Live/Motion) photo backdrops |
-| **Media & Audio** | [`docs/features/media/SPEC.md`](features/media/SPEC.md) | Built-in audio catalog, custom audio (Premium), Spotify links, loop/fade controls |
-| **Sharing & Links** | [`docs/features/sharing/SPEC.md`](features/sharing/SPEC.md) | Public links, invite links (role, use count, expiry), members, live updates, history, web page, App Links, card export, QR |
+| **Event Engine** | [`docs/features/events/SPEC.md`](features/events/SPEC.md) | Countdown engine with six unit modes (Workdays included), recurring cadences, sorting, categorization, pinned carousel, archive, smart days (draft) |
+| **Customization** | [`docs/features/customization/SPEC.md`](features/customization/SPEC.md) | Theming, card styles and sizes, typography, color palettes, still and animated (Live/Motion) photo backdrops, dim and blur |
+| **Media & Audio** | [`docs/features/media/SPEC.md`](features/media/SPEC.md) | Built-in audio catalog, custom audio library (Premium), Spotify links and previews, loop/fade controls |
+| **Sharing & Links** | [`docs/features/sharing/SPEC.md`](features/sharing/SPEC.md) | Public links, invite links (role, use count, expiry), members, live updates, history, read-only web page, App Links, card export, QR |
 | **Widgets** | [`docs/features/widgets/SPEC.md`](features/widgets/SPEC.md) | Android Glance widgets, iOS WidgetKit, Lock-screen complications |
-| **Memos** | [`docs/features/memos/SPEC.md`](features/memos/SPEC.md) | Event milestone memories, collaborative notes, timestamps |
+| **Memos** | [`docs/features/memos/SPEC.md`](features/memos/SPEC.md) | Event milestone memories, collaborative notes, timestamps, memo badge on Home cards |
+| **Notifications** | [`docs/features/notifications/SPEC.md`](features/notifications/SPEC.md) | Local reminders, push for changes to shared days and being added to a day, opt-in offers and news |
 | **Premium** | [`docs/features/premium/SPEC.md`](features/premium/SPEC.md) | Plans, feature table, paywall and gating rules |
 | **China** | [`docs/architecture/CHINA.md`](architecture/CHINA.md) | Why China is a separate region, plan, open points |
 | **Backend** | [`docs/architecture/BACKEND.md`](architecture/BACKEND.md) | Core and provider variants, ports, data model, REST API contract, limits, free-tier budget |
@@ -86,7 +87,7 @@ All feature-specific requirements, data models, UI flows, and edge cases are iso
 
 ## 5. Spec-Driven Changes
 
-Behavior changes are written as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in [`openspec/changes/`](../openspec/changes/). Archived changes form the behavior specs in [`openspec/specs/`](../openspec/specs/). The active change is [`pluggable-backend-live-sharing`](../openspec/changes/pluggable-backend-live-sharing/). See `AGENTS.md` section 3 for the workflow.
+Behavior changes are written as [OpenSpec](https://github.com/Fission-AI/OpenSpec) changes in [`openspec/changes/`](../openspec/changes/). Archived changes form the behavior specs in [`openspec/specs/`](../openspec/specs/). The active changes are [`pluggable-backend-live-sharing`](../openspec/changes/pluggable-backend-live-sharing/) and [`design-v2-features`](../openspec/changes/design-v2-features/) (unit modes, Home, notifications, smart days), which builds on it. See `AGENTS.md` section 3 for the workflow.
 
 ---
 

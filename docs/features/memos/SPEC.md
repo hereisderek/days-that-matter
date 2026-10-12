@@ -51,3 +51,9 @@ data class Memo(
 - Interactive timeline cards showing date stamp, author avatar, and memo text.
 - "Add Memo" floating chip or quick-entry bottom sheet.
 - Swipe-to-delete with undo snackbar for author's own memos.
+
+### 4.2 Memo Badge on Home Cards
+- An owner's card shows a small badge when the day has memos: the memo icon and the count ("9+" above 9).
+- Shown on list rows, grid tiles and pinned cards. Never shown to members or on web pages (memos are owner-only), and not on widgets or share images.
+- Position comes from remote config `GET /api/v1/config` → `ui.memoBadge`: `top-left` (hanging from the top edge, 24 pt from the left edge) or `top-right` (flush with the right edge, 10 pt from the top; on pinned cards below the emoji). Default `top-right`. The operator sets it per deployment without an app release; the app caches the last config and uses the default offline.
+- Requirements: the [`home-screen`](../../../openspec/changes/design-v2-features/specs/home-screen/spec.md) spec of the change `design-v2-features`.

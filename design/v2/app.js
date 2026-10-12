@@ -1,7 +1,8 @@
 'use strict';
 /* Days That Matter · design v2 prototype. Plain JS, no build step.
    One state object, one render(). Date math here is for the demo only;
-   the real engine is the Kotlin one in docs/features/events/SPEC.md. */
+   the real engine is the Kotlin one in :core:model (docs/features/events/SPEC.md).
+   Rules follow the OpenSpec change pluggable-backend-live-sharing. */
 
 const app = document.getElementById('app');
 const panel = document.getElementById('panel');
@@ -16,11 +17,21 @@ const today = () => sod(new Date());
 const addDays = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
 const diffDays = (a, b) => Math.round((sod(b) - sod(a)) / DAY);
 const daysIn = (y, m) => new Date(y, m + 1, 0).getDate();
+const DEVICE_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const city = tz => tz.split('/').pop().replace(/_/g, ' ');
 
 // Month arithmetic clamps to the last day (Jan 31 + 1 month = Feb 28), always from the anchor.
 function addMonths(d, n) {
   const t = d.getMonth() + n, y = d.getFullYear() + Math.floor(t / 12), m = ((t % 12) + 12) % 12;
   return new Date(y, m, Math.min(d.getDate(), daysIn(y, m)));
+}
+
+// Wall time in an IANA zone -> instant. ponytail: one-pass offset, off by the gap hour on DST switch days.
+function zonedInstant(date, time, tz) {
+  const [h, mi] = time.split(':').map(Number);
+  const guess = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), h, mi), p = {};
+  for (const { type, value } of new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(guess)) p[type] = +value;
+  return new Date(2 * guess - Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute));
 }
 
 function nextOccurrence(ev, t0) {
@@ -36,10 +47,12 @@ function nextOccurrence(ev, t0) {
   return addDays(a, Math.ceil(diffDays(a, t0) / step) * step);
 }
 
+// Fixed zone: everyone counts to the same instant. Floating (zone null): each viewer's local time.
 function calc(ev, now = new Date()) {
   const t0 = sod(now), target = nextOccurrence(ev, t0), days = diffDays(t0, target);
-  const at = new Date(target);
-  if (ev.time) { const [h, m] = ev.time.split(':'); at.setHours(+h, +m); }
+  let at = new Date(target);
+  if (ev.zone) at = zonedInstant(target, ev.time || '00:00', ev.zone);
+  else if (ev.time) { const [h, m] = ev.time.split(':'); at.setHours(+h, +m); }
   return { target, at, days: Math.abs(days), future: days > 0, past: days < 0, today: days === 0, ms: at - now };
 }
 
@@ -49,17 +62,19 @@ function ymdBetween(a, b) {
   return { y: Math.floor(k / 12), m: k % 12, d: diffDays(addMonths(a, k), b) };
 }
 
+// Workdays: Monday to Friday after the start day, up to and including the end day. Public holidays are not skipped yet.
 function workdays(a, b) {
   let n = 0;
   for (let d = addDays(a, 1); d <= b; d = addDays(d, 1)) if (d.getDay() % 6) n++;
   return n;
 }
 
-// ponytail: smoke checks for the demo math only; the shipping engine has its own tests.
+// ponytail: smoke checks for the demo math only; the shipping engine has its own test vectors.
 console.assert(toISO(addMonths(new Date(2025, 0, 31), 1)) === '2025-02-28', 'month clamp');
 console.assert(JSON.stringify(ymdBetween(new Date(2025, 0, 31), new Date(2025, 2, 1))) === '{"y":0,"m":1,"d":1}', 'ymd borrow');
 console.assert(toISO(nextOccurrence({ date: '2020-02-29', repeat: 'yearly' }, new Date(2026, 2, 1))) === '2027-02-28', 'leap yearly');
 console.assert(workdays(new Date(2026, 9, 9), new Date(2026, 9, 16)) === 5, 'workdays');
+console.assert(zonedInstant(new Date(2026, 10, 19), '09:30', 'Europe/Oslo').toISOString() === '2026-11-19T08:30:00.000Z', 'zoned');
 
 // ---------- formatting ----------
 const nf = new Intl.NumberFormat('en');
@@ -75,17 +90,79 @@ function fmtDate(d, style = 'short') {
     : d.toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 const fmtTime = t => { const [h, m] = t.split(':'); return new Date(2000, 0, 1, +h, +m).toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' }); };
+const clock = d => d.toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' });
+const ago = ts => { const s = (Date.now() - ts) / 1000; return s < 60 ? 'just now' : s < 3600 ? `${Math.floor(s / 60)} min ago` : clock(new Date(ts)); };
 
 // ---------- catalog ----------
 const CATS = [['birthday', 'Birthdays', '🎂'], ['anniversary', 'Anniversaries', '💞'], ['travel', 'Travel', '✈️'], ['holiday', 'Holidays', '🧧'], ['work', 'Work', '💼'], ['life', 'Life', '🌱']];
 const REPEATS = [['none', 'Never'], ['yearly', 'Every year'], ['monthly', 'Every month'], ['weekly', 'Every week'], ['custom', 'Every N days']];
 const REMINDERS = [['none', 'None'], ['day', 'On the day'], ['1d', '1 day before'], ['1w', '1 week before']];
-const UNITS = [['days', 'Days'], ['ymd', 'Y·M·D'], ['weeks', 'Weeks'], ['hours', 'Hours'], ['workdays', 'Workdays']];
+// UnitMode: Auto (days, then h/m under 48 hours), Days, Weeks, Hours, Calendar (Y·M·D), Workdays (Mon to Fri).
+const UNITS = [['auto', 'Auto'], ['days', 'Days'], ['weeks', 'Weeks'], ['hours', 'Hours'], ['calendar', 'Y·M·D'], ['workdays', 'Workdays']];
+const SIZES = [['sm', 'Small'], ['md', 'Medium'], ['lg', 'Large']];
 const SORTS = [['smart', 'Closest first'], ['far', 'Furthest first'], ['az', 'A to Z'], ['new', 'Recently added']];
 const EMOJIS = ['✨', '🎂', '💞', '🏔️', '✈️', '🧧', '🎓', '💼', '🚀', '🐶', '🌱', '🍃', '🏃', '🎄', '🏠', '👶', '💍', '📚', '💸', '🎉'];
-const TRACKS = [['Calm Lo-Fi', '2:41 · soft keys'], ['Gentle Acoustic', '3:05 · guitar'], ['Celebration Chimes', '0:48 · bright'], ['Nature Rain', '5:00 · ambient']];
 const ACCENTS = [['jade', '#0E8F63'], ['sky', '#2A6FD6'], ['coral', '#C9472C'], ['plum', '#7547C2'], ['ink', '#1B2420']];
 const MILESTONES = [100, 200, 300, 365, 500, 520, 730, 1000, 1314, 1500, 2000, 2500, 3000, 3650, 5000, 10000];
+const METHODS = [['apple', 'Apple'], ['google', 'Google'], ['email', 'email']];
+const methodName = m => METHODS.find(x => x[0] === m)[1];
+
+// Built-in catalog comes from the backend (GET /api/v1/audio/catalog); 5 free tracks, the rest Premium.
+const TRACKS = [
+  ['gymnopedie', 'Gymnopédie No. 1', 'Erik Satie', '3:05'], ['morning', 'Morning Mood', 'Edvard Grieg', '3:41'],
+  ['canon', 'Canon in D', 'Johann Pachelbel', '4:52'], ['clair', 'Clair de Lune', 'Claude Debussy', '4:58'],
+  ['rain', 'Rain on Leaves', 'Field recording', '5:00'], ['nocturne', 'Nocturne Op. 9 No. 2', 'Frédéric Chopin', '4:33', 1],
+  ['spring', 'Spring, I. Allegro', 'Antonio Vivaldi', '3:19', 1], ['swan', 'The Swan', 'Camille Saint-Saëns', '2:58', 1],
+  ['arabesque', 'Arabesque No. 1', 'Claude Debussy', '4:21', 1],
+].map(([id, title, artist, dur, premium]) => ({ id, title, artist, dur, premium: !!premium }));
+const track = id => TRACKS.find(t => t.id === id);
+const audioName = a => !a ? 'No music' : a.type === 'track' ? track(a.id).title : a.title;
+
+// Smart days (draft): counted from a rule, not one date. The backend will serve holiday sets per region; this one is a sample.
+const HOLIDAYS = { region: 'New Zealand (sample)', dates: ['2026-01-01', '2026-01-02', '2026-02-06', '2026-04-03', '2026-04-06', '2026-04-27', '2026-06-01', '2026-07-10', '2026-10-26', '2026-12-25', '2026-12-28'] };
+const SMART = {
+  year: { label: 'Days left this year', title: y => `Days left in ${y}`, emoji: '🗓️', u: 'days left this year', hint: 'With progress through the year' },
+  weekends: { label: 'Weekends left this year', title: y => `Weekends left in ${y}`, emoji: '🛋️', u: 'weekends left', hint: 'Saturdays and Sundays after today' },
+  holidays: { label: 'Public holidays left this year', title: y => `Public holidays left in ${y}`, emoji: '🏖️', u: 'public holidays left', hint: HOLIDAYS.region },
+  workdays: { label: 'Workdays left this year', title: y => `Workdays left in ${y}`, emoji: '💼', u: 'workdays left', hint: 'Monday to Friday, minus public holidays' },
+};
+const holidaysLeft = () => HOLIDAYS.dates.map(parse).filter(d => d > today());
+function smartCount(rule) {
+  const t = today(), end = new Date(t.getFullYear(), 11, 31), hol = HOLIDAYS.dates;
+  if (rule === 'year') return diffDays(t, end) + 1;
+  if (rule === 'holidays') return holidaysLeft().length;
+  let n = 0;
+  for (let d = addDays(t, 1); d <= end; d = addDays(d, 1)) {
+    const w = d.getDay();
+    if (rule === 'weekends' ? w === 6 : w % 6 && !hol.includes(toISO(d))) n++;
+  }
+  return n;
+}
+const yearPct = () => { const t = today(), y0 = new Date(t.getFullYear(), 0, 1); return Math.round(diffDays(y0, t) / diffDays(y0, new Date(t.getFullYear() + 1, 0, 1)) * 100); };
+// Seasonal templates: offered only inside their window (MM-DD), from a backend catalog in the real app.
+const SEASONAL = [
+  { id: 'halloween', title: 'Halloween', emoji: '🎃', from: '10-01', to: '10-31', fromText: 'Oct 1', toText: 'Oct 31', date: y => `${y}-10-31`, bg: { type: 'gradient', id: 'dusk' } },
+  { id: 'christmas', title: 'Christmas', emoji: '🎄', from: '11-01', to: '12-25', fromText: 'Nov 1', toText: 'Dec 25', date: y => `${y}-12-25`, bg: { type: 'art', id: 'night' } },
+  { id: 'lny', title: 'Lunar New Year', emoji: '🧧', from: '01-01', to: '02-06', fromText: 'Jan 1', toText: 'Feb 6', date: () => '2027-02-06', bg: { type: 'gradient', id: 'citrus' } },
+];
+const seedLibrary = () => [
+  { id: 'lib1', title: 'Our first dance', dur: '5:30', created: 2, removed: false },
+  { id: 'lib2', title: 'Happy birthday, piano', dur: '1:48', created: 1, removed: false },
+];
+
+// Plan table, mirrors docs/features/premium/SPEC.md (source of truth: :core:model).
+const LIMITS = {
+  free: { events: 10, photos: 5, animated: 0, files: 0, spotify: 3 },
+  premium: { events: 500, photos: 300, animated: 30, files: 20, spotify: Infinity },
+};
+const WALLS = {
+  events: ['Free includes 10 days', 'Premium keeps up to 500. Nothing you have is ever deleted.', 'days'],
+  photos: ['Free includes 5 photo backdrops', 'Premium includes 300, and 30 animated photos.', 'photo backdrops'],
+  animated: ['Animated photos are part of Premium', 'Preview it as much as you like. Saving it needs Premium.', 'animated photos'],
+  premium_audio: ['This track is part of Premium', 'Free includes 5 tracks. Premium unlocks the whole catalog.', 'tracks'],
+  files: ['Your own music is part of Premium', 'Add up to 20 songs. They are converted on your phone.', 'music files'],
+  spotify: ['Free includes Spotify on 3 days', 'Premium has no Spotify limit.', 'Spotify days'],
+};
 
 const COLORS = [
   ['Mint', '#CDEFDF'], ['Sky', '#CFE5F8'], ['Peach', '#FADDCB'], ['Lilac', '#E2DBF6'], ['Butter', '#F7ECB9'], ['Blush', '#F6D3DC'], ['Sage', '#D9E3D0'], ['Mist', '#E5E8EC'],
@@ -112,7 +189,8 @@ const ART = {
 };
 const FONTS = { sans: 'Modern', serif: 'Serif', rounded: 'Rounded', mono: 'Mono', condensed: 'Poster' };
 const STYLES = { glass: ['Glass', 'Frosted chips'], clean: ['Clean', 'Flat, no effects'], outline: ['Outline', 'Light card, colored edge'], poster: ['Poster', 'Oversized number'] };
-const PHOTOS = [1015, 129, 1025, 17, 106, 152, 189, 16, 54, 1043, 56];
+// Sample photos. "live" ones stand in for iPhone Live Photos / Google Motion Photos (simulated motion).
+const PHOTOS = [[1015], [129], [1025], [17], [106], [152, 1], [189, 1], [16, 1], [54], [1043], [56]];
 const pic = id => `https://picsum.photos/id/${id}/1000/1000`;
 const thumb = id => `https://picsum.photos/id/${id}/240/320`;
 
@@ -134,12 +212,11 @@ function lum(hex) {
   return .2126 * r + .7152 * g + .0722 * b;
 }
 const ratio = (a, b) => (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
-// Auto text color: whichever of white / ink has more contrast on the dimmed base color.
-// 0.2 is roughly where both give the same ratio.
+// Auto text color: whichever of white / ink has more contrast on the dimmed base color (0.2 is the crossover).
 const effLum = look => lum(baseColor(look.bg)) * (1 - look.dim);
 const tone = look => look.text !== 'auto' ? look.text : effLum(look) > .2 ? 'dark' : 'light';
 function contrastInfo(look) {
-  if (look.bg.type === 'photo') return { ok: true, text: 'Photo: scrim plus soft text shadow. Raise Darken for busy photos.' };
+  if (look.bg.type === 'photo') return { ok: true, text: 'Photo: scrim plus soft text shadow keep text at 4.5:1. Raise Darken for busy photos.' };
   const r = ratio(effLum(look), tone(look) === 'dark' ? lum('#111714') : 1);
   return { ok: r >= 4.5, text: `${r.toFixed(1)} : 1 contrast · ${r >= 4.5 ? 'passes AA' : r >= 3 ? 'large text only' : 'too low, try Auto'}` };
 }
@@ -149,40 +226,82 @@ const isDark = () => { const t = document.documentElement.dataset.theme; return 
 function seed() {
   const t = today(), rel = n => toISO(addDays(t, n));
   const yearsAgo = (n, y) => { const d = addDays(t, n); return toISO(new Date(d.getFullYear() - y, d.getMonth(), d.getDate())); };
-  const look = (bg, o = {}) => ({ bg, dim: bg.type === 'photo' ? .25 : 0, blur: 0, style: 'glass', font: 'sans', text: 'auto', ...o });
+  const look = (bg, o = {}) => ({ bg, dim: bg.type === 'photo' ? .25 : 0, blur: 0, style: 'glass', font: 'sans', text: 'auto', size: 'md', ...o });
   return [
-    { id: 'norway', title: 'Norway trip', emoji: '🏔️', date: rel(38), time: '09:30', category: 'travel', pinned: true, created: rel(-62), reminder: '1w', audio: 'Calm Lo-Fi',
+    { id: 'norway', title: 'Norway trip', emoji: '🏔️', date: rel(38), time: '09:30', zone: 'Europe/Oslo', category: 'travel', pinned: true, pinnedAt: 3, created: rel(-62), reminder: '1w',
+      notes: 'Rain jackets. Train seats 41 and 42.', audio: { type: 'track', id: 'morning' },
       look: look({ type: 'photo', src: pic(1015), fx: 50, fy: 62 }),
-      memos: [{ date: rel(-20), author: 'You', text: 'Booked the night train from Oslo to Bergen.' }, { date: rel(-3), author: 'Lin', text: 'Rain jackets. Both of us. No arguments this time.' }] },
-    { id: 'mia', title: "Mia's birthday", emoji: '🎂', date: yearsAgo(23, 7), repeat: 'yearly', category: 'birthday', look: look({ type: 'color', value: '#FADDCB' }, { style: 'clean', font: 'rounded' }) },
-    { id: 'together', title: 'Together', emoji: '💞', date: '2021-05-20', category: 'anniversary', audio: 'Gentle Acoustic',
-      look: look({ type: 'photo', src: pic(129), fx: 50, fy: 55 }, { font: 'serif', dim: .22 }),
-      memos: [{ date: '2021-05-20', author: 'You', text: 'First walk along the river. It rained the whole time.', tag: 'Day 1' },
-        { date: '2024-02-13', author: 'Lin', text: 'Day 1,000. Dumplings at the place we found on day 3.', tag: 'Day 1,000' },
-        { date: rel(-40), author: 'You', text: 'Planted the lemon tree on the balcony.' }] },
-    { id: 'payday', title: 'Payday', emoji: '💸', date: toISO(new Date(2025, 0, t.getDate())), repeat: 'monthly', category: 'work', look: look({ type: 'art', id: 'confetti' }, { style: 'clean' }) },
-    { id: 'lny', title: 'Lunar New Year', emoji: '🧧', date: '2027-02-06', category: 'holiday', look: look({ type: 'gradient', id: 'citrus' }, { style: 'poster', font: 'condensed' }) },
-    { id: 'launch', title: 'App launch', emoji: '🚀', date: rel(49), category: 'work', unit: 'workdays', look: look({ type: 'color', value: '#2D6CDF' }, { style: 'outline', font: 'mono' }) },
+      members: [{ name: 'Lin', role: 'editor' }, { name: 'Jon', role: 'viewer' }], removed: [{ name: 'Sam' }],
+      links: [{ label: 'Family chat', token: 'Q7fK2mXw9pLs0aRt4vYb8c', expires: 'Never' }],
+      invites: [{ role: 'editor', uses: 5, used: 2, expires: fmtDate(addDays(t, 30)), token: 'Hn3kV0aQ8sLm2PzW5yTc1e' }],
+      memos: [{ date: rel(-20), text: 'Booked the night train from Oslo to Bergen.' }] },
+    { id: 'mia', title: "Mia's birthday", emoji: '🎂', date: yearsAgo(23, 7), repeat: 'yearly', category: 'birthday', pinned: true, pinnedAt: 1, audio: { type: 'file', id: 'lib2', title: 'Happy birthday, piano', dur: '1:48' }, look: look({ type: 'color', value: '#FADDCB' }, { style: 'clean', font: 'rounded' }) },
+    { id: 'together', title: 'Together', emoji: '💞', date: '2021-05-20', category: 'anniversary', unit: 'days', pinned: true, pinnedAt: 2,
+      audio: { type: 'spotify', kind: 'Playlist', title: 'Our songs', url: 'https://open.spotify.com/playlist/37i9dQZF1DX4OzrY981I1W' },
+      look: look({ type: 'photo', src: pic(129), fx: 50, fy: 55 }, { font: 'serif', dim: .22, size: 'lg' }),
+      memos: [{ date: '2021-05-20', text: 'First walk along the river. It rained the whole time.', tag: 'Day 1' },
+        { date: '2024-02-13', text: 'Day 1,000. Dumplings at the place we found on day 3.', tag: 'Day 1,000' },
+        { date: rel(-40), text: 'Planted the lemon tree on the balcony.' }] },
+    { id: 'grandma', title: "Grandma's 90th", emoji: '🎉', date: rel(64), time: '12:00', owner: { name: 'Mum' }, role: 'editor',
+      audio: { type: 'track', id: 'nocturne' }, members: [{ name: 'Dad', role: 'editor' }, { name: 'You', role: 'editor' }, { name: 'Ana', role: 'viewer' }],
+      look: look({ type: 'photo', src: pic(152), fx: 50, fy: 50, animated: true, canAnimate: true }, { font: 'serif', dim: .28 }) },
+    { id: 'payday', title: 'Payday', emoji: '💸', date: toISO(new Date(2025, 0, t.getDate())), repeat: 'monthly', category: 'work', look: look({ type: 'art', id: 'confetti' }, { style: 'clean', size: 'sm' }) },
+    { id: 'launch', title: 'App launch', emoji: '🚀', date: rel(49), time: '10:00', zone: DEVICE_TZ, category: 'work', unit: 'workdays', look: look({ type: 'color', value: '#2D6CDF' }, { style: 'outline', font: 'mono' }) },
     { id: 'mochi', title: 'Mochi came home', emoji: '🐶', date: '2024-03-09', category: 'life', look: look({ type: 'photo', src: pic(1025), fx: 50, fy: 45 }, { font: 'rounded' }),
-      memos: [{ date: '2024-03-09', author: 'You', text: 'Slept the whole ride home.', tag: 'Day 1' }] },
-    { id: 'sugar', title: 'No added sugar', emoji: '🍃', date: rel(-73), category: 'life', look: look({ type: 'gradient', id: 'lagoon' }) },
+      memos: [{ date: '2024-03-09', text: 'Slept the whole ride home.', tag: 'Day 1' }] },
     { id: 'marathon', title: 'Spring marathon', emoji: '🏃', date: rel(158), category: 'life', unit: 'weeks', look: look({ type: 'art', id: 'hills' }, { style: 'poster', font: 'condensed' }) },
-  ].map((e, i) => ({ repeat: 'none', every: 10, time: null, pinned: false, unit: 'days', created: rel(-30 - i), reminder: 'day', audio: null, memos: [], ...e }));
+    { id: 'weekends', kind: 'smart', rule: 'weekends', title: `Weekends left in ${t.getFullYear()}`, emoji: '🛋️', date: toISO(new Date(t.getFullYear(), 11, 31)), reminder: 'none',
+      look: look({ type: 'gradient', id: 'meadow' }, { size: 'sm' }) },
+    { id: 'test', title: 'Driving test', emoji: '🚗', date: rel(-120), category: 'life', archived: true, look: look({ type: 'color', value: '#CFE5F8' }) },
+  ].map((e, i) => ({ kind: 'date', rule: null, archived: false, repeat: 'none', every: 10, time: null, zone: null, pinned: false, pinnedAt: 0, unit: 'auto', created: rel(-30 - i), reminder: 'day', audio: null,
+    notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [], ...e }));
 }
+const seedHistory = () => ({
+  norway: [
+    { rev: 14, by: 'Lin', when: '2 hours ago', changes: [['Time', '9:00 AM', '9:30 AM']] },
+    { rev: 13, by: 'You', when: 'Yesterday', changes: [['Backdrop', 'Color · Sky', 'Photo']] },
+    { rev: 12, by: 'You', when: 'Oct 2', ownerOnly: true, changes: [['Notes', '—', 'Rain jackets. Train seats 41 and 42.']] },
+    { rev: 9, by: 'Lin', when: 'Sep 28', changes: [['Music', 'No music', 'Morning Mood']] },
+    { rev: 3, by: 'You', when: 'Aug 11', changes: [['Title', 'Oslo', 'Norway trip'], ['Emoji', '✈️', '🏔️']] },
+  ],
+  grandma: [
+    { rev: 7, by: 'Mum', when: 'Today', changes: [['Backdrop', 'Still photo', 'Animated photo']] },
+    { rev: 6, by: 'You', when: 'Yesterday', changes: [['Time', 'All day', '12:00 PM']] },
+    { rev: 2, by: 'Dad', when: 'Sep 30', changes: [['Title', "Mum's mum 90", "Grandma's 90th"]] },
+  ],
+});
 
 // ---------- state ----------
+const ACCOUNT = { name: 'Alex', email: 'alex@example.com', methods: ['apple'] };
 const S = {
-  screen: 'home', stack: [], anim: '', events: seed(),
+  screen: 'home', stack: [], anim: '', events: seed(), history: seedHistory(),
+  account: { ...ACCOUNT }, plan: 'free', lastSync: Date.now() - 4 * 6e4, pending: 0, firstSavePrompted: false,
   filter: 'all', layout: 'list', sort: 'smart', query: '', searching: false,
-  detailId: 'norway', playing: false,
-  draft: null, edTab: 'details', bgTab: 'photo', prevCtx: 'hero', trackPreview: null,
-  share: { format: 'story', watermark: true, expiry: 'never' },
-  sheet: null, toast: null,
-  settings: { theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true },
+  detailId: 'norway', playing: false, motion: false, pinIndex: 0,
+  draft: null, edTab: 'details', bgTab: 'photo', soundTab: 'builtin', prevCtx: 'hero', trackPreview: null,
+  share: { tab: 'link', format: 'story', watermark: true, newLink: false, linkLabel: '', linkExpiry: 'never', inviteRole: 'editor', inviteUses: '5', inviteExpiry: '30' },
+  sheet: null, toast: null, after: null, billing: 'year',
+  library: seedLibrary(), config: { memoBadge: 'top-right' }, // config = remote config from GET /config
+  settings: { theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true, notifyShared: true, notifyAdded: true, notifyOffers: false },
 };
+// Guests have no backend: no shared-with-me days, no links, no history.
+const visible = () => S.events.filter(e => S.account || !e.owner);
 const byId = id => S.events.find(e => e.id === id);
-const pinned = () => S.events.find(e => e.pinned);
+// Archived days leave Home, the pinned carousel and widget choices; they live on the Archived screen.
+const active = () => visible().filter(e => !e.archived);
+const libUsedBy = id => S.events.filter(e => e.audio?.type === 'file' && e.audio.id === id).length;
+// Pinned days, most recently pinned first. Pin is owner-only, so days shared with you can't be pinned.
+const pins = () => active().filter(e => e.pinned && !e.owner).sort((a, b) => b.pinnedAt - a.pinnedAt);
+const isOwner = ev => !ev.owner;
+const role = ev => ev.owner ? ev.role : 'owner';
+const sharedOut = ev => !!S.account && isOwner(ev) && (ev.members.length > 0 || ev.links.length > 0);
 const scrollMem = {};
+function usage(except) {
+  const mine = S.events.filter(e => isOwner(e) && e.id !== except);
+  return { events: mine.length, photos: mine.filter(e => e.look.bg.type === 'photo').length, animated: mine.filter(e => e.look.bg.animated).length,
+    files: S.library.filter(l => !l.removed || libUsedBy(l.id)).length, // a song counts while in the library or used by a day
+     spotify: mine.filter(e => e.audio?.type === 'spotify').length };
+}
 
 // ---------- values ----------
 function occurrence(ev, c) {
@@ -194,32 +313,41 @@ function occurrence(ev, c) {
 }
 
 function valueFor(ev, unit, c) {
+  if (ev.kind === 'smart') return { num: fmt(smartCount(ev.rule)), u: SMART[ev.rule].u };
   if (c.today) return { num: 'Today', u: ev.repeat === 'yearly' ? occurrence(ev, c) : 'it’s the day', today: true };
-  const dir = c.future ? 'left' : 'since';
-  const [a, b] = c.future ? [today(), c.target] : [c.target, today()];
-  switch (unit) {
-    case 'ymd': {
-      const { y, m, d } = ymdBetween(a, b);
-      const parts = [[y, 'y'], [m, 'm'], [d, 'd']].filter(([n], i) => n || i === 2 || (i === 1 && y));
-      return { num: parts.map(([n, s]) => `${n}<small>${s}</small>`).join(''), u: c.future ? 'to go' : 'since', long: true };
-    }
-    case 'weeks': return { num: `${Math.floor(c.days / 7)}<small>w</small>${c.days % 7}<small>d</small>`, u: c.future ? 'to go' : 'since', long: true };
-    case 'hours': return { num: fmt(Math.floor(Math.abs(c.ms) / 36e5)), u: `hours ${dir}` };
-    case 'workdays': return { num: fmt(workdays(a, b)), u: `workdays ${dir}` };
-    default:
-      if (!c.future && S.settings.dayOne) return { pre: 'Day', num: fmt(c.days + 1), u: 'and counting' };
-      return { num: fmt(c.days), u: `${c.days === 1 ? 'day' : 'days'} ${dir}` };
+  const dir = c.future ? 'left' : 'since', [a, b] = c.future ? [today(), c.target] : [c.target, today()];
+  if (unit === 'weeks') return { num: `${Math.floor(c.days / 7)}<small>w</small>${c.days % 7}<small>d</small>`, u: c.future ? 'to go' : 'since', long: true };
+  if (unit === 'hours') return { num: fmt(Math.floor(Math.abs(c.ms) / 36e5)), u: `hours ${dir}` };
+  if (unit === 'workdays') return { num: fmt(workdays(a, b)), u: `workdays ${dir}` };
+  if (unit === 'calendar') {
+    const { y, m, d } = ymdBetween(a, b);
+    const parts = [[y, 'y'], [m, 'm'], [d, 'd']].filter(([n], i) => n || i === 2 || (i === 1 && y));
+    return { num: parts.map(([n, s]) => `${n}<small>${s}</small>`).join(''), u: c.future ? 'to go' : 'since', long: true };
   }
+  if (unit === 'auto' && c.future && c.ms > 0 && c.ms < 48 * 36e5) {
+    const h = Math.floor(c.ms / 36e5), m = Math.floor(c.ms % 36e5 / 6e4);
+    return { num: `${h}<small>h</small>${pad(m)}<small>m</small>`, u: 'to go', long: true };
+  }
+  if (!c.future && S.settings.dayOne) return { pre: 'Day', num: fmt(c.days + 1), u: 'and counting' };
+  return { num: fmt(c.days), u: `${c.days === 1 ? 'day' : 'days'} ${dir}` };
 }
 
+const smartMeta = ev => `Until Dec 31${ev.rule === 'holidays' ? ` · ${HOLIDAYS.region}` : ''}`;
 function meta(ev, c) {
+  if (ev.kind === 'smart') return smartMeta(ev);
   if (c.past) return `Since ${fmtDate(c.target, 'year')}`;
-  const occ = occurrence(ev, c);
-  return [c.today ? 'Today' : fmtDate(c.target), occ].filter(Boolean).join(' · ');
+  return [c.today ? 'Today' : fmtDate(c.target), occurrence(ev, c)].filter(Boolean).join(' · ');
 }
-const metaLong = (ev, c) => `${c.past ? 'Since ' : ''}${fmtDate(c.target, 'long')}${ev.time ? ' · ' + fmtTime(ev.time) : ''}`;
+function metaLong(ev, c, long = true) {
+  if (ev.kind === 'smart') return `Counts to December 31, ${c.target.getFullYear()}${ev.rule === 'holidays' ? ` · ${HOLIDAYS.region}` : ''}`;
+  let s = `${c.past ? 'Since ' : ''}${fmtDate(c.target, long ? 'long' : 'short')}`;
+  if (ev.time) s += ` · ${fmtTime(ev.time)}`;
+  if (ev.zone && ev.zone !== DEVICE_TZ) s += ` ${city(ev.zone)} time${ev.time && long ? ` (${clock(c.at)} here)` : ''}`;
+  return s;
+}
 
 function tickText(ev) {
+  if (ev.kind === 'smart') return `${yearPct()}% of ${today().getFullYear()} done`;
   const c = calc(ev);
   if (c.today && c.ms <= 0) return 'Happening today';
   let ms = Math.abs(c.ms);
@@ -240,6 +368,7 @@ const ICONS = {
   grid: '<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/>',
   list: '<rect x="4" y="5" width="16" height="5.5" rx="2"/><rect x="4" y="13.5" width="16" height="5.5" rx="2"/>',
   sort: '<path d="M7 5v14M4 16l3 3 3-3M17 19V5M14 8l3-3 3 3"/>', user: '<circle cx="12" cy="8.5" r="3.5"/><path d="M5 20a7 7 0 0114 0"/>',
+  people: '<circle cx="9" cy="8.5" r="3.2"/><path d="M3.5 19.5a5.5 5.5 0 0111 0"/><path d="M15.5 5.5a3.2 3.2 0 010 6.2M17.5 19.5a5.5 5.5 0 00-2.2-4.4"/>',
   music: '<path d="M9 18V6l11-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="17.5" cy="16" r="2.5"/>',
   memo: '<path d="M5 4h14v11l-5 5H5z"/><path d="M14 20v-5h5M9 9h6M9 12.5h3"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>', copy: '<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/>',
@@ -247,107 +376,137 @@ const ICONS = {
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/>', upload: '<path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 20h14"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   palette: '<path d="M12 3a9 9 0 000 18c1.4 0 2-1 1.6-2.1-.5-1.3.4-2.4 1.8-2.4H18a3 3 0 003-3c0-5.5-4-10.5-9-10.5z"/><circle cx="7.5" cy="11" r="1.1" fill="currentColor"/><circle cx="10.5" cy="7.5" r="1.1" fill="currentColor"/><circle cx="15" cy="8" r="1.1" fill="currentColor"/>',
+  archive: '<rect x="3.5" y="4" width="17" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 002 2h10a2 2 0 002-2V9M10 13h4"/>',
   bell: '<path d="M6 16v-5a6 6 0 1112 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 004 0"/>', calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
-  repeat: '<path d="M4 11V9a3 3 0 013-3h12M16 3l3 3-3 3M20 13v2a3 3 0 01-3 3H5M8 21l-3-3 3-3"/>',
   widgets: '<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="16" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/>',
   cloud: '<path d="M7 18a4.5 4.5 0 01-.6-9A6 6 0 0118 8.5a4.8 4.8 0 01-1 9.5z"/>', globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.7 2.5 14.3 0 17M12 3.5c-2.5 2.7-2.5 14.3 0 17"/>',
-  archive: '<rect x="3.5" y="4" width="17" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 002 2h10a2 2 0 002-2V9M10 13h4"/>', mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M4.5 7l7.5 6 7.5-6"/>',
-  play: '<path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke="none"/>', pause: '<path d="M8.5 5.5v13M15.5 5.5v13"/>',
-  type: '<path d="M5 7V5h14v2M12 5v14M9 19h6"/>', image: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/>',
+  mail: '<rect x="3.5" y="5.5" width="17" height="13" rx="3"/><path d="M4.5 7l7.5 6 7.5-6"/>',
+  play: '<path d="M8 5.5v13l10-6.5z" fill="currentColor" stroke="none"/>', image: '<rect x="3.5" y="4.5" width="17" height="15" rx="3"/><circle cx="9" cy="10" r="1.8"/><path d="M20.5 16l-5-5-9 8.5"/>',
   sparkle: '<path d="M12 4l1.8 5.2L19 11l-5.2 1.8L12 18l-1.8-5.2L5 11l5.2-1.8z"/>', duplicate: '<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M4 16V7a3 3 0 013-3h9"/>',
   info: '<circle cx="12" cy="12" r="8.5"/><path d="M12 11v5M12 8h.01"/>', send: '<path d="M5 12h13M13 6l6 6-6 6"/>', lock: '<rect x="5" y="10.5" width="14" height="10" rx="3"/><path d="M8 10.5V8a4 4 0 018 0v2.5"/>',
-  briefcase: '<rect x="3.5" y="7" width="17" height="12.5" rx="3"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/>',
+  history: '<path d="M4.5 12a7.5 7.5 0 102.2-5.3"/><path d="M4 4.5v4h4M12 8v4l3 2"/>', flag: '<path d="M5.5 21V4M5.5 4.5h11l-2 4 2 4h-11"/>',
+  leave: '<path d="M14 4h3.5A2.5 2.5 0 0120 6.5v11a2.5 2.5 0 01-2.5 2.5H14M10 16l-4-4 4-4M6 12h10"/>',
+  spotify: '<circle cx="12" cy="12" r="9"/><path d="M7.5 9.6c3-1 6.6-.7 9.2.9M8 12.7c2.5-.7 5.3-.4 7.5.9M8.6 15.6c2-.5 4.1-.3 5.8.6"/>',
+  zone: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/>', briefcase: '<rect x="3.5" y="7" width="17" height="12.5" rx="3"/><path d="M9 7V5.5A1.5 1.5 0 0110.5 4h3A1.5 1.5 0 0115 5.5V7M3.5 12.5h17"/>',
+  restore: '<path d="M4 12a8 8 0 108-8"/><path d="M8 4H4v4"/>',
 };
 const icon = (n, cls = '') => `<svg class="i ${cls}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]}</svg>`;
+const proBadge = () => '<span class="pro">Premium</span>';
 
 // ---------- card ----------
-function layers(L) {
-  const blur = L.blur ? `filter:blur(${L.blur}px);inset:-${L.blur * 2}px;` : '';
-  return `<div class="card-bg" style="${esc(`background:${bgCSS(L.bg)};${blur}`)}"></div>`
+// motion: play an animated backdrop once (day page on open, editor preview). Lists and widgets show the key photo.
+function layers(L, motion = false) {
+  // Blur is a shared look field (backdrop.blur, 0 to 16) for photos and art.
+  const blur = L.blur && (L.bg.type === 'photo' || L.bg.type === 'art') ? `--b:blur(${L.blur}px);inset:-${L.blur * 2}px;` : '';
+  return `<div class="card-bg${motion && L.bg.animated ? ' motion' : ''}" style="${esc(`background:${bgCSS(L.bg)};${blur}`)}"></div>`
     + (L.dim ? `<div class="card-scrim" style="opacity:${L.dim}"></div>` : '')
     + (L.bg.type === 'photo' ? '<div class="card-legible"></div>' : '')
     + '<div class="card-grain"></div>';
 }
 const count = v => `${v.pre ? `<span class="pre">${v.pre}</span>` : ''}<span class="num${v.long ? ' long' : ''}">${v.num}</span>`;
-const cardClass = (ev, ctx, style = ev.look.style) => `card ctx-${ctx} st-${style} tone-${tone(ev.look)} font-${ev.look.font}`;
+const cardClass = (ev, ctx, style = ev.look.style) => `card ctx-${ctx} st-${style} tone-${tone(ev.look)} font-${ev.look.font} size-${ev.look.size || 'md'}`;
+// Owner-only: memos never reach members or the web. Position comes from remote config (ui.memoBadge).
+const memoBadge = ev => isOwner(ev) && ev.memos.length ? `<span class="memo-badge ${S.config.memoBadge}" aria-label="${ev.memos.length} memos">${icon('memo')}${ev.memos.length > 9 ? '9+' : ev.memos.length}</span>` : '';
 const cardVars = L => esc(`--swatch:${bgCSS(L.bg)};--edge:${edgeColor(L.bg)}`);
 const title = ev => esc(ev.title || 'Untitled day');
+const marks = ev => (ev.pinned ? icon('pin', 'mini') : '') + (ev.owner ? `${icon('people', 'mini')}${esc(ev.owner.name)} · ` : sharedOut(ev) ? icon('people', 'mini') : '');
+const watermark = () => S.share.watermark ? '<div class="mark">Tracked with Days That Matter</div>' : '';
 
 const CTX = {
-  row: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div class="txt"><div class="t">${title(ev)}</div><div class="m">${ev.pinned ? icon('pin', 'mini') : ''}${esc(meta(ev, c))}</div></div><div class="cnt">${count(v)}<div class="u">${v.u}</div></div>`,
-  tile: (ev, c, v) => `<div class="top"><span class="emo">${ev.emoji}</span>${ev.pinned ? icon('pin', 'mini') : ''}</div><div>${count(v)}<div class="u">${v.u}</div><div class="t">${title(ev)}</div><div class="m">${esc(meta(ev, c))}</div></div>`,
+  row: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div class="txt"><div class="t">${title(ev)}</div><div class="m">${marks(ev)}${esc(meta(ev, c))}</div>${ev.look.size === 'lg' ? `<div class="m tick" data-tick="${ev.id}">${tickText(ev)}</div>` : ''}</div><div class="cnt">${count(v)}<div class="u">${v.u}</div></div>`,
+  tile: (ev, c, v) => `<div class="top"><span class="emo">${ev.emoji}</span><span class="m">${marks(ev).replace(/ · $/, '')}</span></div><div>${count(v)}<div class="u">${v.u}</div><div class="t">${title(ev)}</div><div class="m">${esc(meta(ev, c))}</div></div>`,
   hero: (ev, c, v) => `<div class="top"><span class="glass-pill">${ev.pinned ? `${icon('pin', 'mini')}Pinned` : esc(catOf(ev)[1])}</span><span class="emo">${ev.emoji}</span></div>
-    <div><div class="t">${title(ev)}</div><div class="m">${esc(metaLong(ev, c))}</div>
+    <div><div class="t">${title(ev)}</div><div class="m">${esc(metaLong(ev, c, false))}</div>
     <div class="row"><div class="h-count">${count(v)}<span class="u">${v.u}</span></div><span class="glass-pill tick" data-tick="${ev.id}">${tickText(ev)}</span></div></div>`,
   mini: (ev, c, v) => `<span class="emo">${ev.emoji}</span>${count(v)}`,
   ws: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div>${count(v)}<div class="u">${v.u}</div><div class="t">${title(ev)}</div></div>`,
-  story: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div class="t">${title(ev)}</div>${count(v)}<div class="u">${v.u}</div><div class="m">${esc(fmtDate(c.target, 'year'))}</div>${S.share.watermark ? '<div class="mark">Days That Matter</div>' : ''}`,
-  square: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div>${count(v)}<div class="u">${v.u}</div><div class="t" style="margin-top:10px">${title(ev)}</div><div class="m">${esc(fmtDate(c.target, 'year'))}</div></div>${S.share.watermark ? '<div class="mark">Days That Matter</div>' : ''}`,
+  story: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div class="t">${title(ev)}</div>${count(v)}<div class="u">${v.u}</div><div class="m">${esc(fmtDate(c.target, 'year'))}</div>${watermark()}`,
+  banner: (ev, c, v) => `<div><span class="emo">${ev.emoji}</span><div class="t">${title(ev)}</div><div class="m">${esc(fmtDate(c.target, 'year'))}</div></div><div class="cnt">${count(v)}<div class="u">${v.u}</div></div>${watermark()}`,
 };
 
-function card(ev, ctx, attrs = '') {
+function card(ev, ctx, attrs = '', motion = false) {
   const c = calc(ev), v = valueFor(ev, ev.unit, c);
-  const style = ['story', 'square'].includes(ctx) && ev.look.style === 'outline' ? 'clean' : ev.look.style;
-  return `<article class="${cardClass(ev, ctx, style)}" style="${cardVars(ev.look)}" ${attrs}>${layers(ev.look)}<div class="card-body">${CTX[ctx](ev, c, v)}</div></article>`;
+  const style = ['story', 'banner'].includes(ctx) && ev.look.style === 'outline' ? 'clean' : ev.look.style;
+  return `<article class="${cardClass(ev, ctx, style)}" style="${cardVars(ev.look)}" ${attrs}>${layers(ev.look, motion)}${['row', 'tile', 'hero'].includes(ctx) ? memoBadge(ev) : ''}<div class="card-body">${CTX[ctx](ev, c, v)}</div></article>`;
 }
-function openAttrs(ev) {
+function openAttrs(ev, act = 'open', arg = ev.id) {
   const v = valueFor(ev, ev.unit, calc(ev));
-  return `data-act="open" data-arg="${ev.id}" data-long="${ev.id}" role="button" tabindex="0" aria-label="${esc(`${ev.title}, ${strip(v.pre || '')} ${strip(v.num)} ${strip(v.u)}`)}"`;
+  return `data-act="${act}" data-arg="${arg}" data-long="${ev.id}" role="button" tabindex="0" aria-label="${esc(`${ev.title}, ${strip(v.pre || '')} ${strip(v.num)} ${strip(v.u)}${ev.owner ? `, shared by ${ev.owner.name}` : ''}`)}"`;
 }
-const catOf = ev => CATS.find(c => c[0] === ev.category) || ['life', 'Life', '🌱'];
+const catOf = ev => ev.kind === 'smart' ? ['smart', 'Smart day', '✨'] : CATS.find(c => c[0] === ev.category) || ['shared', 'Shared', '👥'];
 
 // ---------- views ----------
 function statusbar() {
   const ev = S.screen === 'detail' && byId(S.detailId);
   const light = (ev && tone(ev.look) === 'light') || isDark();
-  const time = new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/, '');
   const veil = !['detail', 'onboarding'].includes(S.screen) ? 'veil' : '';
-  return `<div class="statusbar ${light ? 'on-dark' : ''} ${veil}" aria-hidden="true"><span class="sb-time">${time}</span><span class="sb-icons">
+  return `<div class="statusbar ${light ? 'on-dark' : ''} ${veil}" aria-hidden="true"><span class="sb-time">${clock(new Date()).replace(/\s?[AP]M/, '')}</span><span class="sb-icons">
     <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
     <svg viewBox="0 0 16 12"><path d="M8 2.4c2.3 0 4.4.9 6 2.4l1.3-1.4A10.3 10.3 0 008 .4 10.3 10.3 0 00.7 3.4L2 4.8a8.4 8.4 0 016-2.4zm0 4c1.2 0 2.3.5 3.2 1.2l1.3-1.4A6.6 6.6 0 008 4.4 6.6 6.6 0 003.5 6.2l1.3 1.4C5.7 6.9 6.8 6.4 8 6.4zm0 4.2 1.9-2A2.8 2.8 0 008 8a2.8 2.8 0 00-1.9.6z"/></svg>
     <svg viewBox="0 0 27 12"><rect x=".5" y=".5" width="23" height="11" rx="3.5" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="8" rx="2"/><rect x="24.5" y="4" width="1.8" height="4" rx=".9" opacity=".4"/></svg>
   </span></div><div class="island"></div>`;
 }
 
-function sortRows(rows, kind) {
-  const by = {
-    smart: (a, b) => a.c.days - b.c.days,
-    far: (a, b) => b.c.days - a.c.days,
-    az: (a, b) => a.e.title.localeCompare(b.e.title),
-    new: (a, b) => b.e.created.localeCompare(a.e.created),
-  }[S.sort];
+function sortRows(rows) {
+  const by = { smart: (a, b) => a.c.days - b.c.days, far: (a, b) => b.c.days - a.c.days, az: (a, b) => a.e.title.localeCompare(b.e.title), new: (a, b) => b.e.created.localeCompare(a.e.created) }[S.sort];
   return rows.sort(by);
 }
 
 function homeView() {
-  const q = S.query.trim().toLowerCase(), pin = pinned();
-  const hero = pin && S.settings.showHero && !q && S.filter === 'all' ? pin : null;
-  let rows = S.events.filter(e => e !== hero).map(e => ({ e, c: calc(e) }));
+  const q = S.query.trim().toLowerCase(), pinned = S.settings.showHero && !q && S.filter === 'all' ? pins() : [];
+  S.pinIndex = Math.min(S.pinIndex, Math.max(0, pinned.length - 1));
+  let rows = active().map(e => ({ e, c: calc(e) }));
   if (q) rows = rows.filter(r => r.e.title.toLowerCase().includes(q));
+  if (S.filter === 'shared') rows = rows.filter(r => r.e.owner || sharedOut(r.e));
+  if (S.filter === 'smart') rows = rows.filter(r => r.e.kind === 'smart');
   if (CATS.some(c => c[0] === S.filter)) rows = rows.filter(r => r.e.category === S.filter);
   const up = sortRows(rows.filter(r => !r.c.past)), since = sortRows(rows.filter(r => r.c.past));
   const sections = [S.filter !== 'since' && ['Upcoming', up], S.filter !== 'upcoming' && ['Since', since]].filter(s => s && s[1].length);
-  const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['since', 'Since'], ...CATS.map(([k, n]) => [k, n])];
+  const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['since', 'Since'], ...(S.account ? [['shared', 'Shared']] : []), ['smart', 'Smart'], ...CATS.map(([k, n]) => [k, n])];
   const tools = `<div class="tools"><button data-act="layout" aria-label="${S.layout === 'list' ? 'Show as grid' : 'Show as list'}">${icon(S.layout === 'list' ? 'grid' : 'list')}</button><button data-act="sort-menu" aria-label="Sort">${icon('sort')}</button></div>`;
-  const ctx = S.layout === 'grid' ? 'tile' : 'row';
-  return `<section class="view home" data-key="home">
+  const ctx = S.layout === 'grid' ? 'tile' : 'row', nArch = visible().filter(e => e.archived).length;
+  const kicker = S.account && S.pending ? `<span class="sync-dot"></span>Syncing ${S.pending} ${S.pending === 1 ? 'change' : 'changes'}…` : new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
+  const carousel = !pinned.length ? '' : `<div class="pins-wrap">
+      <div class="pins${pinned.length > 1 ? ' multi' : ''}" aria-roledescription="carousel" aria-label="Pinned days">${pinned.map((e, i) =>
+        `<div class="pin-slot">${card(e, 'hero', openAttrs(e, 'pin-card', i))}</div>`).join('')}</div>
+      ${pinned.length > 1 ? `<div class="dots">${pinned.map((e, i) => `<button class="dot" data-act="pin-go" data-arg="${i}" aria-label="Show ${esc(e.title)}" aria-current="${i === S.pinIndex}"></button>`).join('')}</div>` : ''}</div>`;
+  return `<section class="view home" data-key="home"><div class="home-top">
     <header class="home-head">
-      <div><div class="kicker">${new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}</div><h1 class="h1">Your days</h1></div>
-      <div class="head-btns"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search')}</button><button class="icon-btn" data-act="go" data-arg="settings" aria-label="Settings and account">${icon('user')}</button></div>
+      <div><div class="kicker">${kicker}</div><h1 class="h1">Your days</h1></div>
+      <div class="head-btns"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search')}</button><button class="icon-btn ${S.account ? 'av-btn' : ''}" data-act="go" data-arg="settings" aria-label="Settings and account">${S.account ? esc(S.account.name[0]) : icon('user')}</button></div>
     </header>
     ${S.searching ? `<div class="search">${icon('search')}<input data-field="query" placeholder="Search your days" value="${esc(S.query)}" aria-label="Search your days"><button data-act="search" aria-label="Close search">${icon('close')}</button></div>` : ''}
-    ${hero ? `<div class="hero-wrap">${card(hero, 'hero', openAttrs(hero))}</div>` : ''}
+    ${carousel}</div>
+    <div class="home-list">
     <div class="chips" role="group" aria-label="Filter">${filters.map(([k, n]) => `<button class="chip" data-act="filter" data-arg="${k}" aria-pressed="${S.filter === k}">${n}</button>`).join('')}</div>
     ${sections.length ? sections.map(([name, rs], i) => `<div class="sec-head"><h2>${name}<span>${rs.length}</span></h2>${i === 0 ? tools : ''}</div>
       <div class="${S.layout}">${rs.map(r => card(r.e, ctx, openAttrs(r.e))).join('')}</div>`).join('')
       : `<div class="sec-head"><span></span>${tools}</div><div class="empty"><div class="big">🌤️</div><b>${q ? 'No matches' : 'Nothing here yet'}</b>${q ? 'Try another word.' : 'Add a day and give it a photo or a color.'}</div>`}
+    ${nArch && S.filter === 'all' && !q ? `<button class="arch-row" data-act="go" data-arg="archive">${icon('archive')}<span>Archived</span><span class="cv">${nArch}${icon('chev')}</span></button>` : ''}
     <div style="height:130px"></div>
-  </section>
+  </div></section>
   <div class="bottom-fade"></div>
   <button class="fab" data-act="new">${icon('plus')}New day</button>`;
 }
 
+function archiveView() {
+  const list = visible().filter(e => e.archived);
+  return `<section class="view" data-key="archive">
+    <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
+    <h1 class="page-title">Archived</h1>
+    <p class="lead">Hidden from Home, the pinned carousel and widgets. Reminders and notifications are off. Long-press a day to unarchive it.</p>
+    ${list.length ? `<div class="list">${list.map(e => card(e, 'row', openAttrs(e))).join('')}</div>`
+      : '<div class="empty"><div class="big">🗂️</div><b>Nothing archived</b>Archive a day from its menu to tidy up Home.</div>'}
+    <div style="height:40px"></div>
+  </section>`;
+}
+
 function milestonesBlock(ev, c) {
+  if (ev.kind === 'smart') {
+    const pct = yearPct(), left = ev.rule === 'holidays' ? holidaysLeft() : [];
+    return `<div class="block"><h3>This year<span>${pct}% done</span></h3><div class="progress"><i style="width:${pct}%"></i></div>
+      <p class="note">${left.length ? `Next: ${left.map(d => fmtDate(d)).join(' · ')}` : `${fmt(smartCount('year'))} days left, ${fmt(smartCount('weekends'))} weekends.`}</p></div>`;
+  }
   if (!c.past) {
     const start = parse(ev.created), total = Math.max(1, diffDays(start, c.target)), done = Math.min(total, Math.max(0, diffDays(start, today())));
     const pct = Math.round(done / total * 100);
@@ -369,45 +528,77 @@ function milestonesBlock(ev, c) {
     <p class="note">${ordinal(yrs + 1)} anniversary on <b>${fmtDate(nextAnniv, 'year')}</b>, in ${fmt(diffDays(today(), nextAnniv))} days.</p></div>`;
 }
 
+const avatars = names => `<span class="avs">${names.map((n, i) => `<span class="av ${i % 2 ? 'alt' : ''}" title="${esc(n)}">${esc(n[0])}</span>`).join('')}</span>`;
+function sharedBlock(ev) {
+  if (ev.owner) {
+    const can = ev.role === 'editor' ? 'You can change the date, look and music, and see history. Notes, category, pin and memos stay with the owner.' : 'You see every change live. Only the owner and editors can change it.';
+    return `<div class="block"><h3>Shared with you<span>${ev.role === 'editor' ? 'Editor' : 'Viewer'}</span></h3>
+      <div class="who">${avatars([ev.owner.name, ...ev.members.filter(m => m.name !== 'You').map(m => m.name)])}<span><b>${esc(ev.owner.name)}</b> owns this day · ${ev.members.length + 1} people</span></div><p class="note">${can}</p></div>`;
+  }
+  if (!sharedOut(ev)) return '';
+  const desc = ev.members.map(m => `${m.name} can ${m.role === 'editor' ? 'edit' : 'view'}`).join(', ');
+  return `<div class="block"><h3>Shared<span>${ev.members.length} ${ev.members.length === 1 ? 'person' : 'people'} · ${ev.links.length} public ${ev.links.length === 1 ? 'link' : 'links'}</span></h3>
+    <div class="who">${avatars(ev.members.map(m => m.name))}<span>${esc(desc)}</span></div>
+    <button class="btn btn-ghost sm" data-act="share-tab" data-arg="people">Manage people and links</button></div>`;
+}
+
 function detailView() {
   const ev = byId(S.detailId);
-  if (!ev) { S.screen = 'home'; return homeView(); }
-  const c = calc(ev), v = valueFor(ev, ev.unit, c), [, catName, catEmoji] = catOf(ev);
-  const rep = ev.repeat === 'none' ? '' : ` · ${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(r => r[0] === ev.repeat)[1]}`;
+  if (!ev || !visible().includes(ev)) { S.screen = 'home'; return homeView(); }
+  const c = calc(ev), v = valueFor(ev, ev.unit, c), r = role(ev), own = r === 'owner';
+  const [, catName, catEmoji] = catOf(ev);
+  const rep = ev.repeat === 'none' ? '' : ` · ${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(x => x[0] === ev.repeat)[1]}`;
   const style = ev.look.style === 'outline' ? 'clean' : ev.look.style;
-  const memos = ev.memos.map((m, i) => `<div class="memo"><span class="av ${m.author === 'You' ? '' : 'alt'}">${m.author[0]}</span><div>
-      <div class="memo-meta"><b>${esc(m.author)}</b><span>${fmtDate(parse(m.date), 'year')}</span>${m.tag ? `<span class="tag">${esc(m.tag)}</span>` : ''}</div><p>${esc(m.text)}</p></div></div>`).join('');
+  const a = ev.audio, playable = !!a, smart = ev.kind === 'smart';
+  const shareAct = smart ? 'data-act="toast" data-arg="Smart days can’t be shared yet."' : 'data-act="share"';
+  // Spotify: a short preview plays in the app (assumption to check when building); the full song opens in Spotify.
+  const music = !a ? '' : a.type === 'spotify'
+    ? `<button class="gbtn spot" data-act="audio" aria-label="${S.playing ? 'Stop' : 'Play'} preview of ${esc(a.title)}" aria-pressed="${S.playing}">${S.playing ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('spotify')}</button>`
+    : `<button class="gbtn" data-act="audio" aria-label="${S.playing ? 'Pause' : 'Play'} ${esc(audioName(a))}" aria-pressed="${S.playing}"><span class="disc ${S.playing ? 'playing' : ''}"></span></button>`;
+  const acts = [
+    r !== 'viewer' && `<button class="act" data-act="edit" data-arg="${ev.id}">${icon('edit')}${own ? 'Customize' : 'Edit'}</button>`,
+    own && !smart && `<button class="act" data-act="share">${icon('share')}Share</button>`,
+    !own && r === 'editor' && `<button class="act" data-act="history">${icon('history')}History</button>`,
+    (a || r !== 'viewer') && `<button class="act" data-act="${!a ? 'edit-sound' : 'audio'}" aria-pressed="${S.playing && playable}">${S.playing && playable ? '<span class="eq"><i></i><i></i><i></i></span>' : icon(a?.type === 'spotify' ? 'spotify' : 'music')}${!a ? 'Add music' : a.type === 'spotify' ? 'Preview' : 'Music'}</button>`,
+    own && `<button class="act" data-act="focus-memo">${icon('memo')}Memo</button>`,
+    !own && r === 'viewer' && `<button class="act" data-act="report">${icon('flag')}Report</button>`,
+    !own && `<button class="act" data-act="leave" data-arg="${ev.id}">${icon('leave')}Leave</button>`,
+  ].filter(Boolean);
+  const memos = ev.memos.map(m => `<div class="memo"><span class="av">${esc((S.account?.name || 'Y')[0])}</span><div>
+      <div class="memo-meta"><b>You</b><span>${fmtDate(parse(m.date), 'year')}</span>${m.tag ? `<span class="tag">${esc(m.tag)}</span>` : ''}</div><p>${esc(m.text)}</p></div></div>`).join('');
+  const zoneText = ev.zone ? (ev.zone === DEVICE_TZ ? `Fixed · ${city(ev.zone)} (this device)` : `Fixed · ${city(ev.zone)}`) : 'Floating · each viewer’s local time';
   return `<section class="view detail" data-key="detail">
-    <article class="${cardClass(ev, 'detail', style)}" style="${cardVars(ev.look)}">${layers(ev.look)}<div class="card-body">
+    <article class="${cardClass(ev, 'detail', style)}" style="${cardVars(ev.look)}" data-act="motion">${layers(ev.look, S.motion)}<div class="card-body">
       <header class="d-bar"><button class="gbtn" data-act="back" aria-label="Back">${icon('back')}</button><span class="sp"></span>
-        ${ev.audio ? `<button class="gbtn" data-act="audio" aria-label="${S.playing ? 'Pause' : 'Play'} ${esc(ev.audio)}" aria-pressed="${S.playing}"><span class="disc ${S.playing ? 'playing' : ''}"></span></button>` : ''}
-        <button class="gbtn" data-act="share" aria-label="Share">${icon('share')}</button>
+        ${music}<button class="gbtn" ${shareAct} aria-label="Share">${icon('share')}</button>
         <button class="gbtn" data-act="more" data-arg="${ev.id}" aria-label="More actions">${icon('more')}</button></header>
       <div class="d-main">
-        <span class="glass-pill">${catEmoji} ${catName}${rep}</span>
+        <div class="kick"><span class="glass-pill">${ev.owner ? `${icon('people', 'mini')}${esc(ev.owner.name)} · ${ev.role === 'editor' ? 'Editor' : 'Viewer'}` : `${catEmoji} ${catName}`}${rep}</span>${ev.look.bg.animated ? '<span class="glass-pill live"><i></i>Live</span>' : ''}${ev.archived ? '<span class="glass-pill">Archived</span>' : ''}</div>
         <span class="emo">${ev.emoji}</span>
         <h1 class="t">${title(ev)}</h1>
         <div class="m">${esc(metaLong(ev, c))}${occurrence(ev, c) && !c.today ? ` · ${esc(occurrence(ev, c))}` : ''}</div>
-        <button class="d-count" data-act="cycle-unit" aria-label="Switch unit">${count(v)}<span class="u">${v.u}</span></button>
+        <button class="d-count" data-act="${smart ? 'none' : 'cycle-unit'}" aria-label="Switch unit">${count(v)}<span class="u">${v.u}</span></button>
         <div class="tick" data-tick="${ev.id}">${tickText(ev)}</div>
-        <div class="seg seg-glass units" role="group" aria-label="Unit">${UNITS.map(([k, n]) => `<button data-act="unit" data-arg="${k}" aria-pressed="${ev.unit === k}">${n}</button>`).join('')}</div>
+        ${r === 'viewer' || smart ? '' : `<div class="seg seg-glass units" role="group" aria-label="Unit">${UNITS.map(([k, n]) => `<button data-act="unit" data-arg="${k}" aria-pressed="${ev.unit === k}">${n}</button>`).join('')}</div>`}
       </div></div></article>
     <div class="d-panel"><div class="grabber"></div>
-      <div class="actions">
-        <button class="act" data-act="edit" data-arg="${ev.id}">${icon('edit')}Customize</button>
-        <button class="act" data-act="share">${icon('share')}Share</button>
-        <button class="act" data-act="${ev.audio ? 'audio' : 'edit-sound'}" aria-pressed="${S.playing && !!ev.audio}">${S.playing && ev.audio ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('music')}${ev.audio ? 'Music' : 'Add music'}</button>
-        <button class="act" data-act="focus-memo">${icon('memo')}Memo</button>
-      </div>
+      <div class="actions c${acts.length}">${acts.join('')}</div>
+      ${sharedBlock(ev)}
       ${milestonesBlock(ev, c)}
-      <div class="block" id="memos"><h3>Memos<span>${ev.memos.length || ''}</span></h3>${memos}
-        <div class="compose"><input data-field="memo" placeholder="Write a memory or a note" aria-label="New memo"><button class="send" data-act="add-memo" aria-label="Add memo">${icon('send')}</button></div></div>
+      ${own ? `<div class="block" id="memos"><h3>Memos<span>${ev.memos.length ? `${ev.memos.length} · only you` : 'only you'}</span></h3>${memos}
+        <div class="compose"><input data-field="memo" placeholder="Write a memory or a note" aria-label="New memo"><button class="send" data-act="add-memo" aria-label="Add memo">${icon('send')}</button></div></div>` : ''}
       <div class="block"><h3>Details</h3>
-        <div class="kv"><span>Date</span><span>${fmtDate(parse(ev.date), 'long')}</span></div>
+        ${smart ? `<div class="kv"><span>Counts</span><span>${SMART[ev.rule].label}</span></div><div class="kv"><span>Updates</span><span>Every day at midnight</span></div>`
+        : `<div class="kv"><span>Date</span><span>${fmtDate(parse(ev.date), 'long')}</span></div>
         <div class="kv"><span>Time</span><span>${ev.time ? fmtTime(ev.time) : 'All day'}</span></div>
-        <div class="kv"><span>Repeats</span><span>${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(r => r[0] === ev.repeat)[1]}</span></div>
-        <div class="kv"><span>Reminder</span><span>${REMINDERS.find(r => r[0] === ev.reminder)[1]}</span></div>
-        <div class="kv"><span>Pinned</span><span>${ev.pinned ? 'Yes, top of Home' : 'No'}</span></div></div>
+        <div class="kv"><span>Time zone</span><span>${zoneText}</span></div>
+        <div class="kv"><span>Repeats</span><span>${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(x => x[0] === ev.repeat)[1]}</span></div>`}
+        ${a ? `<div class="kv"><span>Music</span><span>${esc(audioName(a))}${a.type === 'track' ? ` · ${esc(track(a.id).artist)}` : a.type === 'file' ? ' · My library' : ` · <button class="link-btn" data-act="spotify">Open in Spotify</button>`}</span></div>` : ''}
+        ${ev.archived ? `<div class="kv"><span>Archived</span><span>Yes · <button class="link-btn" data-act="archive" data-arg="${ev.id}">Unarchive</button></span></div>` : ''}
+        ${own ? `<div class="kv"><span>Reminder</span><span>${REMINDERS.find(x => x[0] === ev.reminder)[1]}</span></div>
+        <div class="kv"><span>Pinned</span><span>${ev.pinned ? 'Yes, in the carousel' : 'No'}</span></div>
+        ${ev.notes ? `<div class="kv"><span>Notes</span><span>${esc(ev.notes)}</span></div>` : ''}` : ''}
+        ${own && S.account ? `<button class="btn btn-ghost sm" data-act="history" style="margin-top:12px">${icon('history')}History</button>` : ''}</div>
     </div>
   </section>`;
 }
@@ -417,47 +608,60 @@ function editorView() {
   const tabs = [['details', 'Details'], ['background', 'Background'], ['style', 'Style'], ['sound', 'Sound']];
   return `<section class="view editor" data-key="editor">
     <div class="ed-top">
-      <div class="ed-bar"><button class="txt-btn" data-act="cancel">Cancel</button><span class="ttl">${isNew ? 'New day' : 'Customize'}</span><button class="save-btn" data-act="save">Save</button></div>
+      <div class="ed-bar"><button class="txt-btn" data-act="cancel">Cancel</button><span class="ttl">${isNew ? 'New day' : d.owner ? `Edit · ${esc(d.owner.name)}’s day` : 'Customize'}</span><button class="save-btn" data-act="save">Save</button></div>
       <div class="ed-preview" id="preview">${previewHTML()}</div>
-      <div class="prev-switch"><div class="seg sm" role="group" aria-label="Preview as">${[['hero', 'Pinned'], ['row', 'List'], ['ws', 'Widget']].map(([k, n]) => `<button data-act="prev-ctx" data-arg="${k}" aria-pressed="${S.prevCtx === k}">${n}</button>`).join('')}</div></div>
+      <div class="prev-switch"><div class="seg sm" role="group" aria-label="Preview as">${[['hero', d.owner ? 'Large' : 'Pinned'], ['row', 'List'], ['ws', 'Widget']].map(([k, n]) => `<button data-act="prev-ctx" data-arg="${k}" aria-pressed="${S.prevCtx === k}">${n}</button>`).join('')}</div></div>
       <div class="tabs" role="tablist">${tabs.map(([k, n]) => `<button role="tab" data-act="ed-tab" data-arg="${k}" aria-selected="${S.edTab === k}">${n}</button>`).join('')}</div>
     </div>
     <div class="ed-body">${EDITOR_TABS[S.edTab](d)}</div>
   </section>`;
 }
-const previewHTML = () => card(S.draft, S.prevCtx);
+const previewHTML = () => card(S.draft, S.prevCtx, '', S.motion);
 const pressed = (a, b) => `aria-pressed="${a === b}"`;
+const chips = (items, act, cur) => `<div class="chips-wrap">${items.map(([k, n]) => `<button class="chip" data-act="${act}" data-arg="${k}" ${pressed(cur, k)}>${n}</button>`).join('')}</div>`;
 
 const EDITOR_TABS = {
   details: d => {
-    const other = S.events.find(e => e.pinned && e.id !== d.id);
-    return `<div><div class="flabel"><span>Title</span><span class="opt" id="title-count">${d.title.length}/40</span></div><input class="input title" data-field="title" maxlength="40" value="${esc(d.title)}" placeholder="What are you counting?"></div>
-    <div><div class="flabel">Emoji</div><div class="emojis">${EMOJIS.map(e => `<button class="emoji-opt" data-act="emoji" data-arg="${e}" ${pressed(d.emoji, e)} aria-label="Emoji ${e}">${e}</button>`).join('')}</div></div>
-    <div class="row2"><div><div class="flabel">Date</div><input class="input" type="date" data-field="date" value="${d.date}"></div>
+    const own = isOwner(d), n = pins().filter(e => e.id !== d.id).length;
+    const zones = [[DEVICE_TZ, `${city(DEVICE_TZ)} (this device)`], ...(d.zone && d.zone !== DEVICE_TZ ? [[d.zone, city(d.zone)]] : []), ['floating', 'Floating']];
+    const when = d.kind === 'smart'
+      ? `<div class="info">${icon('sparkle')}<span><b>Smart day:</b> ${SMART[d.rule].label.toLowerCase()}. The number updates every day.${d.rule === 'holidays' ? ` Holidays: ${HOLIDAYS.region}.` : ''} Smart days can't be shared yet.</span></div>`
+      : `<div class="row2"><div><div class="flabel">Date</div><input class="input" type="date" data-field="date" value="${d.date}"></div>
       <div><div class="flabel"><span>Time</span><span class="opt">optional</span></div><input class="input" type="time" data-field="time" value="${d.time || ''}"></div></div>
-    <div><div class="flabel">Repeat</div><div class="chips-wrap">${REPEATS.map(([k, n]) => `<button class="chip" data-act="repeat" data-arg="${k}" ${pressed(d.repeat, k)}>${n}</button>`).join('')}</div>
-      ${d.repeat === 'custom' ? `<label class="inline-num">Every <input class="input" type="number" min="2" max="365" data-field="every" value="${d.every}"> days</label>` : ''}</div>
-    <div><div class="flabel">Category</div><div class="chips-wrap">${CATS.map(([k, n, e]) => `<button class="chip" data-act="cat" data-arg="${k}" ${pressed(d.category, k)}>${e} ${n}</button>`).join('')}</div></div>
-    <div class="switch-row"><div><b>Pin to top</b><small>${d.pinned && other ? `Replaces “${esc(other.title)}”. Only one day is pinned.` : other ? `“${esc(other.title)}” is pinned now` : 'Shows as the big card on Home'}</small></div>
+    <div><div class="flabel"><span>Time zone</span></div>${chips(zones, 'zone', d.zone || 'floating')}
+      <p class="note">${d.zone ? '<b>Fixed:</b> everyone counts to the same moment. Good for flights and launches.' : '<b>Floating:</b> everyone counts to their own local time. Good for birthdays and New Year.'}</p></div>
+    <div><div class="flabel">Repeat</div>${chips(REPEATS, 'repeat', d.repeat)}
+      ${d.repeat === 'custom' ? `<label class="inline-num">Every <input class="input" type="number" min="2" max="365" data-field="every" value="${d.every}"> days</label>` : ''}</div>`;
+    return `<div><div class="flabel"><span>Title</span><span class="opt" id="title-count">${d.title.length}/100</span></div><input class="input title" data-field="title" maxlength="100" value="${esc(d.title)}" placeholder="What are you counting?"></div>
+    <div><div class="flabel">Emoji</div><div class="emojis">${EMOJIS.map(e => `<button class="emoji-opt" data-act="emoji" data-arg="${e}" ${pressed(d.emoji, e)} aria-label="Emoji ${e}">${e}</button>`).join('')}</div></div>
+    ${when}
+    ${own ? `<div><div class="flabel">Category <span class="opt">only you</span></div>${chips(CATS.map(([k, n, e]) => [k, `${e} ${n}`]), 'cat', d.category)}</div>
+    <div class="switch-row"><div><b>Pin to top</b><small>${d.pinned ? 'In the carousel at the top of Home, and still in the list' : n ? `Joins ${n} pinned ${n === 1 ? 'day' : 'days'} in the carousel` : 'Shows in a carousel at the top of Home'}</small></div>
       <button class="switch" role="switch" aria-label="Pin to top" aria-checked="${d.pinned}" data-act="draft-pin"></button></div>
-    <div><div class="flabel"><span>Remind me<span class="new">New</span></span></div><div class="chips-wrap">${REMINDERS.map(([k, n]) => `<button class="chip" data-act="reminder" data-arg="${k}" ${pressed(d.reminder, k)}>${n}</button>`).join('')}</div></div>`;
+    <div><div class="flabel"><span>Notes</span><span class="opt">only you · <span id="notes-count">${d.notes.length}</span>/4,000</span></div><textarea class="input area" data-field="notes" maxlength="4000" rows="3" placeholder="Anything to remember. Never shared.">${esc(d.notes)}</textarea></div>`
+      : `<div class="info">${icon('info')}<span>${esc(d.owner.name)} keeps the notes, category, pin and memos. Your changes show up for everyone with access and in history.</span></div>`}
+    <div><div class="flabel"><span>Remind me<span class="new">New</span></span></div>${chips(REMINDERS, 'reminder', d.reminder)}</div>`;
   },
   background: d => {
-    const L = d.look, bg = L.bg, ci = contrastInfo(L);
+    const L = d.look, bg = L.bg, ci = contrastInfo(L), lim = LIMITS[S.plan], u = usage(d.id);
+    const used = u.photos + (bg.type === 'photo' ? 1 : 0);
     const pane = {
       color: () => `<div class="swatches">${COLORS.map(([n, h]) => `<button class="sw" style="background:${h}" data-act="color" data-arg="${h}" aria-label="${n}" ${pressed(bg.type === 'color' && bg.value.toUpperCase(), h)}></button>`).join('')}
         <label class="sw sw-custom" aria-label="Custom color" title="Custom color"><input type="color" data-field="color" value="${bg.type === 'color' ? bg.value : '#CDEFDF'}"></label></div>`,
       gradient: () => `<div class="tiles">${Object.entries(GRADS).map(([k, g]) => `<button class="tile-opt" style="${esc(`background:${g.css}`)}" data-act="grad" data-arg="${k}" ${pressed(bg.id, k)}><span class="lbl" style="color:${lum(g.base) > .2 ? '#111714' : '#fff'}">${g.name}</span></button>`).join('')}</div>`,
-      photo: () => `<div class="tiles"><label class="tile-opt upload">${icon('upload')}Upload<input type="file" accept="image/*" data-field="photo" hidden></label>
-        ${PHOTOS.map(id => `<button class="tile-opt" style="background-image:url('${thumb(id)}')" data-act="photo" data-arg="${id}" aria-label="Sample photo ${id}" ${pressed(bg.src, pic(id))}></button>`).join('')}</div>
-        ${bg.type === 'photo' ? `<div><div class="flabel"><span>Focus point</span><span class="opt">tap the photo</span></div><div class="focal" data-act="focal" style="background-image:url('${esc(bg.src)}')"><i style="left:${bg.fx ?? 50}%;top:${bg.fy ?? 50}%"></i></div></div>` : ''}`,
+      photo: () => `<div class="usage"><span>${S.plan === 'free' ? 'Free' : 'Premium'} · ${used} of ${lim.photos} photo backdrops</span><span>Live photos: ${S.plan === 'free' ? proBadge() : `${u.animated + (bg.animated ? 1 : 0)} of ${lim.animated}`}</span></div>
+        <div class="tiles"><label class="tile-opt upload">${icon('upload')}Photos<input type="file" accept="image/*" data-field="photo" hidden></label>
+        ${PHOTOS.map(([id, live]) => `<button class="tile-opt" style="background-image:url('${thumb(id)}')" data-act="photo" data-arg="${id}" aria-label="Sample ${live ? 'Live ' : ''}photo ${id}" ${pressed(bg.src, pic(id))}>${live ? '<span class="live-tag"><i></i>LIVE</span>' : ''}</button>`).join('')}</div>
+        ${bg.type === 'photo' ? `${bg.canAnimate ? `<div class="switch-row"><div><b>Play as Live Photo ${S.plan === 'free' ? proBadge() : ''}</b><small>Plays once when the day opens, then rests on the key photo. Lists and widgets show the still.</small></div><button class="switch" role="switch" aria-label="Animated" aria-checked="${!!bg.animated}" data-act="toggle-live"></button></div>` : ''}
+          <div><div class="flabel"><span>Focus point</span><span class="opt">tap the photo</span></div><div class="focal" data-act="focal" style="background-image:url('${esc(bg.src)}')"><i style="left:${bg.fx ?? 50}%;top:${bg.fy ?? 50}%"></i></div></div>
+          <p class="note">Sized on your phone (at most 1.5 MB; Live Photos 5 s, silent). Location and camera data are removed. People you share with see it, animated or not, whatever their plan.</p>` : ''}`,
       art: () => `<div class="tiles">${Object.entries(ART).map(([k, a]) => `<button class="tile-opt" style="${esc(`background:${svgURL(a.svg)} center/cover`)}" data-act="art" data-arg="${k}" ${pressed(bg.type === 'art' && bg.id, k)}><span class="lbl" style="color:${lum(a.base) > .2 ? '#111714' : '#fff'}">${a.name}</span></button>`).join('')}</div>`,
     };
     return `<div class="seg" role="group" aria-label="Background type">${[['photo', 'Photo'], ['color', 'Color'], ['gradient', 'Gradient'], ['art', 'Art']].map(([k, n]) => `<button data-act="bg-tab" data-arg="${k}" ${pressed(S.bgTab, k)}>${n}</button>`).join('')}</div>
       ${pane[S.bgTab]()}
       <div>
-        <label class="slider-row">Darken<input type="range" min="0" max="70" value="${Math.round(L.dim * 100)}" data-field="dim"><output id="dim-out">${Math.round(L.dim * 100)}%</output></label>
-        ${bg.type === 'photo' || bg.type === 'art' ? `<label class="slider-row">Blur<input type="range" min="0" max="16" value="${L.blur}" data-field="blur"><output id="blur-out">${L.blur}px</output></label>` : ''}
+        <label class="slider-row">Darken<input type="range" min="0" max="80" value="${Math.round(L.dim * 100)}" data-field="dim"><output id="dim-out">${Math.round(L.dim * 100)}%</output></label>
+        ${bg.type === 'photo' || bg.type === 'art' ? `<label class="slider-row">Blur<input type="range" min="0" max="16" value="${L.blur || 0}" data-field="blur"><output id="blur-out">${L.blur || 0}</output></label>` : ''}
         <div class="contrast ${ci.ok ? '' : 'warn'}" id="contrast"><i></i>${esc(ci.text)}</div>
       </div>`;
   },
@@ -465,53 +669,111 @@ const EDITOR_TABS = {
     const L = d.look, n = strip(valueFor(d, 'days', calc(d)).num).slice(0, 4);
     return `<div><div class="flabel">Card style</div><div class="style-opts">${Object.entries(STYLES).map(([k, [name, sub]]) =>
       `<div class="style-opt" role="button" tabindex="0" data-act="style" data-arg="${k}" ${pressed(L.style, k)}>${card({ ...d, look: { ...L, style: k } }, 'mini')}<div class="lbl">${name}<small>${sub}</small></div></div>`).join('')}</div></div>
+    <div><div class="flabel"><span>Size in the list</span><span class="opt">Home list and grid</span></div><div class="seg">${SIZES.map(([k, n]) => `<button data-act="size" data-arg="${k}" ${pressed(L.size || 'md', k)}>${n}</button>`).join('')}</div>
+      <p class="note">Small fits more days on a screen. Large adds the live countdown and takes the full width in the grid.</p></div>
     <div><div class="flabel">Typeface</div><div class="font-opts">${Object.entries(FONTS).map(([k, name]) => `<button class="font-opt font-${k}" data-act="font" data-arg="${k}" ${pressed(L.font, k)}><b>${n}</b><span>${name}</span></button>`).join('')}</div></div>
     <div><div class="flabel">Text color</div><div class="seg">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="text" data-arg="${k}" ${pressed(L.text, k)}>${n}</button>`).join('')}</div>
       <div class="contrast ${contrastInfo(L).ok ? '' : 'warn'}"><i></i>${esc(contrastInfo(L).text)}</div></div>
-    <div><div class="flabel">Count in</div><div class="chips-wrap">${UNITS.map(([k, n]) => `<button class="chip" data-act="draft-unit" data-arg="${k}" ${pressed(d.unit, k)}>${n}</button>`).join('')}</div></div>`;
+    ${d.kind === 'smart' ? '' : `<div><div class="flabel">Count in</div>${chips(UNITS, 'draft-unit', d.unit)}<p class="note"><b>Auto</b> shows days, then hours and minutes in the last 48 hours. <b>Workdays</b> counts Monday to Friday and skips weekends; public holidays are not skipped yet. Everyone with access sees this unit.</p></div>`}`;
   },
-  sound: d => `<div class="tracks">${[[null, 'Silent']].concat(TRACKS).map(([t, sub]) => `<div class="track" role="radio" tabindex="0" aria-checked="${d.audio === t}" data-act="track" data-arg="${t || ''}">
-      ${t ? `<button class="play" data-act="preview-track" data-arg="${t}" aria-label="Preview ${t}">${S.trackPreview === t ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('play')}</button>` : `<span class="play">${icon('close')}</span>`}
-      <div class="cl"><b>${t || 'No music'}</b><small>${t ? sub : 'Quiet detail page'}</small></div><span class="radio"></span></div>`).join('')}</div>
-    <button class="switch-row" data-act="toast" data-arg="Opens the system file picker (FileKit). mp3, m4a, aac or ogg, up to 10 MB."><div><b>${icon('upload', 'mini')}Pick an audio file</b><small>mp3, m4a, aac, ogg · up to 10 MB</small></div>${icon('chev')}</button>
-    <div><label class="slider-row">Volume<input type="range" min="0" max="100" value="70"><output>70%</output></label></div>
-    <div class="switch-row"><div><b>Loop</b><small>Play again from the start</small></div><button class="switch" role="switch" aria-checked="true" aria-label="Loop" data-act="flip"></button></div>
-    <div class="switch-row"><div><b>Fade in and out</b><small>1.5 s, no abrupt cuts</small></div><button class="switch" role="switch" aria-checked="true" aria-label="Fade" data-act="flip"></button></div>`,
+  sound: d => {
+    const a = d.audio, t = S.soundTab, u = usage(d.id);
+    const none = `<div class="track" role="radio" tabindex="0" aria-checked="${!a}" data-act="track" data-arg=""><span class="play">${icon('close')}</span><div class="cl"><b>No music</b><small>Quiet day page</small></div><span class="radio"></span></div>`;
+    const panes = {
+      builtin: () => `<div class="tracks">${none}${TRACKS.map(tr => `<div class="track" role="radio" tabindex="0" aria-checked="${a?.type === 'track' && a.id === tr.id}" data-act="track" data-arg="${tr.id}">
+          <button class="play" data-act="preview-track" data-arg="${tr.id}" aria-label="Preview ${esc(tr.title)}">${S.trackPreview === tr.id ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('play')}</button>
+          <div class="cl"><b>${esc(tr.title)}${tr.premium ? proBadge() : ''}</b><small>${esc(tr.artist)} · ${tr.dur}</small></div><span class="radio"></span></div>`).join('')}</div>
+        <p class="note">${TRACKS.filter(x => !x.premium).length} tracks are free; Premium unlocks all ${TRACKS.length}. Anyone who can see this day can play its track. Public domain recordings.</p>`,
+      library: () => {
+        const items = S.library.filter(l => !l.removed).sort((x, y) => y.created - x.created), eq = '<span class="eq"><i></i><i></i><i></i></span>';
+        const pending = a?.isNew ? `<div class="track" aria-checked="true"><button class="play" data-act="preview-track" data-arg="${a.id}" aria-label="Preview">${S.trackPreview === a.id ? eq : icon('play')}</button>
+          <div class="cl"><b>${esc(a.title)}<span class="new">New</span></b><small>Keeping ${a.keep} of ${a.dur} · AAC, under 4 MB</small></div><button class="mini-btn" data-act="track" data-arg="" aria-label="Discard">${icon('close')}</button></div>
+          <div class="trim" aria-label="Section to keep"><i style="left:11%;right:13%"></i></div>` : '';
+        return `<button class="switch-row" data-act="pick-file"><div><b>${icon('upload', 'mini')}Pick an audio file ${S.plan === 'free' ? proBadge() : ''}</b><small>MP3, M4A, WAV and more. Converted on your phone.</small></div>${icon('chev')}</button>
+        ${pending}
+        <p class="group-label flush">Your library · ${items.length}</p>
+        ${items.length ? `<div class="tracks">${items.map(l => { const n = libUsedBy(l.id); return `<div class="track" role="radio" tabindex="0" aria-checked="${a?.type === 'file' && a.id === l.id}" data-act="lib-use" data-arg="${l.id}">
+          <button class="play" data-act="preview-track" data-arg="${l.id}" aria-label="Preview ${esc(l.title)}">${S.trackPreview === l.id ? eq : icon('play')}</button>
+          <div class="cl"><b>${esc(l.title)}</b><small>${l.dur} · ${n ? `used on ${n} ${n === 1 ? 'day' : 'days'}` : 'not used yet'}</small></div>
+          <button class="mini-btn" data-act="lib-remove" data-arg="${l.id}" aria-label="Remove ${esc(l.title)} from your library">${icon('close')}</button></div>`; }).join('')}</div>`
+          : '<p class="note">Songs you add show up here, so you can use them on other days.</p>'}
+        <p class="note">At most 4 MB each (about 5½ minutes); for a longer song you pick the part to keep. Plays for you and the people you invite, never on public links. × removes a song from this list only: days that use it keep playing it, and it counts toward your ${LIMITS.premium.files} songs until no day uses it.${S.plan === 'premium' ? ` ${u.files} of ${LIMITS.premium.files} in use.` : ' Preview is free; saving a song on a day needs Premium.'}</p>`;
+      },
+      spotify: () => `${a?.type === 'spotify' ? `<div class="track" aria-checked="true"><button class="play spot" data-act="preview-track" data-arg="spotify" aria-label="Play preview">${S.trackPreview === 'spotify' ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('spotify')}</button><div class="cl"><b>${esc(a.title)}</b><small>${esc(a.kind)} · 30-second preview here, full song in Spotify</small></div><button class="txt-btn" data-act="track" data-arg="">Remove</button></div>`
+          : `<div class="paste"><input class="input" data-field="spotify" placeholder="Paste a Spotify link" aria-label="Spotify link"><button class="save-btn" data-act="add-spotify">Add</button></div>`}
+        <p class="note">Share a song, album or playlist from Spotify to Days That Matter, or paste its link. No Spotify sign-in. A short preview plays here (to be checked against Spotify's current rules when building); the full song opens in Spotify.${S.plan === 'free' ? ` Free: Spotify on 3 days (${u.spotify} used).` : ''} Not offered in regions without Spotify.</p>`,
+    };
+    return `<div class="seg" role="group" aria-label="Music source">${[['builtin', 'Built-in'], ['library', 'My library'], ['spotify', 'Spotify']].map(([k, n]) => `<button data-act="sound-tab" data-arg="${k}" ${pressed(t, k)}>${n}</button>`).join('')}</div>
+      ${panes[t]()}
+      ${a && a.type !== 'spotify' ? `<p class="group-label flush">On this device</p>
+      <div><label class="slider-row">Volume<input type="range" min="0" max="100" value="70"><output>70%</output></label></div>
+      <div class="switch-row"><div><b>Loop</b><small>Play again from the start</small></div><button class="switch" role="switch" aria-checked="true" aria-label="Loop" data-act="flip"></button></div>
+      <div class="switch-row"><div><b>Fade in and out</b><small>1.5 s, no abrupt cuts</small></div><button class="switch" role="switch" aria-checked="true" aria-label="Fade" data-act="flip"></button></div>` : ''}`;
+  },
 };
 
 function settingsView() {
-  const st = S.settings;
+  const st = S.settings, a = S.account, L = LIMITS[S.plan], u = usage(), premium = S.plan === 'premium';
   const sw = (k, label) => `<button class="switch" role="switch" aria-label="${label}" aria-checked="${st[k]}" data-act="set-flag" data-arg="${k}"></button>`;
+  const meter = (label, n, max) => `<div class="cell"><span class="cl">${label}<span class="meter"><i style="width:${Math.min(100, n / max * 100)}%"></i></span></span><span class="cv">${n} of ${max}</span></div>`;
+  const gated = (label, n, max) => premium ? meter(label, n, max) : `<div class="cell"><span class="cl">${label}</span><span class="cv">${proBadge()}</span></div>`;
+  const link = (ic, label, msg, val = '') => `<button class="cell" data-act="toast" data-arg="${esc(msg)}"><span class="ci">${icon(ic)}</span><span class="cl">${label}</span><span class="cv">${val}${icon('chev')}</span></button>`;
   return `<section class="view" data-key="settings">
     <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
     <h1 class="page-title">Settings</h1>
-    <div class="profile"><span class="pic">🌤️</span><div><b>Guest</b><small>Saved on this device only</small></div><button class="btn btn-accent" data-act="toast" data-arg="Sign-in sheet: Google, email. Guest days move to the account.">Sign in</button></div>
+    ${a ? `<div class="profile"><span class="pic">${esc(a.name[0])}</span><div><b>${esc(a.name)}</b><small>${esc(a.email)} · ${a.methods.map(methodName).join(', ')}</small></div><span class="pro ${premium ? '' : 'free'}">${premium ? 'Premium' : 'Free'}</span></div>
+      <div class="group">
+        <div class="cell"><span class="ci">${icon('cloud')}</span><span class="cl">Sync<small>${S.pending ? `${S.pending} ${S.pending === 1 ? 'change' : 'changes'} waiting` : `Synced ${ago(S.lastSync)}`}</small></span><button class="btn btn-ghost sm" data-act="sync">Sync now</button></div>
+      </div>`
+    : `<div class="profile"><span class="pic">🌤️</span><div><b>Guest</b><small>Saved on this device only</small></div><button class="btn btn-accent sm" data-act="signin-prompt" data-arg="settings">Sign in</button></div>`}
+    <p class="group-label">Plan</p>
+    <div class="group">
+      ${meter('Days', u.events, L.events)}
+      ${meter('Photo backdrops', u.photos, L.photos)}
+      ${gated('Live photos', u.animated, L.animated)}
+      ${gated('Your music files', u.files, L.files)}
+      ${premium ? `<div class="cell"><span class="cl">Spotify days</span><span class="cv">${u.spotify} · no limit</span></div>` : meter('Spotify days', u.spotify, L.spotify)}
+      <div class="cell">${premium ? '<span class="cl">Manage in the App Store</span>' : '<button class="btn btn-primary sm" data-act="paywall">Upgrade to Premium</button>'}<button class="txt-btn" data-act="restore">Restore purchases</button></div>
+    </div>
     <p class="group-label">Appearance</p>
     <div class="group">
       <div class="cell"><span class="ci">${icon('sun')}</span><span class="cl">Theme</span><div class="seg sm">${[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="theme" data-arg="${k}" ${pressed(st.theme, k)}>${n}</button>`).join('')}</div></div>
       <div class="cell"><span class="ci">${icon('palette')}</span><span class="cl">Accent</span><div class="accents">${ACCENTS.map(([k, h]) => `<button style="background:${h}" data-act="accent" data-arg="${k}" aria-label="Accent ${k}" ${pressed(st.accent, k)}></button>`).join('')}</div></div>
-      <div class="cell"><span class="ci">${icon('pin')}</span><span class="cl">Big pinned card<small>Pinned day leads the Home screen</small></span>${sw('showHero', 'Big pinned card')}</div>
+      <div class="cell"><span class="ci">${icon('pin')}</span><span class="cl">Pinned carousel<small>Pinned days at the top of Home</small></span>${sw('showHero', 'Pinned carousel')}</div>
       <div class="cell"><span class="ci">${icon('grid')}</span><span class="cl">Home layout</span><div class="seg sm">${[['list', 'List'], ['grid', 'Grid']].map(([k, n]) => `<button data-act="layout-set" data-arg="${k}" ${pressed(S.layout, k)}>${n}</button>`).join('')}</div></div>
     </div>
     <p class="group-label">Counting</p>
     <div class="group">
-      <div class="cell"><span class="ci">${icon('sparkle')}</span><span class="cl">Count the first day as Day 1<small>“Day 1,972” instead of “1,971 days since”</small></span>${sw('dayOne', 'Count the first day as Day 1')}</div>
+      <div class="cell"><span class="ci">${icon('sparkle')}</span><span class="cl">Count the first day as Day 1<span class="new">New</span><small>“Day 1,972” instead of “1,971 days since”</small></span>${sw('dayOne', 'Count the first day as Day 1')}</div>
       <div class="cell"><span class="ci">${icon('calendar')}</span><span class="cl">Week starts on</span><div class="seg sm">${[['mon', 'Mon'], ['sun', 'Sun']].map(([k, n]) => `<button data-act="week" data-arg="${k}" ${pressed(st.weekStart, k)}>${n}</button>`).join('')}</div></div>
-      <button class="cell" data-act="toast" data-arg="Holiday calendars per region are a recommended addition (see README)."><span class="ci">${icon('briefcase')}</span><span class="cl">Workdays skip<small>Saturdays and Sundays</small></span><span class="cv">Holidays<span class="new">New</span>${icon('chev')}</span></button>
     </div>
-    <p class="group-label">Reminders<span class="new">New</span></p>
+    <p class="group-label">Notifications<span class="new">New</span></p>
     <div class="group">
-      <div class="cell"><span class="ci">${icon('bell')}</span><span class="cl">Notifications<small>Per-day reminders and milestones</small></span>${sw('notify', 'Notifications')}</div>
-      <button class="cell" data-act="toast" data-arg="Time picker"><span class="ci">${icon('sun')}</span><span class="cl">Deliver at</span><span class="cv">9:00 AM${icon('chev')}</span></button>
+      <div class="cell"><span class="ci">${icon('bell')}</span><span class="cl">Reminders<small>Before and on the day, set per day. Work offline.</small></span>${sw('notify', 'Reminders')}</div>
+      ${link('sun', 'Deliver reminders at', 'Time picker', '9:00 AM')}
+      <div class="cell"><span class="ci">${icon('people')}</span><span class="cl">Changes to shared days<small>When someone else edits a day you share</small></span>${sw('notifyShared', 'Changes to shared days')}</div>
+      <div class="cell"><span class="ci">${icon('plus')}</span><span class="cl">Added to a day<small>When someone adds you to a day</small></span>${sw('notifyAdded', 'Added to a day')}</div>
+      <div class="cell"><span class="ci">${icon('sparkle')}</span><span class="cl">Offers and news<small>Like free Premium weeks. Off unless you turn it on; at most 2 a month.</small></span>${sw('notifyOffers', 'Offers and news')}</div>
     </div>
     <p class="group-label">More</p>
     <div class="group">
       <button class="cell" data-act="go" data-arg="widgets"><span class="ci">${icon('widgets')}</span><span class="cl">Widgets</span><span class="cv">${icon('chev')}</span></button>
-      <button class="cell" data-act="toast" data-arg="Export to a JSON file, import from a file or a calendar (.ics)."><span class="ci">${icon('cloud')}</span><span class="cl">Backup and import<span class="new">New</span></span><span class="cv">${icon('chev')}</span></button>
-      <button class="cell" data-act="toast" data-arg="Deleted days stay here for 30 days."><span class="ci">${icon('trash')}</span><span class="cl">Recently deleted<span class="new">New</span></span><span class="cv">${icon('chev')}</span></button>
-      <button class="cell" data-act="toast" data-arg="Face ID / fingerprint lock and hiding private days from widgets."><span class="ci">${icon('lock')}</span><span class="cl">Privacy lock<span class="new">New</span></span><span class="cv">Off${icon('chev')}</span></button>
-      <button class="cell" data-act="toast" data-arg="English, 简体中文, 繁體中文 …"><span class="ci">${icon('globe')}</span><span class="cl">Language</span><span class="cv">English${icon('chev')}</span></button>
+      ${link('trash', 'Recently deleted<span class="new">New</span>', 'Deleted days stay here for 30 days.')}
+      ${link('lock', 'Privacy lock<span class="new">New</span>', 'Face ID / fingerprint lock, and hiding private days from widgets.', 'Off')}
+      ${a ? '' : link('download', 'Export to a file<span class="new">New</span>', 'Guests keep days on this device only. Export a JSON backup.')}
+      ${link('globe', 'Language', 'English, 简体中文, 繁體中文 …', 'English')}
+      ${link('info', 'Terms of Service', 'Opens daysthatmatter.app/terms')}
+      ${link('info', 'Privacy Policy', 'Opens daysthatmatter.app/privacy')}
     </div>
+    ${a ? `<p class="group-label">Account</p>
+    <div class="group">
+      ${link('edit', 'Display name<small>Members see it in the member list and history</small>', 'Edit display name', esc(a.name))}
+      ${link('plus', 'Add sign-in method', 'Apple, Google or email code. Same verified email joins the same account.')}
+      ${link('download', 'Download my data', 'We’ll email you a link to download your days, memos and files. It works for 30 days.')}
+      <button class="cell" data-act="sign-out"><span class="ci">${icon('leave')}</span><span class="cl">Sign out<small>This device only. Your days stay here.</small></span></button>
+      <button class="cell danger" data-act="delete-account"><span class="ci">${icon('trash')}</span><span class="cl">Delete account</span></button>
+    </div>
+    <p class="note pad">Accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a link to download your data.</p>` : ''}
     <p class="foot">Days That Matter · design v2 prototype</p>
   </section>`;
 }
@@ -519,12 +781,12 @@ function settingsView() {
 function widgetLook(ev) {
   if (S.settings.widgetStyle === 'match') return ev;
   const value = S.settings.widgetStyle === 'minimal' ? (isDark() ? '#1E2522' : '#FFFFFF') : '#1F3D33';
-  return { ...ev, look: { ...ev.look, bg: { type: 'color', value }, style: 'clean', dim: 0, blur: 0, text: 'auto' } };
+  return { ...ev, look: { ...ev.look, bg: { type: 'color', value }, style: 'clean', dim: 0, text: 'auto' } };
 }
 
 function widgetsView() {
-  const pin = pinned() || S.events[0];
-  const next = S.events.filter(e => e !== pin).map(e => ({ e, c: calc(e) })).filter(r => !r.c.past).sort((a, b) => a.c.days - b.c.days).slice(0, 3);
+  const pin = pins()[0] || active()[0];
+  const next = active().filter(e => e !== pin).map(e => ({ e, c: calc(e) })).filter(r => !r.c.past).sort((a, b) => a.c.days - b.c.days).slice(0, 3);
   const second = next[0] ? next[0].e : pin;
   const w = widgetLook(pin), c = calc(pin), v = valueFor(pin, 'days', c);
   const medium = `<article class="${cardClass(w, 'wm')}" style="${cardVars(w.look)}">${layers(w.look)}<div class="card-body">
@@ -535,7 +797,7 @@ function widgetsView() {
   return `<section class="view" data-key="widgets">
     <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
     <h1 class="page-title">Widgets</h1>
-    <p class="lead">Widgets use each day's own look. Small shows one day, Medium adds what's next.</p>
+    <p class="lead">Widgets use each day's own look. Live photos show their key photo. Small shows one day, Medium adds what's next.</p>
     <div class="homescreen" style="${esc(`background:${GRADS.glacier.css}`)}">
       <div class="w-s">${card(w, 'ws')}</div>
       <div class="apps"><span class="app-ic"></span><span class="app-ic"></span><span class="app-ic"></span><span class="app-ic"></span></div>
@@ -548,7 +810,7 @@ function widgetsView() {
     <p class="group-label">Lock Screen</p>
     <div class="lock" style="${esc(`background:${lockBg}`)}">
       <div class="lock-date">${new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' })}</div>
-      <div class="clock">${new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/, '')}</div>
+      <div class="clock">${clock(new Date()).replace(/\s?[AP]M/, '')}</div>
       <div class="acc-row"><div class="acc-c" style="--p:${pct}%"><div><b>${c.today ? '🎉' : fmt(c.days)}</b><small>${c.past ? 'SINCE' : 'DAYS'}</small></div></div>
         <div class="acc-r">${pin.emoji} ${esc(pin.title)}<b>${strip(v.num)} ${strip(v.u)}</b></div></div>
     </div>
@@ -556,16 +818,20 @@ function widgetsView() {
   </section>`;
 }
 
+const signInButtons = () => `<div class="onb-btns">
+  <button class="btn btn-primary" data-act="signin" data-arg="apple">Continue with Apple</button>
+  <button class="btn btn-ghost" data-act="signin" data-arg="google"><span class="g-mark">G</span>Continue with Google</button>
+  <button class="btn btn-ghost" data-act="signin" data-arg="email">${icon('mail')}Continue with email</button></div>`;
+const legal = () => '<p class="legal">By continuing you agree to the <a href="#" data-act="toast" data-arg="Opens the Terms of Service">Terms of Service</a> and <a href="#" data-act="toast" data-arg="Opens the Privacy Policy">Privacy Policy</a>.</p>';
+
 function onboardingView() {
   const picks = ['together', 'norway', 'mia'].map(byId).filter(Boolean);
   return `<section class="view onb" data-key="onboarding">
     <div class="collage" aria-hidden="true">${picks.map((e, i) => `<div class="fl fl${i}">${card(e, 'row')}</div>`).join('')}</div>
     <div><h1>Count the days<br>that matter.</h1><p>Birthdays, trips, firsts and finish lines. Give each one its own photo or color.</p></div>
-    <div class="onb-btns">
-      <button class="btn btn-primary" data-act="start" data-arg="Signed in with Google"><span class="g-mark">G</span>Continue with Google</button>
-      <button class="btn btn-ghost" data-act="start" data-arg="Email sign-in comes next">${icon('mail')}Continue with email</button>
-      <button class="btn btn-text" data-act="start" data-arg="You're a guest. Days stay on this device.">Skip for now</button>
-    </div>
+    ${signInButtons()}
+    <button class="btn btn-text" data-act="guest">Skip for now</button>
+    ${legal()}
   </section>`;
 }
 
@@ -582,59 +848,168 @@ function qrSVG(seed) {
   }
   return `<svg class="qr" viewBox="0 0 ${N} ${N}" role="img" aria-label="QR code for the link (placeholder)"><g fill="var(--ink)">${r}${finder(0, 0)}${finder(N - 7, 0)}${finder(0, N - 7)}</g></svg>`;
 }
+const sheetHead = (t, sub = '') => `<div class="sheet-h"><span>${t}${sub ? `<small>${sub}</small>` : ''}</span><button data-act="close-sheet" aria-label="Close">${icon('close')}</button></div>`;
+const EXPIRY = [['5', '5 days'], ['30', '30 days'], ['never', 'Never'], ['custom', 'Custom…']];
+const expiryText = k => k === 'never' ? 'Never' : k === 'custom' ? fmtDate(addDays(today(), 90)) : fmtDate(addDays(today(), +k));
+
+function shareBody(ev) {
+  const sh = S.share;
+  if (sh.tab === 'image' || !isOwner(ev)) return `<div class="seg" style="margin-bottom:12px">${[['story', 'Story 9:16'], ['banner', 'Banner 1.91:1']].map(([k, n]) => `<button data-act="share-format" data-arg="${k}" ${pressed(sh.format, k)}>${n}</button>`).join('')}</div>
+    <div class="share-prev">${card(ev, sh.format)}</div>
+    <div class="switch-row" style="margin-bottom:12px"><div><b>Watermark</b><small>“Tracked with Days That Matter”</small></div><button class="switch" role="switch" aria-label="Watermark" aria-checked="${sh.watermark}" data-act="watermark"></button></div>
+    <div class="btn-row"><button class="btn btn-ghost" data-act="toast" data-arg="Saved to Photos">${icon('download')}Save</button><button class="btn btn-primary" data-act="toast" data-arg="System share sheet with the image">${icon('share')}Share</button></div>
+    ${isOwner(ev) ? '' : `<p class="note center">Only ${esc(ev.owner.name)} can create links and invites.</p>`}`;
+  if (sh.tab === 'link') return `${ev.links.map((l, i) => `<div class="lrow">${icon('link')}<div class="cl"><b>${esc(l.label || 'Public link')}</b><small>daysthatmatter.app/e/${l.token.slice(0, 6)}… · expires ${esc(l.expires)}</small></div>
+      <button class="mini-btn" data-act="toast" data-arg="Link copied" aria-label="Copy">${icon('copy')}</button><button class="mini-btn" data-act="revoke-link" data-arg="${i}" aria-label="Revoke">${icon('trash')}</button></div>`).join('')}
+    ${sh.newLink ? `<div class="form-card"><input class="input" data-field="link-label" placeholder="Label (optional), like “Instagram”" value="${esc(sh.linkLabel)}">
+      <div class="flabel" style="margin-top:12px">Expires</div>${chips(EXPIRY, 'link-expiry', sh.linkExpiry)}
+      <button class="btn btn-primary" data-act="create-link" style="margin-top:14px">Create and copy link</button></div>`
+      : `<button class="btn btn-ghost" data-act="new-link" ${ev.links.length >= 10 ? 'disabled' : ''}>${icon('plus')}New public link</button>`}
+    ${ev.links[0] ? `<div class="qr-wrap">${qrSVG(ev.links[0].token)}<div><b>Scan to open</b><p class="note" style="margin-top:4px">“${esc(ev.links[0].label || 'Public link')}”. Made on the phone, works offline.</p></div></div>` : ''}
+    <div class="info">${icon('info')}<span>Anyone with a link sees this day live, no account needed: title, date, time, zone, unit, repeat, look, photo and built-in music. <b>Notes, memos, category and pin stay private.</b> Your own music files play for invited people only. Up to 10 links. The web page is view-only.</span></div>`;
+  const inv = ev.invites.map((x, i) => `<div class="lrow">${icon('people')}<div class="cl"><b>${x.role === 'editor' ? 'Editor' : 'Viewer'} invite</b><small>${x.uses === 'unlimited' ? `${x.used} joined · unlimited` : `${x.uses - x.used} of ${x.uses} left`} · expires ${esc(x.expires)}</small></div>
+      <button class="mini-btn" data-act="toast" data-arg="Invite link copied" aria-label="Copy">${icon('copy')}</button><button class="mini-btn" data-act="revoke-invite" data-arg="${i}" aria-label="Revoke">${icon('trash')}</button></div>`).join('');
+  const members = ev.members.map((m, i) => `<div class="lrow"><span class="av ${i % 2 ? 'alt' : ''}">${esc(m.name[0])}</span><div class="cl"><b>${esc(m.name)}</b></div>
+      <div class="seg sm">${[['viewer', 'Viewer'], ['editor', 'Editor']].map(([k, n]) => `<button data-act="member-role" data-arg="${i}:${k}" ${pressed(m.role, k)}>${n}</button>`).join('')}</div>
+      <button class="mini-btn" data-act="remove-member" data-arg="${i}" aria-label="Remove ${esc(m.name)}">${icon('close')}</button></div>`).join('');
+  return `<div class="form-card"><div class="flabel">Role</div><div class="seg">${[['viewer', 'Viewer · sees it live'], ['editor', 'Editor · can change it']].map(([k, n]) => `<button data-act="invite-role" data-arg="${k}" ${pressed(sh.inviteRole, k)}>${n}</button>`).join('')}</div>
+      <div class="flabel" style="margin-top:12px">How many people</div>${chips([['1', '1'], ['5', '5'], ['10', '10'], ['unlimited', 'Unlimited'], ['custom', 'Custom…']], 'invite-uses', sh.inviteUses)}
+      <div class="flabel" style="margin-top:12px">Expires</div>${chips(EXPIRY, 'invite-expiry', sh.inviteExpiry)}
+      <button class="btn btn-primary" data-act="create-invite" style="margin-top:14px">${icon('share')}Create and send invite</button></div>
+    ${inv ? `<p class="group-label flush">Open invites</p>${inv}` : ''}
+    <p class="group-label flush">People · ${ev.members.length + 1} of 100</p>
+    <div class="lrow"><span class="av">${esc((S.account?.name || 'Y')[0])}</span><div class="cl"><b>You</b></div><span class="cv">Owner</span></div>${members}
+    ${ev.removed.map((m, i) => `<div class="lrow muted"><span class="av">${esc(m.name[0])}</span><div class="cl"><b>${esc(m.name)}</b><small>Removed · can't rejoin through invites</small></div><button class="txt-btn" data-act="allow-again" data-arg="${i}">Allow again</button></div>`).join('')}
+    <p class="note">Invites open in the app. Without the app, the link shows a page to get it; there is no sign-in or editing on the web. Opening an invite takes no use; joining takes one.</p>`;
+}
 
 const SHEETS = {
   actions: ({ id }) => {
-    const ev = byId(id);
+    const ev = byId(id), r = role(ev);
+    const item = (act, ic, label, extra = '', cls = '') => `<button class="menu-item ${cls}" data-act="${act}" data-arg="${id}">${icon(ic)}<span class="sp">${label}</span>${extra}</button>`;
     return `<div class="sheet-card">${card(ev, 'row')}</div>
-      <button class="menu-item" data-act="pin" data-arg="${id}">${icon('pin')}<span class="sp">${ev.pinned ? 'Unpin from top' : 'Pin to top'}</span>${!ev.pinned && pinned() ? `<small>replaces ${esc(pinned().title)}</small>` : ''}</button>
-      <button class="menu-item" data-act="edit" data-arg="${id}">${icon('palette')}<span class="sp">Customize</span></button>
-      <button class="menu-item" data-act="share" data-arg="${id}">${icon('share')}<span class="sp">Share</span></button>
-      <button class="menu-item" data-act="duplicate" data-arg="${id}">${icon('duplicate')}<span class="sp">Duplicate</span></button>
-      <button class="menu-item danger" data-act="delete" data-arg="${id}">${icon('trash')}<span class="sp">Delete</span></button>`;
+      ${r === 'owner' ? item('pin', 'pin', ev.pinned ? 'Unpin' : 'Pin to top', ev.pinned ? '' : `<small>${pins().length} pinned</small>`) : ''}
+      ${r !== 'viewer' ? item('edit', 'palette', r === 'owner' ? 'Customize' : 'Edit') : ''}
+      ${ev.kind === 'smart' ? '' : item('share', 'share', r === 'owner' ? 'Share' : 'Share image')}
+      ${item('archive', 'archive', ev.archived ? 'Unarchive' : 'Archive', ev.pinned && !ev.archived ? '<small>also unpins it</small>' : '')}
+      ${r !== 'viewer' && S.account ? item('history', 'history', 'History') : ''}
+      ${r === 'owner' ? item('duplicate', 'duplicate', 'Duplicate') + item('delete', 'trash', 'Delete', '', 'danger')
+        : item('report', 'flag', 'Report') + item('leave', 'leave', 'Leave', '', 'danger')}`;
   },
-  sort: () => `<div class="sheet-h">Sort<button data-act="close-sheet" aria-label="Close">${icon('close')}</button></div>
+  newday: () => {
+    const y = today().getFullYear(), md = toISO(today()).slice(5);
+    return `${sheetHead('New day')}
+      <button class="menu-item" data-act="new-date">${icon('calendar')}<span class="sp">A date<small class="sub">Birthday, trip, anniversary, deadline</small></span>${icon('chev')}</button>
+      <p class="group-label flush">Smart days<span class="new">New</span></p>
+      ${Object.entries(SMART).map(([k, sd]) => `<button class="menu-item" data-act="new-smart" data-arg="${k}"><span class="emo-i">${sd.emoji}</span><span class="sp">${sd.title(y)}<small class="sub">${sd.hint}</small></span><b class="cv">${fmt(smartCount(k))}</b></button>`).join('')}
+      <p class="group-label flush">Seasonal · limited time</p>
+      ${SEASONAL.map(se => { const open = md >= se.from && md <= se.to; return `<button class="menu-item" ${open ? `data-act="new-season" data-arg="${se.id}"` : 'disabled'}><span class="emo-i">${se.emoji}</span><span class="sp">${se.title}<small class="sub">${open ? `Available until ${se.toText}` : `Opens ${se.fromText}`}</small></span></button>`; }).join('')}
+      <p class="note">Smart days count from a rule and update every day. Holiday sets will come from the server per region; this one is a sample. Smart days can't be shared yet.</p>`;
+  },
+  sort: () => `${sheetHead('Sort')}
     ${SORTS.map(([k, n]) => `<button class="menu-item" data-act="sort" data-arg="${k}"><span class="sp">${n}</span>${S.sort === k ? icon('check') : ''}</button>`).join('')}
-    <p class="note">Drag to reorder (custom order) is listed in the README as a gap: the Event model has no sort field yet.</p>`,
+    <p class="note">Drag to reorder needs a sort field on Event (see README, gaps).</p>`,
   share: ({ id }) => {
-    const ev = byId(id), f = S.share.format;
-    const body = f === 'link'
-      ? `<div class="link-box"><span>daysthatmatter.app/e/Q7fK2mXw9pLs0aRt4vYb8c</span><button data-act="toast" data-arg="Link copied">${icon('copy')}Copy</button></div>
-        <div class="qr-wrap">${qrSVG(ev.id)}<div><b>Scan to open</b><p class="note" style="margin-top:4px">Made on the phone from the link, so it works offline once the link exists.</p></div></div>
-        <div class="flabel">Link expires</div><div class="chips-wrap">${[['never', 'Never'], ['7', '7 days'], ['30', '30 days'], ['365', '1 year']].map(([k, n]) => `<button class="chip" data-act="expiry" data-arg="${k}" ${pressed(S.share.expiry, k)}>${n}</button>`).join('')}</div>
-        <div class="info">${icon('info')}<span>People with the link see the title, date and theme. ${ev.look.bg.type === 'photo' ? '<b>Photos are not shared</b>; the page uses a matching color. ' : ''}Memos and music stay private. After edits, tap Update link.</span></div>
-        <div class="btn-row"><button class="btn btn-ghost" data-act="toast" data-arg="Snapshot republished">Update link</button><button class="btn btn-primary" data-act="toast" data-arg="System share sheet">${icon('share')}Send</button></div>
-        <button class="danger-link" data-act="revoke">Revoke link</button>`
-      : `<div class="share-prev">${card(ev, f)}</div>
-        <div class="switch-row" style="margin-bottom:12px"><div><b>Watermark</b><small>Small “Days That Matter” line</small></div><button class="switch" role="switch" aria-label="Watermark" aria-checked="${S.share.watermark}" data-act="watermark"></button></div>
-        <div class="btn-row"><button class="btn btn-ghost" data-act="toast" data-arg="Saved to Photos">${icon('download')}Save</button><button class="btn btn-primary" data-act="toast" data-arg="System share sheet with the image">${icon('share')}Share</button></div>`;
-    return `<div class="sheet-h">Share “${esc(ev.title)}”<button data-act="close-sheet" aria-label="Close">${icon('close')}</button></div>
-      <div class="seg" style="margin-bottom:14px">${[['story', 'Story 9:16'], ['square', 'Square'], ['link', 'Link & QR']].map(([k, n]) => `<button data-act="share-format" data-arg="${k}" ${pressed(f, k)}>${n}</button>`).join('')}</div>${body}`;
+    const ev = byId(id), own = isOwner(ev);
+    return `${sheetHead(`Share “${esc(ev.title)}”`, own ? 'Links update live when the day changes' : '')}
+      ${own ? `<div class="seg" style="margin-bottom:14px">${[['link', 'Public link'], ['people', 'People'], ['image', 'Image']].map(([k, n]) => `<button data-act="share-tab" data-arg="${k}" ${pressed(S.share.tab, k)}>${n}</button>`).join('')}</div>` : ''}
+      ${shareBody(ev)}`;
   },
+  history: ({ id }) => {
+    const ev = byId(id), own = isOwner(ev), revs = (S.history[id] || []).filter(r => own || !r.ownerOnly);
+    return `${sheetHead('History', 'Every saved change. Restoring adds a revision; nothing is lost.')}
+      ${revs.length ? revs.map((r, i) => `<div class="hist"><span class="av ${r.by === 'You' ? '' : 'alt'}">${esc(r.by[0])}</span><div class="cl">
+        <div class="memo-meta"><b>${esc(r.by)}</b><span>${esc(r.when)}</span><span class="tag">Rev ${r.rev}</span>${r.ownerOnly ? '<span class="ms">only you see this</span>' : ''}</div>
+        ${r.changes.map(([f, a, b]) => `<div class="chg"><span>${esc(f)}</span><s>${esc(a)}</s>${icon('send', 'mini')}<b>${esc(b)}</b></div>`).join('')}</div>
+        ${i === 0 ? '<span class="cv">Current</span>' : r.ownerOnly ? '' : `<button class="txt-btn" data-act="restore-rev" data-arg="${r.rev}">Restore</button>`}</div>`).join('')
+      : '<p class="note">No changes yet. History starts when the day syncs.</p>'}`;
+  },
+  signin: ({ reason, step, email }) => {
+    if (step === 'email') return `${sheetHead('Continue with email')}<p class="sheet-p">We'll send a 6-digit code. No password.</p>
+      <input class="input" type="email" data-field="email" placeholder="you@example.com" value="${esc(email || '')}" autocomplete="email"><button class="btn btn-primary" data-act="send-code" style="margin-top:12px">Send code</button>${legal()}`;
+    if (step === 'code') return `${sheetHead('Enter the code')}<p class="sheet-p">Sent to <b>${esc(email)}</b>. Valid for 10 minutes.</p>
+      <input class="input code" inputmode="numeric" maxlength="6" data-field="code" placeholder="••••••" autocomplete="one-time-code"><button class="btn btn-primary" data-act="verify-code" style="margin-top:12px">Sign in</button>
+      <button class="btn btn-text" data-act="send-code">Send a new code</button>`;
+    const why = { share: 'Sharing needs an account. Your days upload when you sign in, then you can share.', first: 'Keep this day safe and see it on all your devices.', sync: 'Sync your days to all your devices.', settings: 'Sync your days to all your devices and share them.' }[reason];
+    return `${sheetHead('Sign in or create an account')}<p class="sheet-p">${why}</p>${signInButtons()}${reason === 'share' ? '' : '<button class="btn btn-text" data-act="close-sheet">Not now</button>'}${legal()}`;
+  },
+  paywall: ({ g }) => g.limit
+    ? `${sheetHead(g.title)}<p class="sheet-p">${esc(g.text)}</p>${g.alt ? `<button class="btn btn-primary" data-act="paywall-alt">${esc(g.alt.label)}</button>` : ''}<button class="btn btn-text" data-act="close-sheet">OK</button>`
+    : `<div class="pw-hero">${icon('sparkle')}<span>Premium</span><button data-act="close-sheet" aria-label="Close">${icon('close')}</button></div>
+      <h2 class="pw-title">${esc(g.title)}</h2><p class="sheet-p">${esc(g.text)}</p>
+      <ul class="benefits">${['500 days', '300 photo backdrops, 30 Live Photos', 'The whole music catalog', 'Your own songs, up to 20', 'Spotify on any number of days'].map(t => `<li>${icon('check')}${t}</li>`).join('')}</ul>
+      <div class="plan-opts">${[['year', 'Yearly'], ['month', 'Monthly']].map(([k, n]) => `<button data-act="billing" data-arg="${k}" ${pressed(S.billing, k)}><b>${n}</b><small>Price from the store</small></button>`).join('')}</div>
+      <button class="btn btn-primary" data-act="upgrade">Upgrade to Premium</button>
+      ${g.alt ? `<button class="btn btn-ghost" data-act="paywall-alt" style="margin-top:8px">${esc(g.alt.label)}</button>` : ''}
+      <div class="pw-foot"><button data-act="restore">Restore purchases</button><button data-act="close-sheet">Not now</button></div>
+      <p class="note center">Billed by Apple or Google; cancel in your store settings. People you share with never need Premium to see it. Ending a plan never removes anything.</p>`,
+  confirm: ({ title: t, text, label }) => `${sheetHead(t)}<p class="sheet-p">${text}</p><button class="btn btn-danger" data-act="confirm-yes">${label}</button><button class="btn btn-text" data-act="close-sheet">Cancel</button>`,
 };
 
 function overlays() {
   let html = '';
-  if (S.sheet) html += `<div class="scrim" data-act="close-sheet"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grabber"></div>${SHEETS[S.sheet.type](S.sheet)}</div>`;
+  if (S.sheet) html += `<div class="scrim" data-act="close-sheet"></div><div class="sheet ${S.sheet.type}" role="dialog" aria-modal="true"><div class="grabber"></div>${SHEETS[S.sheet.type](S.sheet)}</div>`;
   if (S.toast) html += `<div class="toast" role="status"><span>${esc(S.toast.text)}</span>${S.toast.undo ? '<button data-act="undo">Undo</button>' : ''}</div>`;
   return html;
 }
 
 // ---------- render ----------
-const VIEWS = { home: homeView, detail: detailView, editor: editorView, settings: settingsView, widgets: widgetsView, onboarding: onboardingView };
+const VIEWS = { archive: archiveView, home: homeView, detail: detailView, editor: editorView, settings: settingsView, widgets: widgetsView, onboarding: onboardingView };
 
 function render() {
-  const old = app.querySelector('.view');
-  if (old) scrollMem[old.dataset.key] = old.scrollTop;
+  const old = app.querySelector('.view'), oldSheet = app.querySelector('.sheet'), sheetScroll = oldSheet?.scrollTop, hadToast = !!app.querySelector('.toast');
+  if (old) scrollMem[old.dataset.key] = scroller(old).scrollTop;
   app.innerHTML = statusbar() + VIEWS[S.screen]() + overlays();
   const v = app.querySelector('.view');
   if (S.anim && S.anim !== 'none') v.classList.add('enter-' + S.anim);
   else v.classList.add('no-anim');
-  v.scrollTop = S.anim && S.anim !== 'back' && S.anim !== 'none' ? 0 : scrollMem[v.dataset.key] || 0;
-  S.anim = '';
+  scroller(v).scrollTop = S.anim && S.anim !== 'back' && S.anim !== 'none' ? 0 : scrollMem[v.dataset.key] || 0;
+  if (S.screen === 'home') homeSync();
+  const sh = app.querySelector('.sheet');
+  // Re-rendering under an open sheet or toast must not replay their entrance.
+  if (sh && oldSheet && !S.sheetFresh) { sh.style.animation = app.querySelector('.scrim').style.animation = 'none'; sh.scrollTop = sheetScroll; }
+  if (hadToast) app.querySelector('.toast')?.style.setProperty('animation', 'none');
+  S.anim = ''; S.motion = false; S.sheetFresh = false;
   if (S.focus) { const el = app.querySelector(S.focus); if (el) { el.focus(); el.setSelectionRange?.(el.value.length, el.value.length); } S.focus = null; }
   renderPanel();
 }
+const scroller = v => v.querySelector('.home-list') || v;
+
+// ---------- pinned carousel ----------
+// Side cards shrink toward the centred one and fade; returns the index nearest the centre.
+function pinFx(track) {
+  const step = track.firstElementChild.offsetWidth + 10, x = track.scrollLeft / step;
+  // Scale the card, not the slot: snap areas include transforms, so a scaled slot would pull the snap off centre.
+  [...track.children].forEach((s, i) => {
+    const d = Math.min(1, Math.abs(i - x)), c = s.firstElementChild.style;
+    c.transformOrigin = i < x ? 'right center' : 'left center';
+    c.transform = `scale(${1 - d * .08})`; c.opacity = 1 - d * .4;
+  });
+  return Math.round(x);
+}
+let autoScroll = false, autoTimer, pinTimer;
+// Outline the list row of the centred pin; on a swipe, also scroll the list to it.
+function focusRow(scroll) {
+  const id = pins()[S.pinIndex]?.id, list = app.querySelector('.home-list');
+  app.querySelectorAll('.home-list .is-focus').forEach(el => el.classList.remove('is-focus', 'pulse'));
+  const row = id && S.settings.showHero && list?.querySelector(`[data-act="open"][data-arg="${id}"]`);
+  if (!row) return;
+  row.classList.add('is-focus');
+  if (!scroll) return;
+  void row.offsetWidth; row.classList.add('pulse');
+  autoScroll = true; clearTimeout(autoTimer); autoTimer = setTimeout(() => { autoScroll = false; }, 1000); // cleared early by the list's own scroll events
+  const top = list.scrollTop + row.getBoundingClientRect().top - list.getBoundingClientRect().top - 14;
+  list.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+}
+function homeSync() {
+  const list = app.querySelector('.home-list'), track = app.querySelector('.pins');
+  app.querySelector('.home').classList.toggle('compact', list.scrollTop > 24);
+  if (track) { track.scrollLeft = S.pinIndex * (track.firstElementChild.offsetWidth + 10); pinFx(track); }
+  focusRow(false);
+}
+const scrollPins = i => { const t = app.querySelector('.pins'); t.scrollTo({ left: i * (t.firstElementChild.offsetWidth + 10), behavior: 'smooth' }); };
+
+const openSheet = sheet => { S.sheet = sheet; S.sheetFresh = true; render(); };
 
 function go(screen, anim = 'right') { S.stack.push(S.screen); S.screen = screen; S.anim = anim; S.sheet = null; render(); }
 function back() { if (S.screen === 'detail') S.playing = false; S.screen = S.stack.pop() || 'home'; S.anim = 'back'; S.sheet = null; render(); }
@@ -670,68 +1045,187 @@ function confetti() {
   app.append(box); setTimeout(() => box.remove(), 3400);
 }
 
-// ---------- actions ----------
-function openEditor(id, tab = 'details') {
-  const src = id && byId(id);
-  S.draft = src ? structuredClone(src) : {
-    id: 'e' + Date.now().toString(36), title: '', emoji: '✨', date: toISO(addDays(today(), 30)), time: null, repeat: 'none', every: 10, category: 'life',
-    pinned: false, unit: 'days', created: toISO(today()), reminder: 'day', audio: null, memos: [],
-    look: { bg: { type: 'gradient', id: 'lagoon' }, dim: 0, blur: 0, style: 'glass', font: 'sans', text: 'auto' },
+// Sync runs on its own within 2 s of a saved edit (event-sync spec).
+let syncTimer;
+function queueSync(n = 1) {
+  if (!S.account) return;
+  S.pending += n; clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => { S.pending = 0; S.lastSync = Date.now(); if (!S.sheet && S.screen !== 'editor') render(); }, 1800);
+}
+
+// ---------- gating (premium spec: the writer's own plan, paywall on Save) ----------
+function gate(d, prev) {
+  const L = LIMITS[S.plan], u = usage(d.id), free = S.plan === 'free', bg = d.look.bg, pbg = prev?.look.bg;
+  const wall = (feature, alt) => {
+    const [t, text, noun] = WALLS[feature];
+    return free || L[feature] === undefined ? { feature, title: t, text, alt } : { feature, limit: true, title: 'Limit reached', text: `Premium includes up to ${L[feature]} ${noun}. Remove one to add another.`, alt };
   };
-  S.edTab = tab; S.bgTab = S.draft.look.bg.type; S.prevCtx = S.draft.pinned ? 'hero' : 'row'; S.trackPreview = null;
+  const keepLook = { label: prev ? 'Keep the previous background' : 'Save without the photo', fix: x => { x.look = prev ? structuredClone(prev.look) : defaultLook(); } };
+  const keepAudio = { label: 'Keep the previous music', fix: x => { x.audio = prev ? structuredClone(prev.audio) : null; } };
+  if (!prev && isOwner(d) && u.events >= L.events) return wall('events');
+  if (bg.type === 'photo' && pbg?.type !== 'photo' && isOwner(d) && u.photos >= L.photos) return wall('photos', keepLook);
+  if (bg.animated && !(pbg?.animated && pbg.src === bg.src) && u.animated >= L.animated) return wall('animated', { label: 'Use still photo', fix: x => { x.look.bg.animated = false; } });
+  const a = d.audio, pa = prev?.audio;
+  if (a && JSON.stringify(a) !== JSON.stringify(pa)) {
+    if (a.type === 'track' && track(a.id).premium && free) return wall('premium_audio', keepAudio);
+    if (a.type === 'file' && (free || (a.isNew && u.files >= L.files))) return wall('files', keepAudio);
+    if (a.type === 'spotify' && pa?.type !== 'spotify' && u.spotify >= L.spotify) return wall('spotify', keepAudio);
+  }
+  return null;
+}
+const defaultLook = () => ({ bg: { type: 'gradient', id: 'lagoon' }, dim: 0, blur: 0, style: 'glass', font: 'sans', text: 'auto', size: 'md' });
+
+// ---------- actions ----------
+function openEditor(id, tab = 'details', preset = null) {
+  const src = id && byId(id);
+  if (!src && usage().events >= LIMITS[S.plan].events) return openSheet({ type: 'paywall', g: gate({ id: '', look: defaultLook() }, null) });
+  S.draft = src ? structuredClone(src) : {
+    id: 'e' + Date.now().toString(36), title: '', emoji: '✨', date: toISO(addDays(today(), 30)), time: null, zone: DEVICE_TZ, repeat: 'none', every: 10, category: 'life',
+    pinned: false, unit: 'auto', created: toISO(today()), reminder: 'day', audio: null, notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [],
+    kind: 'date', rule: null, archived: false, look: defaultLook(), ...preset,
+  };
+  S.edTab = tab; S.bgTab = S.draft.look.bg.type; S.soundTab = S.draft.audio?.type === 'spotify' ? 'spotify' : S.draft.audio?.type === 'file' ? 'library' : 'builtin';
+  S.prevCtx = S.draft.pinned ? 'hero' : 'row'; S.trackPreview = null;
   go('editor', 'up');
 }
 
 function setPinned(id, on) {
-  const before = S.events.map(e => e.pinned), prev = pinned();
-  S.events.forEach(e => { e.pinned = on ? e.id === id : e.pinned && e.id !== id; });
-  const ev = byId(id);
-  toast(on ? (prev && prev.id !== id ? `Pinned “${ev.title}”. “${prev.title}” moved back to the list.` : `Pinned “${ev.title}”`) : 'Unpinned',
-    () => S.events.forEach((e, i) => { e.pinned = before[i]; }));
+  const ev = byId(id), before = { pinned: ev.pinned, pinnedAt: ev.pinnedAt };
+  ev.pinned = on;
+  if (on) { ev.pinnedAt = Date.now(); S.pinIndex = 0; }
+  toast(on ? `Pinned “${ev.title}”. It stays in the list too.` : `Unpinned “${ev.title}”`, () => Object.assign(ev, before));
 }
 
-const setLook = patch => { Object.assign(S.draft.look, patch); render(); };
+function signIn(method) {
+  const n = S.events.filter(isOwner).length;
+  S.account = { ...ACCOUNT, methods: [method] }; S.sheet = null;
+  toast(`Signed in with ${methodName(method)}. Uploading your ${n} days…`);
+  queueSync(n);
+  const then = S.after; S.after = null;
+  if (S.screen === 'onboarding') jump('home');
+  if (then) then(); else render();
+}
+
+function pushRevision(prev, d) {
+  if (!S.account || !prev) return;
+  const ch = [['Title', 'title'], ['Emoji', 'emoji'], ['Date', 'date'], ['Time', 'time'], ['Time zone', 'zone'], ['Repeat', 'repeat'], ['Unit', 'unit']]
+    .filter(([, k]) => prev[k] !== d[k]).map(([f, k]) => [f, prev[k] ?? '—', d[k] ?? '—']);
+  if (JSON.stringify(prev.look) !== JSON.stringify(d.look)) ch.push(['Look', prev.look.bg.type, d.look.bg.animated ? 'Live photo' : d.look.bg.type]);
+  if (JSON.stringify(prev.audio) !== JSON.stringify(d.audio)) ch.push(['Music', audioName(prev.audio), audioName(d.audio)]);
+  if (!ch.length) return;
+  const list = S.history[d.id] ||= [];
+  list.unshift({ rev: (list[0]?.rev || 0) + 1, by: 'You', when: 'Just now', changes: ch });
+}
+
+const removeEvent = (id, msg) => {
+  const i = S.events.findIndex(e => e.id === id), [ev] = S.events.splice(i, 1);
+  S.sheet = null; toast(msg(ev), () => S.events.splice(i, 0, ev));
+  if (S.screen === 'detail') back(); else render();
+};
 
 const ACT = {
   go: a => go(a),
   back,
-  open: a => { S.detailId = a; S.playing = false; go('detail'); if (calc(byId(a)).today) setTimeout(confetti, 250); },
-  new: () => openEditor(null),
+  open: a => { S.detailId = a; S.playing = false; S.motion = true; go('detail'); if (calc(byId(a)).today) setTimeout(confetti, 250); },
+  motion: (a, el) => { if (!byId(S.detailId).look.bg.animated) return; const bg = el.querySelector('.card-bg'); bg.classList.remove('motion'); void bg.offsetWidth; bg.classList.add('motion'); },
+  'pin-card': a => +a === S.pinIndex ? ACT.open(pins()[+a].id) : scrollPins(+a),
+  'pin-go': a => scrollPins(+a),
+  new: () => usage().events >= LIMITS[S.plan].events ? openSheet({ type: 'paywall', g: gate({ id: '', look: defaultLook() }, null) }) : openSheet({ type: 'newday' }),
+  'new-date': () => { S.sheet = null; openEditor(null); },
+  'new-smart': a => { const y = today().getFullYear(); S.sheet = null; openEditor(null, 'details', { kind: 'smart', rule: a, title: SMART[a].title(y), emoji: SMART[a].emoji, date: `${y}-12-31`, category: null, reminder: 'none', look: { ...defaultLook(), bg: { type: 'gradient', id: 'meadow' } } }); },
+  'new-season': a => { const se = SEASONAL.find(x => x.id === a); S.sheet = null; openEditor(null, 'details', { title: se.title, emoji: se.emoji, date: se.date(today().getFullYear()), category: 'holiday', look: { ...defaultLook(), bg: se.bg } }); },
+  archive: a => {
+    const ev = byId(a || S.detailId), was = { archived: ev.archived, pinned: ev.pinned };
+    ev.archived = !ev.archived;
+    if (ev.archived) ev.pinned = false;
+    S.sheet = null; queueSync();
+    toast(ev.archived ? `Archived “${ev.title}”.${was.pinned ? ' It’s no longer pinned.' : ''}` : `“${ev.title}” is back on Home`, () => Object.assign(ev, was));
+    render();
+  },
+  size: a => { S.draft.look.size = a; S.prevCtx = 'row'; render(); },
+  'lib-use': a => { const l = S.library.find(x => x.id === a); S.draft.audio = { type: 'file', id: l.id, title: l.title, dur: l.dur }; render(); },
+  'lib-remove': a => {
+    const l = S.library.find(x => x.id === a), n = libUsedBy(a);
+    l.removed = true;
+    toast(`Removed “${l.title}” from your library.${n ? ` ${n === 1 ? 'The day that uses it keeps' : `The ${n} days that use it keep`} playing it.` : ''}`, () => { l.removed = false; });
+    render();
+  },
   edit: a => openEditor(a || S.detailId),
   'edit-sound': () => openEditor(S.detailId, 'sound'),
   search: () => { S.searching = !S.searching; if (!S.searching) S.query = ''; else S.focus = '.search input'; render(); },
   filter: a => { S.filter = a; render(); },
   layout: () => { S.layout = S.layout === 'list' ? 'grid' : 'list'; render(); },
   'layout-set': a => { S.layout = a; render(); },
-  'sort-menu': () => { S.sheet = { type: 'sort' }; render(); },
+  'sort-menu': () => openSheet({ type: 'sort' }),
   sort: a => { S.sort = a; S.sheet = null; render(); },
-  more: a => { S.sheet = { type: 'actions', id: a }; render(); },
-  pin: a => { S.sheet = null; setPinned(a, !byId(a).pinned); render(); },
-  delete: a => {
-    const i = S.events.findIndex(e => e.id === a), [ev] = S.events.splice(i, 1);
-    S.sheet = null; toast(`Deleted “${ev.title}”`, () => S.events.splice(i, 0, ev));
-    if (S.screen === 'detail') back(); else render();
-  },
+  more: a => openSheet({ type: 'actions', id: a }),
+  pin: a => { S.sheet = null; setPinned(a, !byId(a).pinned); queueSync(); render(); },
+  delete: a => removeEvent(a, ev => `Deleted “${ev.title}”`),
+  leave: a => removeEvent(a || S.detailId, ev => `You left “${ev.title}”. Ask ${ev.owner.name} for a new invite to come back.`),
+  report: () => { S.sheet = null; toast('Report sent. We review reports within 24 hours.'); render(); },
   duplicate: a => {
-    const copy = { ...structuredClone(byId(a)), id: 'e' + Date.now().toString(36), pinned: false, memos: [], created: toISO(today()) };
-    copy.title = `${copy.title} (copy)`.slice(0, 40); S.events.push(copy); S.sheet = null; toast('Duplicated'); render();
+    if (usage().events >= LIMITS[S.plan].events) return openSheet({ type: 'paywall', g: gate({ id: '', look: defaultLook() }, null) });
+    const copy = { ...structuredClone(byId(a)), id: 'e' + Date.now().toString(36), pinned: false, memos: [], members: [], removed: [], links: [], invites: [], created: toISO(today()) };
+    copy.title = `${copy.title} (copy)`.slice(0, 100); S.events.push(copy); S.sheet = null; toast('Duplicated'); queueSync(); render();
   },
-  share: a => { S.sheet = { type: 'share', id: a || S.detailId }; render(); },
+  share: a => {
+    const id = a || S.detailId, ev = byId(id);
+    if (isOwner(ev) && !S.account) { S.after = () => openSheet({ type: 'share', id }); return openSheet({ type: 'signin', reason: 'share' }); }
+    S.share.newLink = false; openSheet({ type: 'share', id });
+  },
+  'share-tab': a => { if (S.sheet?.type !== 'share') { if (!S.account) return ACT.share(); S.sheet = { type: 'share', id: S.detailId }; S.sheetFresh = true; } S.share.tab = a; S.share.newLink = false; render(); },
   'share-format': a => { S.share.format = a; render(); },
   watermark: () => { S.share.watermark = !S.share.watermark; render(); },
-  expiry: a => { S.share.expiry = a; render(); },
-  revoke: () => { S.sheet = null; toast('Link revoked. Anyone opening it now sees “no longer available”.'); render(); },
-  'close-sheet': () => { S.sheet = null; render(); },
+  'new-link': () => { S.share.newLink = true; S.share.linkLabel = ''; render(); },
+  'link-expiry': a => { S.share.linkExpiry = a; render(); },
+  'create-link': () => {
+    const ev = byId(S.sheet.id);
+    ev.links.push({ label: S.share.linkLabel.trim(), token: Math.random().toString(36).slice(2, 13) + Math.random().toString(36).slice(2, 13), expires: expiryText(S.share.linkExpiry) });
+    S.share.newLink = false; toast('Link created and copied'); render();
+  },
+  'revoke-link': a => {
+    const ev = byId(S.sheet.id), l = ev.links[+a];
+    S.sheet = { type: 'confirm', title: 'Revoke this link?', text: `“${esc(l.label || 'Public link')}” will show “no longer available”. Other links and people keep access. This can't be undone.`, label: 'Revoke link',
+      then: () => { ev.links.splice(+a, 1); toast('Link revoked'); S.sheet = { type: 'share', id: ev.id }; } };
+    render();
+  },
+  'invite-role': a => { S.share.inviteRole = a; render(); },
+  'invite-uses': a => { S.share.inviteUses = a; render(); },
+  'invite-expiry': a => { S.share.inviteExpiry = a; render(); },
+  'create-invite': () => {
+    const ev = byId(S.sheet.id), u = S.share.inviteUses;
+    ev.invites.unshift({ role: S.share.inviteRole, uses: u === 'unlimited' ? 'unlimited' : u === 'custom' ? 20 : +u, used: 0, expires: expiryText(S.share.inviteExpiry), token: '' });
+    toast('Invite ready. System share sheet opens to send it.'); render();
+  },
+  'revoke-invite': a => { byId(S.sheet.id).invites.splice(+a, 1); toast('Invite revoked. People who joined keep access.'); render(); },
+  'member-role': a => { const [i, r] = a.split(':'), m = byId(S.sheet.id).members[+i]; m.role = r; toast(`${m.name} is now ${r === 'editor' ? 'an editor' : 'a viewer'}`); render(); },
+  'remove-member': a => {
+    const ev = byId(S.sheet.id), [m] = ev.members.splice(+a, 1);
+    ev.removed.push({ name: m.name }); toast(`Removed ${m.name}. Their open pages lose access.`); render();
+  },
+  'allow-again': a => { const [m] = byId(S.sheet.id).removed.splice(+a, 1); toast(`${m.name} can join through an invite again`); render(); },
+  history: a => openSheet({ type: 'history', id: a || S.detailId }),
+  'restore-rev': a => {
+    const list = S.history[S.sheet.id]; list.unshift({ rev: list[0].rev + 1, by: 'You', when: 'Just now', changes: [['Restored', `Rev ${list[0].rev}`, `Rev ${a}`]] });
+    toast(`Restored revision ${a}. Saved as revision ${list[0].rev}.`); render();
+  },
+  'close-sheet': () => { S.sheet = null; S.after = null; render(); },
+  'confirm-yes': () => { const f = S.sheet.then; S.sheet = null; f(); render(); },
   undo: () => { S.toast?.undo?.(); S.toast = null; render(); },
-  unit: a => { byId(S.detailId).unit = a; render(); },
-  'cycle-unit': () => { const ev = byId(S.detailId), i = UNITS.findIndex(u => u[0] === ev.unit); ev.unit = UNITS[(i + 1) % UNITS.length][0]; render(); },
-  audio: () => { S.playing = !S.playing; render(); },
+  unit: a => { byId(S.detailId).unit = a; queueSync(); render(); },
+  'cycle-unit': () => { const ev = byId(S.detailId); if (role(ev) === 'viewer') return; const i = UNITS.findIndex(u => u[0] === ev.unit); ev.unit = UNITS[(i + 1) % UNITS.length][0]; queueSync(); render(); },
+  audio: () => {
+    S.playing = !S.playing;
+    if (S.playing && byId(S.detailId)?.audio?.type === 'spotify') toast('Playing a 30-second preview. Open in Spotify for the whole song.');
+    render();
+  },
+  spotify: () => { const a = byId(S.detailId).audio; toast(`Opens “${a.title}” in Spotify`); render(); },
   'focus-memo': () => { const el = app.querySelector('[data-field="memo"]'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus({ preventScroll: true }); },
   'add-memo': () => {
     const el = app.querySelector('[data-field="memo"]'), text = el.value.trim(); if (!text) return el.focus();
     const ev = byId(S.detailId), c = calc(ev), n = c.days + (S.settings.dayOne ? 1 : 0);
-    ev.memos.push({ date: toISO(today()), author: 'You', text, tag: c.past && MILESTONES.includes(n) ? `Day ${fmt(n)}` : null });
-    toast('Memo added'); render();
+    ev.memos.push({ date: toISO(today()), text, tag: c.past && MILESTONES.includes(n) ? `Day ${fmt(n)}` : null });
+    toast('Memo added'); queueSync(); render();
   },
   // editor
   cancel: () => { S.draft = null; back(); },
@@ -739,46 +1233,80 @@ const ACT = {
     const d = S.draft;
     if (!d.title.trim()) { toast('Give it a name first'); S.edTab = 'details'; S.focus = '[data-field="title"]'; render(); return; }
     d.title = d.title.trim();
-    const i = S.events.findIndex(e => e.id === d.id), isNew = i < 0, prev = pinned();
-    if (isNew) S.events.push(d); else S.events[i] = d;
-    if (d.pinned) S.events.forEach(e => { e.pinned = e.id === d.id; });
+    const i = S.events.findIndex(e => e.id === d.id), prev = i < 0 ? null : S.events[i], g = gate(d, prev);
+    if (g) return openSheet({ type: 'paywall', g });
+    if (d.pinned && !prev?.pinned) { d.pinnedAt = Date.now(); S.pinIndex = 0; }
+    if (prev) S.events[i] = d; else S.events.push(d);
+    if (d.audio?.isNew) { delete d.audio.isNew; S.library.push({ id: d.audio.id, title: d.audio.title, dur: d.audio.dur, created: Date.now(), removed: false }); }
+    pushRevision(prev, d); queueSync();
     S.draft = null; S.screen = S.stack.pop() || 'home';
-    if (isNew) { S.stack.push(S.screen); S.screen = 'detail'; S.detailId = d.id; }
-    S.anim = 'fade';
-    toast(d.pinned && prev && prev.id !== d.id ? `Saved and pinned. “${prev.title}” moved back to the list.` : 'Saved');
+    if (!prev) { S.stack.push(S.screen); S.screen = 'detail'; S.detailId = d.id; }
+    S.anim = 'fade'; S.motion = true;
+    toast(d.pinned && !prev?.pinned ? 'Saved and pinned to the top' : S.account && d.owner ? `Saved. ${d.owner.name} and the others see it now.` : 'Saved');
+    if (!prev && !S.account && !S.firstSavePrompted) { S.firstSavePrompted = true; S.sheet = { type: 'signin', reason: 'first' }; S.sheetFresh = true; }
     render();
   },
   'ed-tab': a => { S.edTab = a; render(); },
-  'prev-ctx': a => { S.prevCtx = a; render(); },
+  'prev-ctx': a => { S.prevCtx = a; S.motion = true; render(); },
   emoji: a => { S.draft.emoji = a; render(); },
   repeat: a => { S.draft.repeat = a; render(); },
+  zone: a => { S.draft.zone = a === 'floating' ? null : a; render(); },
   cat: a => { S.draft.category = a; render(); },
   reminder: a => { S.draft.reminder = a; render(); },
   'draft-pin': () => { S.draft.pinned = !S.draft.pinned; if (S.draft.pinned) S.prevCtx = 'hero'; render(); },
   'draft-unit': a => { S.draft.unit = a; render(); },
   'bg-tab': a => { S.bgTab = a; render(); },
-  color: a => setLook({ bg: { type: 'color', value: a }, dim: 0, blur: 0 }),
-  grad: a => setLook({ bg: { type: 'gradient', id: a }, dim: 0, blur: 0 }),
-  art: a => setLook({ bg: { type: 'art', id: a }, dim: 0 }),
-  photo: a => setLook({ bg: { type: 'photo', src: pic(a), fx: 50, fy: 50 }, dim: Math.max(S.draft.look.dim, .25) }),
+  color: a => { Object.assign(S.draft.look, { bg: { type: 'color', value: a }, dim: 0 }); render(); },
+  grad: a => { Object.assign(S.draft.look, { bg: { type: 'gradient', id: a }, dim: 0 }); render(); },
+  art: a => { Object.assign(S.draft.look, { bg: { type: 'art', id: a }, dim: 0 }); render(); },
+  photo: a => {
+    const live = PHOTOS.some(([id, l]) => id === +a && l);
+    Object.assign(S.draft.look, { bg: { type: 'photo', src: pic(a), fx: 50, fy: 50, canAnimate: live, animated: live }, dim: Math.max(S.draft.look.dim, .25) });
+    S.motion = live; render();
+  },
+  'toggle-live': () => { const bg = S.draft.look.bg; bg.animated = !bg.animated; S.motion = bg.animated; render(); },
   focal: (a, el, e) => {
     const r = el.getBoundingClientRect(), bg = S.draft.look.bg;
     bg.fx = Math.round((e.clientX - r.left) / r.width * 100); bg.fy = Math.round((e.clientY - r.top) / r.height * 100);
     el.querySelector('i').style.cssText = `left:${bg.fx}%;top:${bg.fy}%`; refreshPreview();
   },
-  style: a => setLook({ style: a }),
-  font: a => setLook({ font: a }),
-  text: a => setLook({ text: a }),
-  track: a => { S.draft.audio = a || null; render(); },
+  style: a => { S.draft.look.style = a; render(); },
+  font: a => { S.draft.look.font = a; render(); },
+  text: a => { S.draft.look.text = a; render(); },
+  'sound-tab': a => { S.soundTab = a; render(); },
+  track: a => { S.draft.audio = a ? { type: 'track', id: a } : null; render(); },
   'preview-track': a => { S.trackPreview = S.trackPreview === a ? null : a; render(); },
+  'pick-file': () => { S.draft.audio = { type: 'file', id: 'lib' + Date.now().toString(36), title: 'Our song', dur: '7:12', keep: '0:48 – 6:18', isNew: true }; toast('Longer than 5½ minutes: drag the handles to pick the part to keep'); render(); },
+  'add-spotify': () => {
+    const v = app.querySelector('[data-field="spotify"]').value.trim(), m = v.match(/open\.spotify\.com\/(?:intl-\w+\/)?(track|album|playlist)\/[A-Za-z0-9]+/);
+    if (!m) { toast('That link isn’t a Spotify song, album or playlist'); return render(); }
+    S.draft.audio = { type: 'spotify', kind: m[1][0].toUpperCase() + m[1].slice(1), title: { track: 'Song from Spotify', album: 'Album from Spotify', playlist: 'Road trip mix' }[m[1]], url: v };
+    render();
+  },
   flip: (a, el) => el.setAttribute('aria-checked', el.getAttribute('aria-checked') !== 'true'),
+  // plans
+  paywall: () => openSheet({ type: 'paywall', g: { title: 'Days That Matter Premium', text: 'More days and photos, Live Photos, the whole music catalog and your own songs.' } }),
+  billing: a => { S.billing = a; render(); },
+  upgrade: () => { S.plan = 'premium'; S.sheet = null; toast('Premium is active. Thanks!'); if (S.screen === 'editor' && S.draft) return ACT.save(); render(); },
+  'paywall-alt': () => { S.sheet.g.alt.fix(S.draft); S.sheet = null; ACT.save(); },
+  restore: () => { toast(S.plan === 'premium' ? 'Purchases restored. Premium is active.' : 'No purchases found for this Apple ID'); render(); },
+  // account
+  'signin-prompt': a => openSheet({ type: 'signin', reason: a }),
+  signin: a => { if (a === 'email') { S.sheet = { type: 'signin', reason: S.sheet?.reason || 'settings', step: 'email' }; S.sheetFresh = !app.querySelector('.sheet'); return render(); } signIn(a); },
+  'send-code': () => { const email = app.querySelector('[data-field="email"]')?.value.trim() || S.sheet.email; if (!/^\S+@\S+\.\S+$/.test(email || '')) { toast('Enter an email address'); return render(); } S.sheet = { ...S.sheet, step: 'code', email }; toast('Code sent'); render(); },
+  'verify-code': () => { const v = app.querySelector('[data-field="code"]').value; if (!/^\d{6}$/.test(v)) { toast('Enter the 6-digit code'); return render(); } signIn('email'); },
+  guest: () => { S.account = null; S.filter = 'all'; jump('home'); toast('You’re a guest. Days stay on this device.'); render(); },
+  sync: () => { if (!S.account) return openSheet({ type: 'signin', reason: 'sync' }); S.pending = 0; S.lastSync = Date.now(); toast('Synced just now. Changes sync automatically after each edit.'); render(); },
+  'sign-out': () => openSheet({ type: 'confirm', title: 'Sign out on this phone?', text: `${S.pending ? `<b>${S.pending} changes haven't synced yet.</b> ` : ''}Other devices stay signed in. Your days stay on this phone until you remove them.`, label: 'Sign out',
+    then: () => { S.account = null; S.filter = 'all'; toast('Signed out. You’re a guest on this phone.'); } }),
+  'delete-account': () => openSheet({ type: 'confirm', title: 'Delete your account?', text: `This deletes your days, memos, links, invites and uploads, and removes you from days shared with you. ${S.plan === 'premium' ? '<b>Cancel your Premium subscription in the App Store first;</b> deleting the account does not stop billing.' : ''}`, label: 'Delete account',
+    then: () => { S.account = null; S.events = S.events.filter(isOwner); S.plan = 'free'; toast('Account deleted'); } }),
   // settings
   theme: a => { S.settings.theme = a; applyTheme(); render(); },
   accent: a => { S.settings.accent = a; applyTheme(); render(); },
   'set-flag': a => { S.settings[a] = !S.settings[a]; render(); },
   week: a => { S.settings.weekStart = a; render(); },
   wstyle: a => { S.settings.widgetStyle = a; render(); },
-  start: a => { jump('home'); toast(a); render(); },
   toast: a => { toast(a); render(); },
 };
 
@@ -786,6 +1314,7 @@ let longFired = false, longTimer;
 app.addEventListener('click', e => {
   const t = e.target.closest('[data-act]');
   if (!t || !app.contains(t)) return;
+  if (t.tagName === 'A') e.preventDefault();
   if (longFired) { longFired = false; return; }
   ACT[t.dataset.act]?.(t.dataset.arg, t, e);
 });
@@ -795,26 +1324,45 @@ app.addEventListener('keydown', e => {
   if (t.dataset?.field === 'memo' && e.key === 'Enter') return ACT['add-memo']();
   if ((e.key === 'Enter' || e.key === ' ') && t.matches?.('[role="button"][data-act], [role="radio"][data-act]')) { e.preventDefault(); t.click(); }
 });
-// Long-press (touch) or right-click opens the card actions: pin, customize, share, delete.
+// Long-press (touch) or right-click opens the card actions.
 app.addEventListener('pointerdown', e => {
   const c = e.target.closest('[data-long]'); if (!c) return;
   longFired = false;
-  longTimer = setTimeout(() => { longFired = true; navigator.vibrate?.(10); S.sheet = { type: 'actions', id: c.dataset.long }; render(); }, 480);
+  longTimer = setTimeout(() => { longFired = true; navigator.vibrate?.(10); openSheet({ type: 'actions', id: c.dataset.long }); }, 480);
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(t => app.addEventListener(t, () => clearTimeout(longTimer)));
-app.addEventListener('scroll', () => clearTimeout(longTimer), true);
+app.addEventListener('scroll', e => {
+  clearTimeout(longTimer);
+  const t = e.target;
+  if (t.classList?.contains('pins')) {
+    const i = pinFx(t);
+    clearTimeout(pinTimer);
+    pinTimer = setTimeout(() => {
+      if (i === S.pinIndex) return;
+      S.pinIndex = i;
+      app.querySelectorAll('.dot').forEach((d, k) => d.setAttribute('aria-current', k === i));
+      focusRow(true);
+    }, 120);
+  } else if (t.classList?.contains('home-list')) {
+    // A scroll we started (carousel follow) must not collapse the carousel; it ends 150 ms after the list stops.
+    if (autoScroll) { clearTimeout(autoTimer); autoTimer = setTimeout(() => { autoScroll = false; }, 150); return; }
+    t.closest('.home').classList.toggle('compact', t.scrollTop > 24);
+  }
+}, true);
 app.addEventListener('contextmenu', e => {
   const c = e.target.closest('[data-long]'); if (!c) return;
-  e.preventDefault(); S.sheet = { type: 'actions', id: c.dataset.long }; render();
+  e.preventDefault(); openSheet({ type: 'actions', id: c.dataset.long });
 });
 
 app.addEventListener('input', e => {
   const f = e.target.dataset.field, val = e.target.value, d = S.draft;
   if (f === 'query') { S.query = val; S.focus = '.search input'; render(); }
-  else if (f === 'title') { d.title = val; app.querySelector('#title-count').textContent = `${val.length}/40`; refreshPreview(); }
+  else if (f === 'title') { d.title = val; app.querySelector('#title-count').textContent = `${val.length}/100`; refreshPreview(); }
+  else if (f === 'notes') { d.notes = val; app.querySelector('#notes-count').textContent = fmt(val.length); }
   else if (f === 'dim') { d.look.dim = val / 100; app.querySelector('#dim-out').textContent = `${val}%`; refreshPreview(); }
-  else if (f === 'blur') { d.look.blur = +val; app.querySelector('#blur-out').textContent = `${val}px`; refreshPreview(); }
+  else if (f === 'blur') { d.look.blur = +val; app.querySelector('#blur-out').textContent = val; refreshPreview(); }
   else if (f === 'color') { d.look.bg = { type: 'color', value: val.toUpperCase() }; refreshPreview(); }
+  else if (f === 'link-label') S.share.linkLabel = val;
   else if (e.target.type === 'range') e.target.nextElementSibling.textContent = `${val}%`;
 });
 app.addEventListener('change', e => {
@@ -828,31 +1376,44 @@ app.addEventListener('change', e => {
 
 // ---------- prototype panel ----------
 const SCREENS = [
-  ['onboarding', 'Welcome', 'First launch, guest in one tap'],
-  ['home', 'Home', 'Long-press or right-click a card to pin it'],
-  ['detail', 'Day', 'Tap the big number to change units'],
-  ['editor', 'Customize', 'Photo, color, style, font, sound'],
-  ['share', 'Share', 'Story image, square, link and QR'],
+  ['onboarding', 'Welcome', 'Apple, Google or email code; guest in one tap'],
+  ['home', 'Home', 'Swipe the pinned carousel; the list follows'],
+  ['detail', 'Day', 'Tap the number to change units'],
+  ['editor', 'Customize', 'Photo, Live Photo, style, font, music'],
+  ['share', 'Share', 'Live links, invites, people, image'],
+  ['archive', 'Archived', 'Hidden days; archiving unpins'],
   ['widgets', 'Widgets', 'Home and Lock Screen'],
-  ['settings', 'Settings', 'Theme, accent, counting rules'],
+  ['settings', 'Settings', 'Account, sync, plan, appearance'],
 ];
 function renderPanel() {
   const cur = S.sheet?.type === 'share' ? 'share' : S.screen;
+  const seg = (label, pairs, cur2, key) => `<div class="pctl"><span>${label}</span><div class="seg sm" role="group" aria-label="${label}">${pairs.map(([k, n]) => `<button data-p${key}="${k}" ${pressed(cur2, k)}>${n}</button>`).join('')}</div></div>`;
   panel.innerHTML = `<div class="brand"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="var(--accent)"/><circle cx="20" cy="21" r="6" fill="var(--on-accent)"/><path d="M10 27.5h20" stroke="var(--on-accent)" stroke-width="3" stroke-linecap="round"/><path d="M20 9.5v3M11.5 13l2 2M28.5 13l-2 2" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/></svg>
     <div><b>Days That Matter</b><small>Design v2 · interactive prototype</small></div></div>
-    <p class="panel-text">Quiet, light chrome. Each day card brings its own photo, color or art. One pinned day leads Home.</p>
+    <p class="panel-text">Quiet, light chrome. Each day card brings its own photo, color or art. Pinned days lead Home in a carousel.</p>
     <nav class="nav" aria-label="Screens">${SCREENS.map(([k, n, hint]) => `<button data-pact="${k}" aria-current="${cur === k}">${n}<small>${hint}</small></button>`).join('')}</nav>
-    <div class="seg sm" role="group" aria-label="Theme">${[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-ptheme="${k}" ${pressed(S.settings.theme, k)}>${n}</button>`).join('')}</div>
+    <div class="pctls">
+      ${seg('Theme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.settings.theme, 'theme')}
+      ${seg('Account', [['guest', 'Guest'], ['signed', 'Signed in']], S.account ? 'signed' : 'guest', 'acct')}
+      ${seg('Plan', [['free', 'Free'], ['premium', 'Premium']], S.plan, 'plan')}
+      ${seg('Memo badge', [['top-left', 'Left'], ['top-right', 'Right']], S.config.memoBadge, 'badge')}
+    </div>
     <div class="panel-foot"><a href="README.md">Design notes &amp; gaps</a><button data-pact="reset">Reset demo</button></div>`;
   panel.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
 }
 panel.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.pact;
-  if (b.dataset.ptheme) { S.settings.theme = b.dataset.ptheme; applyTheme(); render(); return; }
-  if (k === 'reset') { S.events = seed(); S.settings.dayOne = false; S.sheet = null; S.filter = 'all'; S.query = ''; S.searching = false; jump('home'); return; }
-  if (k === 'editor') { S.stack = []; S.screen = 'home'; openEditor(S.detailId && byId(S.detailId) ? S.detailId : pinned()?.id, 'background'); return; }
-  if (k === 'detail' || k === 'share') { if (!byId(S.detailId)) S.detailId = (pinned() || S.events[0]).id; jump('detail'); if (k === 'share') { S.sheet = { type: 'share', id: S.detailId }; render(); } return; }
+  if (b.dataset.ptheme) { S.settings.theme = b.dataset.ptheme; applyTheme(); return render(); }
+  if (b.dataset.pacct) { S.account = b.dataset.pacct === 'signed' ? { ...ACCOUNT } : null; S.filter = 'all'; if (S.screen === 'detail' && !visible().includes(byId(S.detailId))) S.screen = 'home'; return render(); }
+  if (b.dataset.pplan) { S.plan = b.dataset.pplan; return render(); }
+  if (b.dataset.pbadge) { S.config.memoBadge = b.dataset.pbadge; return render(); } // simulates a remote config change
+  if (k === 'reset') { Object.assign(S, { events: seed(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, plan: 'free', pending: 0, firstSavePrompted: false, sheet: null, filter: 'all', query: '', searching: false }); S.settings.dayOne = false; return jump('home'); }
+  if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pins()[0]?.id, 'background'); }
+  if (k === 'detail' || k === 'share') {
+    if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pins()[0] || visible()[0]).id;
+    jump('detail'); if (k === 'share') ACT.share(); return;
+  }
   jump(k);
 });
 
@@ -866,6 +1427,6 @@ setInterval(() => {
     if (ev) el.textContent = tickText(ev);
   });
   const t = app.querySelector('.sb-time');
-  if (t) t.textContent = new Date().toLocaleTimeString('en', { hour: 'numeric', minute: '2-digit' }).replace(/\s?[AP]M/, '');
+  if (t) t.textContent = clock(new Date()).replace(/\s?[AP]M/, '');
 }, 1000);
 fit(); applyTheme(); render();

@@ -18,7 +18,7 @@ An event SHALL have at most one backdrop: a still photo, or an animated photo wi
 - **THEN** the app uses its still image as the backdrop
 
 ### Requirement: Conversion on the device
-The app SHALL convert a backdrop before upload so it fits the limits without the user doing anything. Stills and key photos SHALL be JPEG or WebP, at most 1.5 MB and 2560 px on the long edge. The motion part SHALL be an H.264 MP4 without sound, at most 4 MB, 5 seconds and 1280 px on the long edge. The web editor SHALL accept still photos only.
+The app SHALL convert a backdrop before upload so it fits the limits without the user doing anything. Stills and key photos SHALL be JPEG or WebP, at most 1.5 MB and 2560 px on the long edge. The motion part SHALL be an H.264 MP4 without sound, at most 4 MB, 5 seconds and 1280 px on the long edge.
 
 #### Scenario: Large phone photo
 - **WHEN** a user picks a 12 megapixel, 6 MB photo
@@ -87,11 +87,22 @@ Served backdrop files SHALL NOT contain location, camera or other EXIF or XMP me
 - **THEN** the served file contains no GPS coordinates
 
 ### Requirement: Readable text over backdrops
-Each backdrop SHALL have a dim level from 0 to 0.8, stored as a shared field. Text over a backdrop SHALL keep a contrast ratio of at least 4.5:1, using the auto-contrast rules of the customization spec.
+Each backdrop SHALL have a dim level from 0 to 0.8, stored as a shared field (`backdrop.dim`). Text over a backdrop SHALL keep a contrast ratio of at least 4.5:1, using the auto-contrast rules of the customization spec.
 
 #### Scenario: Bright photo without dimming
 - **WHEN** a user sets a bright beach photo with dim level 0
 - **THEN** the countdown text changes colour or gains a shadow so its contrast stays at 4.5:1 or more
+
+### Requirement: Backdrop blur
+Photo and art backdrops SHALL have a blur radius from 0 to 16, default 0, stored as a shared field (`backdrop.blur`). The radius SHALL be given in points at a card width of 390 pt and SHALL scale with the card's width. The app and the public link page SHALL render it the same way.
+
+#### Scenario: Blurred photo on a smaller card
+- **WHEN** an owner sets blur 8 on a photo backdrop and the day is shown on a 195 pt wide card
+- **THEN** the photo is drawn with a blur radius of 4 pt, in the app and on the public link page alike
+
+#### Scenario: Viewer cannot change blur
+- **WHEN** a viewer's client sends a change to `backdrop.blur`
+- **THEN** the response is `403 forbidden` and the blur is unchanged
 
 ### Requirement: Backdrop lifecycle
 When a backdrop is replaced or removed, or its event or uploader account is deleted, its files SHALL stop being served within 24 hours. Uploads that no event uses SHALL be deleted within 24 hours.

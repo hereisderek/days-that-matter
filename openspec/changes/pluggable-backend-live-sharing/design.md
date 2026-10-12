@@ -11,7 +11,7 @@ Reference architecture (directories, ports, variants, schema, API table, limits)
   - Durable Objects Free: SQLite-backed objects only, 100,000 requests and 13,000 GB-s per day.
   - Vercel Functions: 4.5 MB request body. Hobby plan is for non-commercial use only.
   - Firebase Cloud Functions: need the Blaze (pay as you go) plan.
-  - Spotify: since 15 May 2025, Web API extended access only goes to registered businesses with at least 250,000 monthly active users. Development mode allows a handful of allowlisted users. Starting a track on demand through the mobile SDKs needs Spotify Premium.
+  - Spotify: since 15 May 2025, Web API extended access only goes to registered businesses with at least 250,000 monthly active users. Development mode allows a handful of allowlisted users. Starting a track on demand through the mobile SDKs needs Spotify Premium. The Web API stopped returning `preview_url` for new apps in November 2024. Spotify's embed player (iFrame) plays previews to listeners who are not logged in.
   - Mainland China: Google services and Google Play are unavailable; RevenueCat's API host has been reported DNS-blocked; apps in Apple's China storefront need an MIIT filing, in practice a Chinese entity or local publisher with a backend hosted in China (see CHINA.md).
 
 ## Goals / Non-Goals
@@ -28,7 +28,8 @@ Reference architecture (directories, ports, variants, schema, API table, limits)
 - Launching in mainland China in this change (separate change, see D16).
 - Moving live data between providers.
 - Real-time co-editing of text.
-- In-app Spotify playback (see D15).
+- Full-track Spotify playback in the app (see D15).
+- Sign-in, editing and history on the web (see D17).
 
 ## Decisions
 
@@ -69,7 +70,8 @@ An event lives on the backend as one document with a revision number. Sync, live
 - Methods: Sign in with Google, Sign in with Apple, and email with a 6-digit one-time code. First sign-in creates the account. Each method is an `IdentityProvider` in the core (verify a credential, return a subject, verified email and name); the deployment config lists the enabled ones and `GET /config` tells the app which buttons to show. WeChat or phone codes can be added the same way (needed for China).
 - An identity whose verified email matches an existing identity's verified email joins that account. Users can also add methods from account settings.
 - Email codes: stored as an HMAC with a server secret, valid 10 minutes, 5 attempts, rate limited per address and IP. No passwords: hashing does not fit 10 ms CPU on Workers Free, and there is no reset flow to build.
-- Sessions are opaque tokens stored hashed. The web uses the authorization code flow with PKCE for Google and Apple, and the same code endpoints for email.
+- Sessions are opaque tokens stored hashed, held by the app. The web has no sessions (D17).
+- Sign in with Apple on Android runs Apple's web flow in an in-app browser tab. Apple posts the result to `POST /auth/apple/callback`, which redirects it to the app; the app then signs in with the ID token like iOS. The callback sets no cookie.
 
 Alternatives: anonymous accounts (removed: the owner wants an account for anything online); Firebase Auth (ties every provider to Google, blocked in China); email and password (CPU and reset flows).
 
@@ -95,7 +97,7 @@ Alternatives: Server-Sent Events (keep the Durable Object awake); a hosted realt
 
 ### D8. Share web is server-rendered HTML plus small plain ES modules
 
-Pages: `/e/{token}` (public link), `/i/{token}` (invite), `/s/{eventId}` (member page), sign-in. Scripts: `countdown.js`, `live.js`, `editor.js` (loaded only for editors). The web editor covers text, date, time, zone, recurrence, theme, still photos and dim; animated photos and audio are chosen in the app.
+Pages: `/e/{token}` (public link: the event, view only, live) and two generic landing pages that open the app, `/i/{token}` (invite) and `/s/{eventId}` (member link) (D17). Scripts: `countdown.js` and `live.js`, on public link pages only. The data export page (`/export/{token}`, D18) and the operator page (`/admin/storage`, D19) share no code with event pages.
 
 Alternatives: Compose Multiplatform for Web (multi-megabyte, canvas); a SPA framework.
 
@@ -106,18 +108,19 @@ Alternatives: Compose Multiplatform for Web (multi-megabyte, canvas); a SPA fram
 - Animated photos exist only when a writer with a plan that includes them saved one. Viewers see them animated whatever their plan. Display: plays once on open and on touch, then rests on the key photo; reduced motion shows the key photo.
 - Per-plan counts limit photos in use (D14). With count limits and per-file size limits, total storage is bounded, so there is no separate storage quota.
 - The core checks types from magic bytes, reads dimensions and duration from headers, strips EXIF and XMP, rejects MP4 with audio or a location atom. No server transcoding. Uploads go through the API with a 4 MB cap (fits Vercel's 4.5 MB body limit).
+- Each backdrop has a shared `dim` (0 to 0.8) and `blur` (0 to 16, a radius at a 390 pt card width, scaled with the card; photo and art backdrops). The app and the public link page render both; the server never blurs. Compose `Modifier.blur` needs Android 12; below that the app draws a pre-blurred, downscaled bitmap. Blur was dropped once because the web editor would have needed it; with no web editor (D17) it is back.
 
-Alternatives: presigned direct uploads (four mechanisms); server transcoding (CPU and cost); storing original HEIC and MOV (HEVC not playable in every browser).
+Alternatives: presigned direct uploads (four mechanisms); server transcoding (CPU and cost); storing original HEIC and MOV (HEVC not playable in every browser); a pre-blurred copy made on the server (CPU and a second file per backdrop).
 
 ### D10. Tokens
 
-Public link tokens are read capabilities for data in the same database, so they are stored in clear and owners can copy links on any device. Invite tokens, session tokens and email codes grant access or prove identity, so they are stored hashed.
+Public link tokens are read capabilities for data in the same database, so they are stored in clear and owners can copy links on any device. Invite tokens, session tokens, data export tokens and email codes grant access or prove identity, so they are stored hashed. The operator token (`ADMIN_TOKEN`, D19) is a deployment secret; it is never stored in the database or shipped in the apps.
 
 ### D11. Members join through invite links with a role, a use count and an expiry
 
-- Two kinds of sharing: **public links** (view only, no account, up to 10 per event) and **invite links** (sign-in required, the receiver joins the event as a member with the invite's role, viewer or editor).
+- Two kinds of sharing: **public links** (view only, no account, up to 10 per event) and **invite links** (sign-in in the app required, the receiver joins the event as a member with the invite's role, viewer or editor).
 - The owner sets each link's expiry: 5 days, 30 days, never, or a custom date up to 5 years ahead. Invites also have a use count: 1, 5, 10, unlimited, or a custom number from 1 to 100. Opening an invite uses nothing; each new member who joins uses one. Defaults: public link never expires; invite 30 days, 1 use.
-- Members see the event in their app (editable or not by role) and on the web at `/s/{eventId}`, which needs sign-in and membership. The owner can change a member's role, remove them or cancel an invite. A removed member cannot rejoin through any invite until the owner allows them again.
+- Members see the event in their app (editable or not by role). `/s/{eventId}` opens the event in the app; in a browser it is a generic landing page (D17). Joining through an invite happens in the app only. The owner can change a member's role, remove them or cancel an invite. A removed member cannot rejoin through any invite until the owner allows them again.
 - At most 100 members per event; owners and existing members opening an invite use nothing.
 
 Alternatives: one-time invites only (the owner asked for counts); one shared people-link token (an extra secret with no benefit once membership is checked); invite by email address (needs delivery; Apple private relay addresses do not match).
@@ -136,6 +139,7 @@ Not built in this change. Rules from the owner: comments have the same visibilit
 - **Gating uses the writer's own plan.** Only an account whose plan includes a feature can add it, on its own events or as an editor on someone else's. Counted limits (photos, animated photos, audio files, Spotify events) count what that account added. Owned-event limits count the owner's events. Viewing is never gated.
 - Paid plans have limits too, to prevent abuse (for example 30 animated photos in use).
 - Going over a limit never deletes anything; it blocks adding more. When a plan ends, existing content stays.
+- **Promotions:** the operator can grant a plan to an account for a period without a store purchase (`grants` table; for example one month of Premium), with the provider's own tools, like takedowns. The plan is the highest of active store purchases and active grants. When a grant ends, the lapsed-plan rule applies: content added and quota used during the grant stay and keep working; only adding more above the free limits is blocked. Alternatives: store offer codes (Apple offer codes, Google Play promo codes) are tied to one store and need a redeem step in the store; they stay possible next to grants.
 - Free users can pick and preview a paid feature; Save shows the paywall with a free alternative where one exists.
 - **Purchases are verified with Apple and Google directly, not through RevenueCat.**
   - iOS: StoreKit 2 through a small Swift bridge. The app sends the signed transaction (JWS); the core checks the certificate chain to Apple's root, bundle id and expiry. App Store Server Notifications V2 report renewals, refunds and expiry. `appAccountToken` carries the account id.
@@ -156,7 +160,8 @@ Native is chosen because cost comes first and China matters. RevenueCat would sh
 
 - Built-in tracks: `backend/core/audio/catalog.json`, files in the blob store (AAC, at most 4 MB). A few free, the rest need the writer's plan to include them. Anyone who can see an event can play its track.
 - Built-in tracks are public domain recordings chosen by the project owner.
-- Custom audio files (Premium): the app converts the file to AAC at most 4 MB (about 5 minutes; longer files are trimmed to a section the user picks). Served only through the access-checked audio route, to the owner and members. Not played on public link pages, because publishing user-uploaded music to anyone with a link is a copyright risk.
+- Custom audio files (Premium): the app converts the file to AAC at most 4 MB (about 5 minutes; longer files are trimmed to a section the user picks) and uploads it to the account's library (`POST /me/library`), not to one event. A day then references a library file of the writer. Served only through the access-checked audio route: to the uploader, and to the owner and members of days that use it. Not played on any web page, because publishing user-uploaded music to anyone with a link is a copyright risk.
+- Library: the audio picker's "My library" tab lists the account's files, newest first, with the number of days using each. Removing a file from the library only hides it; days that use it keep playing it for their owner and members. A file counts toward the plan's custom audio limit while it is in the library or used by a day, and is deleted 24 hours after it is neither. The library belongs to the uploading account and syncs across its devices; members never see it. Alternatives: files tied to one event (the same song is uploaded again for each day, and each copy counts); deleting the file on removal (silences days without warning, including other people's).
 - User uploads remain a copyright risk even for members: most user audio is commercial music, and playing it to up to 100 members is distribution, on a paid feature. Mitigations, so the service can rely on hosting safe harbours (US DMCA section 512, EU Digital Services Act notice and action):
   - the terms of service and disclaimer say users may only upload photos and audio they own or have the rights to use, and users agree to them when creating an account (no prompt on each upload; see `docs/legal/README.md`);
   - a Report button on every custom audio file, and a takedown runbook that removes the file within 24 hours;
@@ -164,9 +169,10 @@ Native is chosen because cost comes first and China matters. RevenueCat would sh
   - a registered DMCA designated agent (US Copyright Office) before launch;
   - no download button, no search, no public listing of files.
   - A stricter option, if counsel prefers: custom audio plays for the owner only. Not chosen now.
-- Spotify links: shared or pasted `open.spotify.com` track, album or playlist links; title from Spotify's public oEmbed endpoint; playing opens Spotify. Free plan: 3 events, counted for the account that set them. Unavailable in China.
+- Spotify links: shared or pasted `open.spotify.com` track, album or playlist links; title from Spotify's public oEmbed endpoint. Free plan: 3 events, counted for the account that set them. Unavailable in China.
+- Spotify preview (**assumption, to check in task 7.9**): the owner reports that Spotify lets apps play a short part of a track. The app plays a short preview (about 30 seconds) inside the app where Spotify allows it; for albums and playlists, the first track (also an assumption). "Open in Spotify" plays the full item in Spotify. Known facts for the check: the Web API stopped returning `preview_url` for new apps in November 2024; the embed player (iFrame) plays previews to listeners who are not logged in. If no supported way exists, playing only opens Spotify. The share web page keeps "Listen on Spotify" and loads no Spotify content.
 
-Alternatives: in-app Spotify playback (blocked by Spotify's access rules until 250,000 monthly users); public URLs for audio files (anyone could fetch Premium or user-uploaded tracks).
+Alternatives: full-track in-app Spotify playback (blocked by Spotify's access rules until 250,000 monthly users, and needs Spotify Premium); public URLs for audio files (anyone could fetch Premium or user-uploaded tracks).
 
 ### D16. Regions, and China as a separate deployment
 
@@ -176,6 +182,36 @@ Alternatives: in-app Spotify playback (blocked by Spotify's access rules until 2
 - China would be the self-host variant on a mainland cloud (Alibaba Cloud or Tencent Cloud), with Apple, email and phone or WeChat sign-in, Apple purchases plus Chinese Android stores, no Spotify and no Google. It also needs a Chinese entity or publisher, ICP and app filings, data kept in China under PIPL, and content review for public pages. Details and open points: CHINA.md. It is a separate OpenSpec change.
 
 Alternatives: one global deployment reachable from China (Cloudflare serves mainland China only through JD Cloud with an ICP licence; Apple's China storefront needs a filed app with a China-hosted backend).
+
+### D17. Web pages are read-only for now
+
+Decided by the project owner on 2026-10-12.
+
+- The share web has one event page: the public link `/e/{token}` (view only, live changes, built-in audio, previews).
+- Invite links `/i/{token}` and member links `/s/{eventId}` open the app through App Links and Universal Links. In a browser they show a generic page with an open-in-app button and store links: no event details, no sign-in. The page is the same for every token or id, valid or not, so it reveals nothing. Preview tags are generic. The core renders it from a constant per region, with no store access.
+- Joining happens only in the app: the receiver installs the app and opens the invite again.
+- Removed from the earlier design: web session and OAuth cookies, the CSRF header rule, `/auth/*` pages for browsers, `401 sign_in_required`, `editor.js`, web history, and custom audio on member pages. Kept: `POST /auth/apple/callback`, which Sign in with Apple on Android needs (D4). It hands Apple's result to the app and creates no browser session.
+- Effect on providers: none beyond fewer routes.
+
+Alternatives: web sign-in plus web editing and history, as first designed (D8 before this decision). It lost because it adds auth flows, cookies, CSRF rules, an editor and their tests before launch. Revisit after launch. An invite page with event details for visitors without the app lost too: anyone holding the link would see the title before joining.
+
+### D18. Inactive accounts and data export
+
+- An account is inactive after 24 months (placeholder, owner to confirm) without any signed-in use: any authenticated request from any device. `accounts.last_active_at` is written at most once per day. Accounts with an active or grace store subscription, or an active grant, are never inactive.
+- Schedule: email 1 gives a deletion date 6 months later and a data download link. 3 months later, email 2 gives the same date and a fresh link. On that date the account is deleted exactly like a user-requested deletion. Any signed-in use stops the process and clears the notices.
+- Data export: `data.json` (account, events with all fields, memos, revisions the account authored, sharing settings, library list) plus the account's uploaded files, listed on `/export/{token}` with one download link each. Valid until the deletion date (inactivity) or 30 days (user request: Settings › Account › "Download my data", at most 1 per day, link sent by email).
+- Details, email texts and how to check or pause the job: BACKEND.md section 17.
+- Effect on providers: on Workers Free a daily run makes at most 50 subrequests, so it sends at most 40 emails and the rest go out on the following days. Self-host may also offer the export as one ZIP file.
+
+Alternatives: keep accounts forever (storage and retention without end, against the storage limitation principle of the GDPR); delete without notice (users lose data they wanted); one ZIP file on every provider (zipping several MB does not fit 10 ms CPU on Workers; self-host may offer a ZIP); files as email attachments (size limits).
+
+### D19. Operator storage report
+
+- `GET /api/v1/admin/storage` and a minimal page `/admin/storage` show storage per account, highest first, sortable by bytes, files or last activity. Protected by `Authorization: Bearer <ADMIN_TOKEN>`, an operator secret that never ships in the apps; rate limited.
+- Counters `accounts.media_bytes` and `accounts.media_files` change in the same write as each media insert and delete. Sorting reads one index on every store, including Firestore, which has no GROUP BY. The default order is by media bytes. Document bytes (event and memo documents) are summed only for the rows on the page, because a documents counter would add a row write to every event and memo write.
+- This is the only operator API. Takedowns, upload blocks and grants stay with the provider's own tools.
+
+Alternatives: SQL queries through each provider's console (different per variant; Firestore has no GROUP BY); summing `media` rows on each request (a full scan per page view); a full admin API (not needed yet).
 
 ## Risks / Trade-offs
 
@@ -191,6 +227,10 @@ Alternatives: one global deployment reachable from China (Cloudflare serves main
 - [Auto-linking identities by verified email] → Only provider-verified emails and email codes count; Apple private relay addresses never match, which is safe.
 - [Email delivery costs and spam filtering] → One HTTP mail provider, rate limits per address and IP; self-host can use SMTP.
 - [Spotify links depend on the user having Spotify] → Opens Spotify on the web when the app is missing.
+- [In-app Spotify previews may not be available to new apps] → Checked in task 7.9 before building; otherwise playing only opens Spotify (D15).
+- [Deleting inactive accounts removes data a user still wanted] → Two emails 3 months apart, each with a download link; any sign-in stops it; subscribers and grant holders are never inactive (D18).
+- [A large account's `data.json` needs more CPU than one Workers request allows] → Streamed page by page from the store; split into several files if a measured export goes over.
+- [The operator token leaks] → It reads the storage report only, is rate limited, and is rotated by changing the secret (D19).
 - [China requirements are legal, not technical] → Kept out of this change; the global design only adds region config and pluggable sign-in, mail and purchase verifiers.
 
 ## Migration Plan
@@ -205,4 +245,7 @@ Alternatives: one global deployment reachable from China (Cloudflare serves main
 - Comments: whether public link visitors can comment at all, and how anonymous comments are moderated (decided in the comments change).
 - Which features go to Premium Plus.
 - China: entity or publisher, cloud provider, Android stores, sign-in methods (CHINA.md).
-- Push notifications for collaborator edits and new comments.
+- Push notifications: planned in change `design-v2-features`; comments add their own kind later.
+- Inactive accounts: confirm 24 months. What to do when a notice email bounces or an account has no email address (proposal: keep the schedule; the terms say so).
+- Spotify previews: which supported method exists, if any (D15, task 7.9).
+- Web sign-in and editing: revisit after launch (D17).

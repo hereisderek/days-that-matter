@@ -14,7 +14,7 @@ Every accepted change to an event stored on the backend SHALL create a revision 
 - **THEN** one new revision lists both fields with old and new values and names the editor as author
 
 ### Requirement: Who can see history
-The owner and editors SHALL be able to see an event's history in the app and on the web. Viewers and link visitors SHALL NOT see history. Changes to owner-only fields SHALL appear only in the owner's view of history.
+The owner and editors SHALL be able to see an event's history in the app. Web pages SHALL NOT show history. Viewers and link visitors SHALL NOT see history. Changes to owner-only fields SHALL appear only in the owner's view of history.
 
 #### Scenario: Viewer
 - **WHEN** a viewer opens a shared event

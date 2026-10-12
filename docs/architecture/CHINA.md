@@ -74,6 +74,7 @@ So China is its own region: own domain, own data, own settings, same app and sam
 4. iOS only first, or which Android stores?
 5. Content review provider, and whether real-name verification is required for public links and comments.
 6. Budget for hosting, SMS, CDN, publisher and legal review.
+7. Push notifications (change `design-v2-features`): FCM is not available. iOS keeps APNs. Android builds for Chinese stores need vendor push services (Huawei Push Kit, Xiaomi, OPPO, vivo, Honor) or a domestic aggregator, each a new sender in the core. Which ones, and whether to start with local reminders only?
 
 ---
 
