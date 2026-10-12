@@ -12,17 +12,21 @@ python3 -m http.server 8766 --directory design/v2
 
 Then open http://localhost:8766. Opening `index.html` directly from disk also works.
 
-The left panel jumps between screens and switches the theme, the account (Guest or Signed in) and the plan (Free or Premium). On a phone-width window it becomes a row of tabs and the app fills the screen.
+The left panel jumps between screens and switches the theme, the account (Guest or Signed in), the plan (Free or Premium) and the memo badge position (remote config). On a phone-width window it becomes a row of tabs and the app fills the screen.
 
 Things to try:
 
 - Swipe the pinned carousel at the top of Home (or tap a dot or the peeking edge). The list below scrolls to the same day and outlines it. Scroll the list yourself and the carousel shrinks to a strip.
 - Long-press (or right-click) a card in the list. Owned days offer **Pin to top**; the day joins the carousel first and stays in the list, with Undo. "Grandma's 90th" is shared with you as an editor and offers Edit, History, Report and Leave instead.
-- Open a day and tap the big number to cycle **Auto**, **Days** and **Y·M·D**.
+- Open a day and tap the big number to cycle **Auto**, **Days**, **Weeks**, **Hours**, **Y·M·D** and **Workdays** ("App launch" counts workdays).
+- **New day** opens a chooser: a date, a smart day (days, weekends, public holidays or workdays left this year) or a seasonal template (Halloween is open in October; Christmas opens 1 November).
+- Long-press a day and choose **Archive**: it leaves Home (and the carousel, if pinned) and appears under **Archived** at the end of the list.
+- **Customize** › Sound › **My library**: pick a new song at the top, reuse an earlier one, or tap × to remove one from the list. Mia's birthday keeps playing its song after you remove it.
+- Switch the panel's **Memo badge** between Left and Right (it stands in for remote config). Days with memos show the badge; Grandma's 90th, shared with you, never does.
 - **Customize** › Background › Photo: pick a tile marked LIVE. It moves in the preview. On Free, Save shows the paywall with **Use still photo**.
 - **Share** on "Norway trip": create a public link with a label and expiry, an invite with a role and use count, change a member's role, remove someone.
 - Switch the panel to **Guest** and tap Share: the sign-in prompt appears first. Create a day as a guest: the prompt appears once after the first save.
-- Settings shows the account, Sync, and the plan's limits in use. Create days until the eleventh: the paywall appears.
+- Settings shows the account, Sync, the plan's limits in use and the notification switches. Create days until the eleventh: the paywall appears (archived days still count).
 
 | File | What it holds |
 | :--- | :--- |
@@ -31,7 +35,7 @@ Things to try:
 | `app.js` | Sample data, date math, plan table, screens, interactions |
 | `README.md` | This document |
 
-Prototype limits: sample photos are loaded from picsum.photos (Unsplash photos), and their "Live" motion is simulated with a short zoom. The QR code is a placeholder pattern. Buttons that would open system UI (file picker, share sheet, store purchase, Spotify) show a short message instead. Sign-in buttons are plain text; production uses Apple's and Google's official button assets.
+Prototype limits: sample photos are loaded from picsum.photos (Unsplash photos), and their "Live" motion is simulated with a short zoom. The public holiday set is a sample (New Zealand 2026). The QR code is a placeholder pattern. Buttons that would open system UI (file picker, share sheet, store purchase, Spotify) show a short message instead. Sign-in buttons are plain text; production uses Apple's and Google's official button assets.
 
 ---
 
@@ -116,20 +120,24 @@ All five are SIL Open Font License fonts and can be bundled as Compose resources
 
 One component, drawn in several sizes.
 
-**Layers, bottom to top:** backdrop (photo, Live Photo, color, gradient or art) → darken scrim (`dim`, 0 to 80%, a shared field) → legibility gradient (photos only) → grain → content.
+**Layers, bottom to top:** backdrop (photo, Live Photo, color, gradient or art; photos and art can be blurred, `blur` 0 to 16, a shared field) → darken scrim (`dim`, 0 to 80%, a shared field) → legibility gradient (photos only) → grain → memo badge → content.
 
 **Sizes (contexts):**
 
 | Context | Size | Shows |
 | :--- | :--- | :--- |
 | Pinned (carousel) | full width × 240; minus 52 when several are pinned; 96 tall when collapsed | Pin badge, emoji, title, short date, time and zone, big number, live ticker; collapsed: title and number only |
-| List row | full width × 84 | Emoji, title, pin or shared marker, short date and repeat info, number and unit |
-| Grid tile | half width, 1:1.1 | Emoji, markers, number, unit, title, date |
+| List row | full width × 64 / 84 / 132 (size Small / Medium / Large) | Small: emoji, title, number. Medium: adds pin or shared marker, short date and repeat, unit. Large: adds the live ticker, bigger number |
+| Grid tile | half width, 1:1.1; Small 1:0.8; Large full width × 172 | Emoji, markers, number, unit, title, date |
 | Day page | full screen | Everything, plus the unit switch; Live Photos play here |
 | Widget small / medium | 1:1 / 2:1 | Number, unit, title; medium adds the next three days |
 | Share story / banner | 9:16 (1080×1920) / 1.91:1 (1200×630) | Emoji, title, number, date, optional watermark "Tracked with Days That Matter" |
 
 **Markers:** a pin icon for pinned days; a people icon for days you share; a people icon and the owner's name ("Mum") for days shared with you.
+
+**Size in the list** (Customize › Style): Small, Medium (default) or Large. It is part of the look, so it syncs and people you share with see the same size in their list. The carousel, day page, widgets, share images and the web page ignore it.
+
+**Memo badge:** an owner's card with memos shows a small accent tab hanging from the top edge with a memo icon and the count ("9+" above 9). Remote config `ui.memoBadge` puts it on the left (14 pt margin) or the right (16 pt margin); default right. Memos are owner-only, so the badge never shows on days shared with you, on the web, on widgets or on share images.
 
 **Card styles** (maps to `CardStyle`):
 
@@ -164,25 +172,27 @@ Email sign-in is two steps in the same sheet: address, then the 6-digit code ("V
 
 - Header: today's date and "Your days", search, and the account button (initial when signed in). While edits are waiting to sync, the date line reads "Syncing 2 changes…" with a pulsing dot; sync runs on its own within 2 seconds, so this is brief.
 - The header and the **pinned carousel** stay at the top; the list scrolls under them (section 5). The carousel shows when at least one owned day is pinned and the setting is on, and is hidden while searching or filtering.
-- Filter chips: All, Upcoming, Since, **Shared** (signed in only), then the categories.
+- Filter chips: All, Upcoming, Since, **Shared** (signed in only), **Smart**, then the categories.
 - Two sections, **Upcoming** and **Since**, each with a count. The first section header holds the list/grid switch and sort.
-- Long-press or right-click a card. Owner: Pin to top / Unpin, Customize, Share, History, Duplicate, Delete (with Undo). Editor of a shared day: Edit, Share image, History, Report, Leave. Viewer: Share image, Report, Leave.
-- Floating **New day** button. On Free with 10 owned days it opens the paywall instead of an empty editor.
+- Long-press or right-click a card. Owner: Pin to top / Unpin, Customize, Share, Archive, History, Duplicate, Delete (with Undo). Editor of a shared day: Edit, Share image, Archive, History, Report, Leave. Viewer: Share image, Archive, Report, Leave. Smart days have no Share.
+- **Archived · n** row at the end of the list opens the Archived screen. Archiving hides a day from Home, the carousel and widget choices, turns its reminders and notifications off, and **unpins it**; unarchiving does not pin it again. Archive is personal: for a day shared with you it only hides your copy. Archived owned days still count toward the plan's day limit.
+- Floating **New day** button opens a chooser: **A date**, **Smart days** (with today's count next to each) and **Seasonal · limited time** (templates outside their window are shown greyed with "Opens Nov 1"). On Free with 10 owned days it opens the paywall instead.
 - Guests do not see days shared with them (they have none) or the Shared chip.
 
 ### Day page
 
-- The day's own backdrop fills the screen. Back, music (record for tracks and files, Spotify icon for Spotify links), share and more buttons sit on glass circles.
+- The day's own backdrop fills the screen. Back, music (record for tracks and library songs; Spotify icon for Spotify links, which plays a 30-second preview), share and more buttons sit on glass circles.
 - Badge: category and repeat for owned days; owner name and role ("Mum · Editor") for shared days. "Live" badge for animated backdrops.
 - Title, full date and time. A fixed zone different from the device's shows both: "9:30 AM Oslo time", then the same moment in the viewer's local time in brackets.
-- Tap the number, or use the segmented control, to switch **Auto / Days / Y·M·D** (`UnitMode`). Auto shows days, then hours and minutes in the last 48 hours. The choice is a shared field, so viewers do not get the control.
+- Tap the number, or use the control under it (it scrolls sideways), to switch **Auto / Days / Weeks / Hours / Y·M·D / Workdays** (`UnitMode`). Auto shows days, then hours and minutes in the last 48 hours. **Workdays** counts Monday to Friday and skips Saturdays and Sundays, for deadlines like "35 workdays to launch"; public holidays are not skipped yet. The choice is a shared field, so viewers do not get the control.
 - The live ticker counts to the exact event instant. The big number counts calendar days, so a trip next month at 9:30 can show "38 days" and "37d 23h"; both are correct.
 - The sheet below the backdrop:
   - Action buttons by role. Owner: Customize, Share, Music, Memo. Editor: Edit, History, Music, Leave. Viewer: Music, Report, Leave.
   - **Shared** block: for owners, the people and how many public links, with "Manage people and links"; for members, who owns it, how many people, and what their role allows.
   - **Milestones** (countdown progress, or next milestone and anniversary for past days).
   - **Memos**, owner only, labelled "only you".
-  - **Details**: date, time, time zone (Fixed or Floating), repeat, music; for owners also reminder, pinned ("Yes, in the carousel"), notes, and a History button.
+  - **Details**: date, time, time zone (Fixed or Floating), repeat, music (Spotify adds **Open in Spotify**), archived with **Unarchive**; for owners also reminder, pinned ("Yes, in the carousel"), notes, and a History button.
+- **Smart days** show their rule instead of date, time and repeat, the year's progress instead of milestones, the next public holidays for the holiday rule, and no unit control or Share.
 
 ### History (sheet)
 
@@ -193,12 +203,12 @@ Owners and editors, signed in. Each revision shows author, time, revision number
 - Sticky preview at the top, with a switch to see the card **Pinned** (or **Large** for shared days), in the **List**, or as a **Widget**. Live Photos move in the preview whatever the plan.
 - Tabs:
   - **Details**: title (1 to 100 characters, counter), emoji, date, optional time, **time zone** (this device, the day's own zone, or Floating, with one line on when to use each), repeat. Owner only: category, **Pin to top** (says how many days are already in the carousel), **Notes** (4,000 characters, never shared). Editors see a note that the owner keeps notes, category, pin and memos. Reminder for everyone (proposal).
-  - **Background**: Photo (shows "3 of 5 photo backdrops" and the Live Photo plan, upload or samples, LIVE tiles, a **Play as Live Photo** switch, focus point), Color, Gradient, Art. Darken slider 0 to 80%. Contrast readout. A note says photos are resized on the phone, location data is removed, and people you share with see them.
-  - **Style**: card style with live mini previews, typeface, text color, unit mode.
+  - **Background**: Photo (shows "3 of 5 photo backdrops" and the Live Photo plan, upload or samples, LIVE tiles, a **Play as Live Photo** switch, focus point), Color, Gradient, Art. Darken slider 0 to 80%; **Blur** slider 0 to 16 for photos and art. Contrast readout. A note says photos are resized on the phone, location data is removed, and people you share with see them.
+  - **Style**: card style with live mini previews, **size in the list** (Small, Medium, Large; the preview switches to the list view), typeface, text color, unit (six choices, with a line on what Workdays means).
   - **Sound**: three sources, one per day.
     - **Built-in**: the catalog with title, artist and length; Premium tracks carry a badge; every track has a preview button.
-    - **My files** (Premium): pick a file; a long song shows a trim bar to choose the part to keep (AAC, at most 4 MB, about 5½ minutes). Plays for the owner and members, never on public links.
-    - **Spotify**: paste a link or share from Spotify; shows the name and "opens in Spotify"; Free shows "3 days (1 used)".
+    - **My library** (Premium to save): **Pick an audio file** stays at the top; a new pick shows a "New" row with a trim bar to choose the part to keep (AAC, at most 4 MB, about 5½ minutes). Below it, **Your library** lists earlier songs, newest first, with length and "used on N days", a preview button, and **×** to remove a song from the list. Removing only hides it: days that use it keep playing it, and it counts toward the 20 songs until no day uses it. Songs play for the owner and members, never on public links.
+    - **Spotify**: paste a link or share from Spotify; shows the name and "30-second preview here, full song in Spotify"; Free shows "3 days (1 used)". The in-app preview is an assumption to check against Spotify's rules when building (the Web API stopped returning preview URLs for new apps in November 2024; the embed player still plays previews).
     - Volume, loop and fade are under "On this device" because they do not sync.
 - **Save** checks the plan of the person saving (premium spec). Over a Free limit it opens the paywall with the matching reason and a free way out: **Use still photo**, **Keep the previous music**, **Keep the previous background**. Over a Premium limit it says "Limit reached" with the same way out.
 
@@ -216,6 +226,8 @@ Three tabs. "Links update live when the day changes" under the title; there is n
 
 Members get only the Image tab, with "Only Mum can create links and invites."
 
+The web is **view-only** (decision, 2026-10-12): public link pages show the day live; invite and member links open the app, and in a browser show a page to get the app. There is no sign-in or editing on the web. The share sheet says so.
+
 ### Widgets
 
 A home-screen mock with a small and a medium widget, a lock-screen mock with a circular and a rectangular accessory, and a widget look option: Match card, Minimal, Tinted. Live Photos show the key photo.
@@ -224,10 +236,12 @@ A home-screen mock with a small and a medium widget, a lock-screen mock with a c
 
 - Signed in: profile (name, email, sign-in methods, plan badge) and **Sync** ("Synced 4 min ago" or "2 changes waiting", **Sync now**; after a manual sync: "Changes sync automatically after each edit"). Guest: "Saved on this device only" with **Sign in**.
 - **Plan**: limits in use as meters (Days 9 of 10, Photo backdrops 3 of 5, Spotify days 1 of 3), Live photos and music files as Premium, **Upgrade to Premium** or "Manage in the App Store", **Restore purchases**.
-- Appearance, Counting, Reminders, More (Widgets, Recently deleted, Privacy lock, Export for guests, Language, Terms of Service, Privacy Policy).
-- **Account** (signed in): display name, add sign-in method, **Sign out** (this device only; warns about unsynced changes), **Delete account** (lists what is deleted; on Premium, says to cancel the subscription in the store first).
+- Appearance, Counting.
+- **Notifications**: Reminders (local, set per day, work offline) with the delivery time; **Changes to shared days**; **Added to a day**; **Offers and news** (off by default, at most 2 a month).
+- More (Widgets, Recently deleted, Privacy lock, Export for guests, Language, Terms of Service, Privacy Policy).
+- **Account** (signed in): display name, add sign-in method, **Download my data** (emails a download link that works for 30 days), **Sign out** (this device only; warns about unsynced changes), **Delete account** (lists what is deleted; on Premium, says to cancel the subscription in the store first). A line under it: accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a download link.
 
-Items marked **New** are proposals not in the current specs; see section 6.
+Items marked **New** were added in this design; where they are specified is listed in section 6.
 
 ## 5. Pinned carousel
 
@@ -240,76 +254,82 @@ This matches the "Pinned Hero Carousel" in `docs/features/events/SPEC.md` §4.1 
 - **Layout.** Header and carousel are fixed at the top of Home; only the list scrolls, so the carousel stays in view while the list moves. When the user scrolls the list down, the carousel collapses to a 96 pt strip (title and number) and expands again at the top of the list. The scroll that follows a swipe does not collapse it.
 - Hidden while searching or filtering. Settings › **Pinned carousel** turns it off; pins then show only as icons in the list.
 - Pin state is an owner-only field (event-sync spec), so members cannot pin a day shared with them. See gap 10.
-- Pins need an order field; see gap 2.
+- Order comes from the owner-only field `pinnedAt`, newest first.
+- Archiving a pinned day unpins it.
 
 ## 6. Missing functionality and recommended additions
 
-Compared against `openspec/changes/pluggable-backend-live-sharing/`, `docs/features/` and `docs/SPEC.md`. P0 means the UI depends on it or the first release would feel incomplete without it.
+Compared against `openspec/changes/pluggable-backend-live-sharing/`, `openspec/changes/design-v2-features/`, `docs/features/` and `docs/SPEC.md`. P0 means the UI depends on it or the first release would feel incomplete without it.
 
-Covered by the new specs and removed from this list: what Premium includes, sharing with roles and live updates, photo limits and metadata removal, the time zone, emoji and unit fields on `Event`, and sign-in methods.
+Now specified, so removed from this list: Premium and promotions, sharing with roles and live updates, photo limits, time zone, emoji and unit fields, sign-in methods, notifications (reminders, shared changes, added to a day, offers), pin order (`pinnedAt`), archive, the six unit modes including Workdays, card size, blur, memo badge, the audio library, inactive accounts and data export, the storage report, and the read-only web.
+
+### Decisions still open
+
+| Item | Status |
+| :--- | :--- |
+| **Inactive account period** | 24 months is a placeholder in the specs and in Settings. Confirm the number, and what happens when the warning emails bounce (proposal: keep the schedule). |
+| **Spotify preview** | Assumed from use of Spotify. Check at implementation: the Web API no longer returns `preview_url` for new apps (since November 2024); the embed player plays previews for listeners who are not logged in. Fallback: open in Spotify only. |
+| **Add people by name** | Under consideration: add someone you already share a day with to another day by typing their name; they get an "added to a day" notification. Not specified. |
+| **Push delivery** | Whether Cloudflare Workers can call APNs (HTTP/2) directly needs a spike; the alternative is FCM for both platforms. China has no FCM. |
+| **Smart days** | Draft. Open: where holiday sets come from per region, whether smart days can be shared later, and how seasonal windows are managed. |
 
 ### P0
 
 | # | Item | Why | Touches |
 | :--- | :--- | :--- | :--- |
-| 1 | **Reminders (local notifications)** | Still no spec. Push notifications are out of scope in the OpenSpec change, so reminders must be scheduled on the device: on the day, 1 day, 1 week before, milestone alerts, default time. iOS allows 64 pending; schedule the nearest and refill. Android 13+ needs the permission prompt. | New spec, `Event`, settings |
-| 2 | **Pin order** | `Event` has `isPinned` but nothing to order pins by. Add `pinnedAt` (newest first, as in v2), or a `pinOrder` if users should drag to reorder the carousel. Owner-only, like `isPinned`. | Events spec §3 |
-| 3 | **Fields still missing on `Event`** | `sortOrder` (the spec promises custom order), `reminders`, `deletedAt` for an owner-side trash. | Events spec §3, Room, sync |
-| 4 | **Category model** | `Event.categoryId` exists, `Category` does not (name, emoji, color, order, built-in vs custom), and there is no screen to manage them. | Events spec |
-| 5 | **App settings spec** | The auth spec now covers the account sheet. Theme, accent, counting rules, reminders, widgets, language and data are still unspecified. | New spec section |
-| 6 | **"Count the first day as Day 1"** | Couples and streak counters expect "Day 1" on the start date (在一起第 N 天). Changes the number and milestones, so it belongs in the shared engine in `:core:model`. | Events spec §2 |
-| 7 | **Undo and Recently deleted** | The sync spec defines what deletion does to other people, not how an owner recovers from a mistake. Keep deleted days 30 days on the backend and offer Undo in the app. | Events spec, BACKEND.md |
-| 8 | **When a one-time day passes** | Ask once on the day after: keep counting up, archive, or repeat yearly. Add an Archive filter. | Events spec §2.2 |
-| 9 | **Empty, loading, error and offline states in the app** | The sharing spec defines web page states and link errors; app screens still have none. v2 shows only Home empty and no-results states and the sync line. | All feature specs |
-| 10 | **Member-side pin, category and reminder** | Pin and category are owner-only fields, so a member cannot pin or file a shared day on their own Home. Store a small per-account overlay (pin, category, reminder, sort order) next to the membership. | event-sync, event-sharing specs |
-| 11 | **Paywall content and store rules** | Prices, trial or no trial, and the subscription terms Apple and Google require near the buy button (length, price per period, auto-renew, links to terms and privacy). | premium spec, `docs/legal/` |
-| 12 | **Conflict message** | The sync spec says the app tells the owner when an offline edit replaced someone else's newer change. Proposed pattern: a toast "Your change replaced Lin's time" with **View history**. | event-sync spec |
+| 1 | **Fields still missing on `Event`** | `sortOrder` (the spec promises custom order) and `deletedAt` for an owner-side trash. | Events spec §3, Room, sync |
+| 2 | **Category model** | `Event.categoryId` exists, `Category` does not (name, emoji, color, order, built-in vs custom), and there is no screen to manage them. | Events spec |
+| 3 | **App settings spec** | Account and notifications are now specified. Theme, accent, counting rules, widgets, language and data are not. | New spec section |
+| 4 | **"Count the first day as Day 1"** | Couples and streak counters expect "Day 1" on the start date (在一起第 N 天). Changes the number and milestones, so it belongs in the shared engine in `:core:model`. | Events spec §2 |
+| 5 | **Undo and Recently deleted** | The sync spec defines what deletion does to other people, not how an owner recovers from a mistake. Keep deleted days 30 days and offer Undo. | Events spec, BACKEND.md |
+| 6 | **When a one-time day passes** | Archive now exists. On the day after a one-time day, ask once: keep counting up, archive, or repeat yearly. | Events spec §2.2 |
+| 7 | **Empty, loading, error and offline states in the app** | Web page states and link errors are specified; app screens are not. v2 shows Home empty and no-results, Archived empty and the sync line. | All feature specs |
+| 8 | **Member-side pin and category** | Archive is now personal for members, but pin and category are still owner-only, so a member cannot pin or file a shared day. Store them next to the membership, like archive. | event-sync, event-sharing specs |
+| 9 | **Paywall content and store rules** | Prices, trial or no trial, and the subscription terms Apple and Google require near the buy button. | premium spec, `docs/legal/` |
+| 10 | **Conflict message** | The sync spec says the app tells the owner when an offline edit replaced someone else's newer change. Proposed pattern: a toast "Your change replaced Lin's time" with **View history**. | event-sync spec |
 
 ### P1
 
 | # | Item | Why |
 | :--- | :--- | :--- |
-| 13 | **Lunar calendar dates (农历)** | Many Chinese users keep birthdays and festivals on lunar dates. Needs "repeats yearly on the lunar date" and a lunar date picker, in the shared engine. Matters more with a China region planned (`CHINA.md`). |
-| 14 | **Holidays and templates** | Public holiday sets per region, Chinese festivals and solar terms (节气), and quick templates: Birthday, Anniversary, Exam, Payday, Due date. |
-| 15 | **Milestone model** | The day page shows milestones (100, 365, 500, 520, 1000, 1314, yearly) but no spec defines the list, custom milestones, or alerts. |
-| 16 | **Workdays and weeks** | Events spec §2.1 lists working days, but `UnitMode` is only Auto, Days, Calendar. v2 dropped its Weeks, Hours and Workdays units to match. Add `Workdays` to `UnitMode` (and a holiday set) if wanted. |
-| 17 | **Guest export** | Signed-in users are covered by sync. Guests keep data on one device only: offer JSON export and import, and `.ics` import. |
-| 18 | **Activity on shared days** | Push is out of scope, so people learn about changes only by opening the app. Show a small "changed by Lin" marker on shared cards until opened. |
-| 19 | **Widget configuration** | Choose the day per widget, widget look, hide titles. |
-| 20 | **Privacy lock and private days** | Biometric lock; a private flag that hides the title in widgets, notifications and previews. |
-| 21 | **Localization** | English, 简体中文, 繁體中文 at least; locale date formats; plural rules. |
-| 22 | **Accessibility details** | Cap Dynamic Type growth of the big number, screen-reader labels for live counters that do not announce every second, 44/48 pt targets, reduce motion (also for Live Photos, already in the spec). |
-| 23 | **Custom order** | Drag to reorder. Needs `sortOrder` (item 3) or the member overlay (item 10). |
+| 11 | **Lunar calendar dates (农历)** | Many Chinese users keep birthdays and festivals on lunar dates. Needs "repeats yearly on the lunar date" and a lunar date picker, in the shared engine. |
+| 12 | **Holiday sets per region** | Smart days and Workdays both need real public holiday data per region (and Chinese festivals and solar terms, 节气). Workdays could then skip holidays. |
+| 13 | **Milestone model** | The day page shows milestones (100, 365, 500, 520, 1000, 1314, yearly) but no spec defines the list, custom milestones, or alerts. |
+| 14 | **Guest export** | Signed-in users can download their data. Guests keep data on one device only: offer JSON export and import, and `.ics` import. |
+| 15 | **"Changed by" marker** | Push covers changes to shared days, but people who turn it off need a small "changed by Lin" marker on the card until they open it. |
+| 16 | **Widget configuration** | Choose the day per widget, widget look, hide titles. |
+| 17 | **Privacy lock and private days** | Biometric lock; a private flag that hides the title in widgets, notifications and previews. |
+| 18 | **Localization** | English, 简体中文, 繁體中文 at least; locale date formats; plural rules. |
+| 19 | **Accessibility details** | Cap Dynamic Type growth of the big number, screen-reader labels for live counters that do not announce every second, 44/48 pt targets, reduce motion. |
+| 20 | **Custom order** | Drag to reorder. Needs `sortOrder` (item 1). |
 
 ### P2
 
 | # | Item | Why |
 | :--- | :--- | :--- |
-| 24 | **Range days** | Start and end with progress: pregnancy week 23 of 40, semester 58%. |
-| 25 | **Calendar view** | Month view of all days. |
-| 26 | **Live Activities and ongoing notifications** | Last 24 hours on the Lock Screen and Dynamic Island; Android equivalent. |
-| 27 | **Watch** | Wear OS tile and watchOS complication. |
-| 28 | **Comments** | Planned as a later change (design D12). Reuse the memo timeline style with the owner's hide and remove controls. |
-| 29 | **Adaptive layout** | Desktop and web apps come later; when they do: list on the left, day page on the right at 840 dp and wider. |
-| 30 | **Voice and system actions** | Siri / App Shortcuts and Android App Functions: "How many days until the Norway trip?" |
+| 21 | **Range days** | Start and end with progress: pregnancy week 23 of 40, semester 58%. |
+| 22 | **Calendar view** | Month view of all days. |
+| 23 | **Live Activities and ongoing notifications** | Last 24 hours on the Lock Screen and Dynamic Island; Android equivalent. |
+| 24 | **Watch** | Wear OS tile and watchOS complication. |
+| 25 | **Comments** | Planned as a later change (design D12). Reuse the memo timeline style with the owner's hide and remove controls. |
+| 26 | **Adaptive layout** | Desktop and web apps come later; when they do: list on the left, day page on the right at 840 dp and wider. |
+| 27 | **Voice and system actions** | Siri / App Shortcuts and Android App Functions: "How many days until the Norway trip?" |
 
-## 7. Proposed model changes
+## 7. Model changes
 
-These are proposals. Following `AGENTS.md`, specs change only once the design is accepted, through an OpenSpec change.
+Specified now (see `docs/features/events/SPEC.md`, `docs/features/customization/SPEC.md`, `docs/features/media/SPEC.md` and the two OpenSpec changes): `UnitMode { Auto, Days, Weeks, Hours, Calendar, Workdays }`; owner-only `pinnedAt` and `archivedAt` (members keep archive on their membership); `CardSize { Small, Medium, Large }`; `backdrop.blur` 0 to 16; the custom audio library; smart days as a draft (`Event.kind = Date | Smart(ruleId)`).
+
+Still proposals:
 
 ```kotlin
-// Event (events spec §3), additions only. emoji, timeZone and unitMode already exist.
+// Event (events spec §3)
 val sortOrder: Long = 0,
-val reminders: List<Reminder> = emptyList(),
 val deletedAt: Instant? = null,
-val pinnedAt: Instant? = null,             // carousel order, newest first; owner-only like isPinned
 
-// Per member, next to the membership (gap 10): pin, category, reminders, sort order for days shared with you.
-data class MemberOverlay(val eventId: String, val isPinned: Boolean, val categoryId: String?, val sortOrder: Long)
+// Next to the membership (gap 8), like archive: pin and category for days shared with you.
 
 // EventCustomization (customization spec §3)
 val textColor: TextColorMode = TextColorMode.Auto,   // Auto, Light, Dark; replaces textColorOverride
-// dimBackgroundFactor stays, 0.0 to 0.8, shared as backdrop.dim
 
 // BackgroundConfig
 data class Photo(..., val focusX: Float = .5f, val focusY: Float = .5f) : BackgroundConfig  // focus point, shared
@@ -319,12 +339,11 @@ data class GradientPreset(val presetId: String) : BackgroundConfig              
 
 Each gradient and art preset needs a stored base color for auto text color and for the web page while the backdrop loads.
 
-The first revision proposed a blur slider; it was dropped, because the backdrop is now a shared field and the web editor would need it too.
-
 ## 8. Notes for the Compose build
 
 - **Fonts:** bundle Geist, Geist Mono, Instrument Serif, Nunito and Oswald as Compose resources. Turn on tabular figures (`fontFeatureSettings = "tnum"`) for every number.
 - **Glass:** `Modifier.blur` blurs a composable's own content, not what is behind it. Frosted chips need a backdrop blur (Android `RenderEffect` on 12+, platform effects elsewhere). Below Android 12 use the translucent fill without blur.
+- **Backdrop blur:** `Modifier.blur(radius)` on the backdrop image on Android 12+; below that, draw a downscaled, pre-blurred bitmap. Scale the radius with the card width (16 at 390 pt).
 - **Mesh gradients:** three `Brush.radialGradient` layers over a solid base color.
 - **Live Photos:** play the silent MP4 once with Media3 (Android) or AVPlayer (iOS) over the key photo, then show the key photo; never loop. Skip under reduce motion.
 - **Auto contrast for photos:** sample the average luminance of the lower part of the decoded key photo once, store it locally, and raise the default darken value for bright photos.
@@ -333,6 +352,21 @@ The first revision proposed a blur slider; it was dropped, because the backdrop 
 - **Paywall and sign-in:** use the platforms' own purchase sheet and the official Sign in with Apple and Google buttons; the v2 sheet is the frame around them.
 
 ## 9. Revision history
+
+**Revision 4:**
+
+- Sound: "My files" is now **My library**: pick at the top, earlier songs below with "used on N days", × removes a song from the list while days keep playing it.
+- Spotify links play a 30-second preview in the app (assumption to check), with **Open in Spotify** for the full song.
+- **Archive**: menu item for every role, Archived row and screen, archiving unpins.
+- **Blur** is back (shared field, 0 to 16). Revision 2 removed it because the web editor would also have needed it; the web is now view-only, so that cost is gone.
+- **Weeks, Hours and Workdays** are back next to Auto, Days and Y·M·D, with a line explaining Workdays.
+- **Size in the list**: Small, Medium, Large.
+- **Memo badge** on owners' cards, position from remote config.
+- **Notifications** settings (reminders, shared changes, added to a day, offers), **Download my data**, and the inactive-account line in Settings.
+- **New day** chooser with smart days and seasonal templates.
+- Share sheet says the web is view-only.
+- Seed data: two days removed so the Free demo stays under 10 owned days.
+
 
 **Revision 3:**
 

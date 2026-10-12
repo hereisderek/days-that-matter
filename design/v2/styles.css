@@ -512,7 +512,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .sheet-h { display: flex; align-items: center; justify-content: space-between; margin: 0 4px 12px; font-size: 17px; font-weight: 650; }
 .sheet-h button { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: var(--surface-2); }
 .sheet-card { margin-bottom: 8px; }
-.menu-item { display: flex; align-items: center; gap: 12px; width: 100%; height: 52px; padding: 0 4px; font-size: 16px; text-align: left; border-top: 1px solid var(--line); }
+.menu-item { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 8px 4px; font-size: 16px; text-align: left; border-top: 1px solid var(--line); }
 .menu-item:first-of-type { border-top: 0; }
 .menu-item .sp { flex: 1; }
 .menu-item.danger { color: var(--danger); }
@@ -715,3 +715,57 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .list .card.is-focus, .grid .card.is-focus { outline: 2.5px solid var(--accent); outline-offset: 3px; }
 .list .card.pulse, .grid .card.pulse { animation: focusIn .6s var(--spring); }
 @keyframes focusIn { 0% { outline-offset: 12px; outline-color: transparent; transform: scale(.97); } }
+
+/* ---------- blur, card sizes, memo badge, archive, new-day chooser ---------- */
+/* Blur rides in --b so dark mode can still add its brightness filter. */
+.card-bg { filter: var(--b,); }
+:root[data-theme="dark"] .card-bg { filter: var(--b,) brightness(.9) saturate(1.05); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .card-bg { filter: var(--b,) brightness(.9) saturate(1.05); } }
+
+/* Size in the list (Customize › Style). Medium is the default row above. */
+.ctx-row.size-sm { height: 64px; border-radius: 18px; }
+.ctx-row.size-sm .emo { width: 36px; height: 36px; font-size: 17px; }
+.ctx-row.size-sm .m { display: none; }
+.ctx-row.size-sm .t { font-size: 15px; }
+.ctx-row.size-sm .num { font-size: 24px; }
+.ctx-row.size-sm .u { font-size: 10.5px; margin-top: 2px; }
+.ctx-row.size-lg { height: 132px; border-radius: 26px; }
+.ctx-row.size-lg .card-body { padding: 0 20px 0 16px; gap: 14px; }
+.ctx-row.size-lg .emo { width: 54px; height: 54px; font-size: 27px; }
+.ctx-row.size-lg .t { font-size: 19px; }
+.ctx-row.size-lg .num { font-size: 46px; }
+.ctx-row.size-lg .u { font-size: 12.5px; }
+.ctx-row.size-lg .tick { margin-top: 6px; font-size: 11.5px; }
+.grid .ctx-tile.size-lg { grid-column: 1 / -1; aspect-ratio: auto; height: 172px; }
+.grid .ctx-tile.size-lg .num { font-size: 60px; }
+.grid .ctx-tile.size-sm { aspect-ratio: 1 / .8; }
+.ctx-tile.size-sm .m { display: none; }
+.ed-preview > .ctx-row.size-lg { max-width: 100%; }
+
+/* Memo badge: a small tab hanging from the top edge; left or right comes from remote config. */
+.memo-badge { position: absolute; z-index: 2; top: 0; display: inline-flex; align-items: center; gap: 3px; height: 18px; padding: 0 7px; border-radius: 0 0 8px 8px; background: var(--accent); color: var(--on-accent); font: 700 10.5px/1 var(--font-ui); text-shadow: none; }
+.memo-badge .i { width: 11px; height: 11px; stroke-width: 2.2; }
+.memo-badge.top-left { left: 14px; }
+.memo-badge.top-right { right: 16px; }
+.ctx-row.size-sm .memo-badge { height: 14px; font-size: 9.5px; padding: 0 6px; }
+.ctx-row.size-sm .memo-badge .i { width: 9px; height: 9px; }
+.ctx-hero .memo-badge.top-left { left: 22px; }
+
+/* Archive row at the end of the Home list. */
+.arch-row { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); margin: 18px 16px 0; padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-1); color: var(--ink-2); font-weight: 550; }
+.arch-row > span:first-of-type { flex: 1; text-align: left; }
+.arch-row .cv { display: flex; align-items: center; gap: 2px; }
+.link-btn { color: var(--accent); font-weight: 600; }
+.note.pad { margin: -8px 28px 18px; }
+
+/* Six units: the glass control scrolls sideways on narrow screens. */
+.units { overflow-x: auto; scrollbar-width: none; }
+.units::-webkit-scrollbar { display: none; }
+.units button { flex: none; padding: 0 12px; }
+
+/* New-day chooser. */
+.menu-item .sp { display: flex; flex-direction: column; }
+.menu-item small.sub { display: block; margin-top: 1px; font-size: 12.5px; color: var(--ink-3); }
+.menu-item .emo-i { width: 24px; flex: none; text-align: center; font-size: 19px; }
+.menu-item .cv { font-variant-numeric: tabular-nums; color: var(--ink); }
+.menu-item[disabled] { opacity: .45; cursor: default; }

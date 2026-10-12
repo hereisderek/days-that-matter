@@ -62,10 +62,18 @@ function ymdBetween(a, b) {
   return { y: Math.floor(k / 12), m: k % 12, d: diffDays(addMonths(a, k), b) };
 }
 
+// Workdays: Monday to Friday after the start day, up to and including the end day. Public holidays are not skipped yet.
+function workdays(a, b) {
+  let n = 0;
+  for (let d = addDays(a, 1); d <= b; d = addDays(d, 1)) if (d.getDay() % 6) n++;
+  return n;
+}
+
 // ponytail: smoke checks for the demo math only; the shipping engine has its own test vectors.
 console.assert(toISO(addMonths(new Date(2025, 0, 31), 1)) === '2025-02-28', 'month clamp');
 console.assert(JSON.stringify(ymdBetween(new Date(2025, 0, 31), new Date(2025, 2, 1))) === '{"y":0,"m":1,"d":1}', 'ymd borrow');
 console.assert(toISO(nextOccurrence({ date: '2020-02-29', repeat: 'yearly' }, new Date(2026, 2, 1))) === '2027-02-28', 'leap yearly');
+console.assert(workdays(new Date(2026, 9, 9), new Date(2026, 9, 16)) === 5, 'workdays');
 console.assert(zonedInstant(new Date(2026, 10, 19), '09:30', 'Europe/Oslo').toISOString() === '2026-11-19T08:30:00.000Z', 'zoned');
 
 // ---------- formatting ----------
@@ -89,8 +97,9 @@ const ago = ts => { const s = (Date.now() - ts) / 1000; return s < 60 ? 'just no
 const CATS = [['birthday', 'Birthdays', '🎂'], ['anniversary', 'Anniversaries', '💞'], ['travel', 'Travel', '✈️'], ['holiday', 'Holidays', '🧧'], ['work', 'Work', '💼'], ['life', 'Life', '🌱']];
 const REPEATS = [['none', 'Never'], ['yearly', 'Every year'], ['monthly', 'Every month'], ['weekly', 'Every week'], ['custom', 'Every N days']];
 const REMINDERS = [['none', 'None'], ['day', 'On the day'], ['1d', '1 day before'], ['1w', '1 week before']];
-// UnitMode from the events spec: Auto (days, then h/m under 48 hours), Days, Calendar.
-const UNITS = [['auto', 'Auto'], ['days', 'Days'], ['calendar', 'Y·M·D']];
+// UnitMode: Auto (days, then h/m under 48 hours), Days, Weeks, Hours, Calendar (Y·M·D), Workdays (Mon to Fri).
+const UNITS = [['auto', 'Auto'], ['days', 'Days'], ['weeks', 'Weeks'], ['hours', 'Hours'], ['calendar', 'Y·M·D'], ['workdays', 'Workdays']];
+const SIZES = [['sm', 'Small'], ['md', 'Medium'], ['lg', 'Large']];
 const SORTS = [['smart', 'Closest first'], ['far', 'Furthest first'], ['az', 'A to Z'], ['new', 'Recently added']];
 const EMOJIS = ['✨', '🎂', '💞', '🏔️', '✈️', '🧧', '🎓', '💼', '🚀', '🐶', '🌱', '🍃', '🏃', '🎄', '🏠', '👶', '💍', '📚', '💸', '🎉'];
 const ACCENTS = [['jade', '#0E8F63'], ['sky', '#2A6FD6'], ['coral', '#C9472C'], ['plum', '#7547C2'], ['ink', '#1B2420']];
@@ -108,6 +117,38 @@ const TRACKS = [
 ].map(([id, title, artist, dur, premium]) => ({ id, title, artist, dur, premium: !!premium }));
 const track = id => TRACKS.find(t => t.id === id);
 const audioName = a => !a ? 'No music' : a.type === 'track' ? track(a.id).title : a.title;
+
+// Smart days (draft): counted from a rule, not one date. The backend will serve holiday sets per region; this one is a sample.
+const HOLIDAYS = { region: 'New Zealand (sample)', dates: ['2026-01-01', '2026-01-02', '2026-02-06', '2026-04-03', '2026-04-06', '2026-04-27', '2026-06-01', '2026-07-10', '2026-10-26', '2026-12-25', '2026-12-28'] };
+const SMART = {
+  year: { label: 'Days left this year', title: y => `Days left in ${y}`, emoji: '🗓️', u: 'days left this year', hint: 'With progress through the year' },
+  weekends: { label: 'Weekends left this year', title: y => `Weekends left in ${y}`, emoji: '🛋️', u: 'weekends left', hint: 'Saturdays and Sundays after today' },
+  holidays: { label: 'Public holidays left this year', title: y => `Public holidays left in ${y}`, emoji: '🏖️', u: 'public holidays left', hint: HOLIDAYS.region },
+  workdays: { label: 'Workdays left this year', title: y => `Workdays left in ${y}`, emoji: '💼', u: 'workdays left', hint: 'Monday to Friday, minus public holidays' },
+};
+const holidaysLeft = () => HOLIDAYS.dates.map(parse).filter(d => d > today());
+function smartCount(rule) {
+  const t = today(), end = new Date(t.getFullYear(), 11, 31), hol = HOLIDAYS.dates;
+  if (rule === 'year') return diffDays(t, end) + 1;
+  if (rule === 'holidays') return holidaysLeft().length;
+  let n = 0;
+  for (let d = addDays(t, 1); d <= end; d = addDays(d, 1)) {
+    const w = d.getDay();
+    if (rule === 'weekends' ? w === 6 : w % 6 && !hol.includes(toISO(d))) n++;
+  }
+  return n;
+}
+const yearPct = () => { const t = today(), y0 = new Date(t.getFullYear(), 0, 1); return Math.round(diffDays(y0, t) / diffDays(y0, new Date(t.getFullYear() + 1, 0, 1)) * 100); };
+// Seasonal templates: offered only inside their window (MM-DD), from a backend catalog in the real app.
+const SEASONAL = [
+  { id: 'halloween', title: 'Halloween', emoji: '🎃', from: '10-01', to: '10-31', fromText: 'Oct 1', toText: 'Oct 31', date: y => `${y}-10-31`, bg: { type: 'gradient', id: 'dusk' } },
+  { id: 'christmas', title: 'Christmas', emoji: '🎄', from: '11-01', to: '12-25', fromText: 'Nov 1', toText: 'Dec 25', date: y => `${y}-12-25`, bg: { type: 'art', id: 'night' } },
+  { id: 'lny', title: 'Lunar New Year', emoji: '🧧', from: '01-01', to: '02-06', fromText: 'Jan 1', toText: 'Feb 6', date: () => '2027-02-06', bg: { type: 'gradient', id: 'citrus' } },
+];
+const seedLibrary = () => [
+  { id: 'lib1', title: 'Our first dance', dur: '5:30', created: 2, removed: false },
+  { id: 'lib2', title: 'Happy birthday, piano', dur: '1:48', created: 1, removed: false },
+];
 
 // Plan table, mirrors docs/features/premium/SPEC.md (source of truth: :core:model).
 const LIMITS = {
@@ -185,7 +226,7 @@ const isDark = () => { const t = document.documentElement.dataset.theme; return 
 function seed() {
   const t = today(), rel = n => toISO(addDays(t, n));
   const yearsAgo = (n, y) => { const d = addDays(t, n); return toISO(new Date(d.getFullYear() - y, d.getMonth(), d.getDate())); };
-  const look = (bg, o = {}) => ({ bg, dim: bg.type === 'photo' ? .25 : 0, style: 'glass', font: 'sans', text: 'auto', ...o });
+  const look = (bg, o = {}) => ({ bg, dim: bg.type === 'photo' ? .25 : 0, blur: 0, style: 'glass', font: 'sans', text: 'auto', size: 'md', ...o });
   return [
     { id: 'norway', title: 'Norway trip', emoji: '🏔️', date: rel(38), time: '09:30', zone: 'Europe/Oslo', category: 'travel', pinned: true, pinnedAt: 3, created: rel(-62), reminder: '1w',
       notes: 'Rain jackets. Train seats 41 and 42.', audio: { type: 'track', id: 'morning' },
@@ -194,24 +235,25 @@ function seed() {
       links: [{ label: 'Family chat', token: 'Q7fK2mXw9pLs0aRt4vYb8c', expires: 'Never' }],
       invites: [{ role: 'editor', uses: 5, used: 2, expires: fmtDate(addDays(t, 30)), token: 'Hn3kV0aQ8sLm2PzW5yTc1e' }],
       memos: [{ date: rel(-20), text: 'Booked the night train from Oslo to Bergen.' }] },
-    { id: 'mia', title: "Mia's birthday", emoji: '🎂', date: yearsAgo(23, 7), repeat: 'yearly', category: 'birthday', pinned: true, pinnedAt: 1, look: look({ type: 'color', value: '#FADDCB' }, { style: 'clean', font: 'rounded' }) },
+    { id: 'mia', title: "Mia's birthday", emoji: '🎂', date: yearsAgo(23, 7), repeat: 'yearly', category: 'birthday', pinned: true, pinnedAt: 1, audio: { type: 'file', id: 'lib2', title: 'Happy birthday, piano', dur: '1:48' }, look: look({ type: 'color', value: '#FADDCB' }, { style: 'clean', font: 'rounded' }) },
     { id: 'together', title: 'Together', emoji: '💞', date: '2021-05-20', category: 'anniversary', unit: 'days', pinned: true, pinnedAt: 2,
       audio: { type: 'spotify', kind: 'Playlist', title: 'Our songs', url: 'https://open.spotify.com/playlist/37i9dQZF1DX4OzrY981I1W' },
-      look: look({ type: 'photo', src: pic(129), fx: 50, fy: 55 }, { font: 'serif', dim: .22 }),
+      look: look({ type: 'photo', src: pic(129), fx: 50, fy: 55 }, { font: 'serif', dim: .22, size: 'lg' }),
       memos: [{ date: '2021-05-20', text: 'First walk along the river. It rained the whole time.', tag: 'Day 1' },
         { date: '2024-02-13', text: 'Day 1,000. Dumplings at the place we found on day 3.', tag: 'Day 1,000' },
         { date: rel(-40), text: 'Planted the lemon tree on the balcony.' }] },
     { id: 'grandma', title: "Grandma's 90th", emoji: '🎉', date: rel(64), time: '12:00', owner: { name: 'Mum' }, role: 'editor',
       audio: { type: 'track', id: 'nocturne' }, members: [{ name: 'Dad', role: 'editor' }, { name: 'You', role: 'editor' }, { name: 'Ana', role: 'viewer' }],
       look: look({ type: 'photo', src: pic(152), fx: 50, fy: 50, animated: true, canAnimate: true }, { font: 'serif', dim: .28 }) },
-    { id: 'payday', title: 'Payday', emoji: '💸', date: toISO(new Date(2025, 0, t.getDate())), repeat: 'monthly', category: 'work', look: look({ type: 'art', id: 'confetti' }, { style: 'clean' }) },
-    { id: 'lny', title: 'Lunar New Year', emoji: '🧧', date: '2027-02-06', category: 'holiday', look: look({ type: 'gradient', id: 'citrus' }, { style: 'poster', font: 'condensed' }) },
-    { id: 'launch', title: 'App launch', emoji: '🚀', date: rel(49), time: '10:00', zone: DEVICE_TZ, category: 'work', unit: 'days', look: look({ type: 'color', value: '#2D6CDF' }, { style: 'outline', font: 'mono' }) },
+    { id: 'payday', title: 'Payday', emoji: '💸', date: toISO(new Date(2025, 0, t.getDate())), repeat: 'monthly', category: 'work', look: look({ type: 'art', id: 'confetti' }, { style: 'clean', size: 'sm' }) },
+    { id: 'launch', title: 'App launch', emoji: '🚀', date: rel(49), time: '10:00', zone: DEVICE_TZ, category: 'work', unit: 'workdays', look: look({ type: 'color', value: '#2D6CDF' }, { style: 'outline', font: 'mono' }) },
     { id: 'mochi', title: 'Mochi came home', emoji: '🐶', date: '2024-03-09', category: 'life', look: look({ type: 'photo', src: pic(1025), fx: 50, fy: 45 }, { font: 'rounded' }),
       memos: [{ date: '2024-03-09', text: 'Slept the whole ride home.', tag: 'Day 1' }] },
-    { id: 'sugar', title: 'No added sugar', emoji: '🍃', date: rel(-73), category: 'life', look: look({ type: 'gradient', id: 'lagoon' }) },
-    { id: 'marathon', title: 'Spring marathon', emoji: '🏃', date: rel(158), category: 'life', unit: 'calendar', look: look({ type: 'art', id: 'hills' }, { style: 'poster', font: 'condensed' }) },
-  ].map((e, i) => ({ repeat: 'none', every: 10, time: null, zone: null, pinned: false, pinnedAt: 0, unit: 'auto', created: rel(-30 - i), reminder: 'day', audio: null,
+    { id: 'marathon', title: 'Spring marathon', emoji: '🏃', date: rel(158), category: 'life', unit: 'weeks', look: look({ type: 'art', id: 'hills' }, { style: 'poster', font: 'condensed' }) },
+    { id: 'weekends', kind: 'smart', rule: 'weekends', title: `Weekends left in ${t.getFullYear()}`, emoji: '🛋️', date: toISO(new Date(t.getFullYear(), 11, 31)), reminder: 'none',
+      look: look({ type: 'gradient', id: 'meadow' }, { size: 'sm' }) },
+    { id: 'test', title: 'Driving test', emoji: '🚗', date: rel(-120), category: 'life', archived: true, look: look({ type: 'color', value: '#CFE5F8' }) },
+  ].map((e, i) => ({ kind: 'date', rule: null, archived: false, repeat: 'none', every: 10, time: null, zone: null, pinned: false, pinnedAt: 0, unit: 'auto', created: rel(-30 - i), reminder: 'day', audio: null,
     notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [], ...e }));
 }
 const seedHistory = () => ({
@@ -239,13 +281,17 @@ const S = {
   draft: null, edTab: 'details', bgTab: 'photo', soundTab: 'builtin', prevCtx: 'hero', trackPreview: null,
   share: { tab: 'link', format: 'story', watermark: true, newLink: false, linkLabel: '', linkExpiry: 'never', inviteRole: 'editor', inviteUses: '5', inviteExpiry: '30' },
   sheet: null, toast: null, after: null, billing: 'year',
-  settings: { theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true },
+  library: seedLibrary(), config: { memoBadge: 'top-right' }, // config = remote config from GET /config
+  settings: { theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true, notifyShared: true, notifyAdded: true, notifyOffers: false },
 };
 // Guests have no backend: no shared-with-me days, no links, no history.
 const visible = () => S.events.filter(e => S.account || !e.owner);
 const byId = id => S.events.find(e => e.id === id);
+// Archived days leave Home, the pinned carousel and widget choices; they live on the Archived screen.
+const active = () => visible().filter(e => !e.archived);
+const libUsedBy = id => S.events.filter(e => e.audio?.type === 'file' && e.audio.id === id).length;
 // Pinned days, most recently pinned first. Pin is owner-only, so days shared with you can't be pinned.
-const pins = () => visible().filter(e => e.pinned && !e.owner).sort((a, b) => b.pinnedAt - a.pinnedAt);
+const pins = () => active().filter(e => e.pinned && !e.owner).sort((a, b) => b.pinnedAt - a.pinnedAt);
 const isOwner = ev => !ev.owner;
 const role = ev => ev.owner ? ev.role : 'owner';
 const sharedOut = ev => !!S.account && isOwner(ev) && (ev.members.length > 0 || ev.links.length > 0);
@@ -253,7 +299,8 @@ const scrollMem = {};
 function usage(except) {
   const mine = S.events.filter(e => isOwner(e) && e.id !== except);
   return { events: mine.length, photos: mine.filter(e => e.look.bg.type === 'photo').length, animated: mine.filter(e => e.look.bg.animated).length,
-    files: mine.filter(e => e.audio?.type === 'file').length, spotify: mine.filter(e => e.audio?.type === 'spotify').length };
+    files: S.library.filter(l => !l.removed || libUsedBy(l.id)).length, // a song counts while in the library or used by a day
+     spotify: mine.filter(e => e.audio?.type === 'spotify').length };
 }
 
 // ---------- values ----------
@@ -266,10 +313,14 @@ function occurrence(ev, c) {
 }
 
 function valueFor(ev, unit, c) {
+  if (ev.kind === 'smart') return { num: fmt(smartCount(ev.rule)), u: SMART[ev.rule].u };
   if (c.today) return { num: 'Today', u: ev.repeat === 'yearly' ? occurrence(ev, c) : 'it’s the day', today: true };
-  const dir = c.future ? 'left' : 'since';
+  const dir = c.future ? 'left' : 'since', [a, b] = c.future ? [today(), c.target] : [c.target, today()];
+  if (unit === 'weeks') return { num: `${Math.floor(c.days / 7)}<small>w</small>${c.days % 7}<small>d</small>`, u: c.future ? 'to go' : 'since', long: true };
+  if (unit === 'hours') return { num: fmt(Math.floor(Math.abs(c.ms) / 36e5)), u: `hours ${dir}` };
+  if (unit === 'workdays') return { num: fmt(workdays(a, b)), u: `workdays ${dir}` };
   if (unit === 'calendar') {
-    const [a, b] = c.future ? [today(), c.target] : [c.target, today()], { y, m, d } = ymdBetween(a, b);
+    const { y, m, d } = ymdBetween(a, b);
     const parts = [[y, 'y'], [m, 'm'], [d, 'd']].filter(([n], i) => n || i === 2 || (i === 1 && y));
     return { num: parts.map(([n, s]) => `${n}<small>${s}</small>`).join(''), u: c.future ? 'to go' : 'since', long: true };
   }
@@ -281,11 +332,14 @@ function valueFor(ev, unit, c) {
   return { num: fmt(c.days), u: `${c.days === 1 ? 'day' : 'days'} ${dir}` };
 }
 
+const smartMeta = ev => `Until Dec 31${ev.rule === 'holidays' ? ` · ${HOLIDAYS.region}` : ''}`;
 function meta(ev, c) {
+  if (ev.kind === 'smart') return smartMeta(ev);
   if (c.past) return `Since ${fmtDate(c.target, 'year')}`;
   return [c.today ? 'Today' : fmtDate(c.target), occurrence(ev, c)].filter(Boolean).join(' · ');
 }
 function metaLong(ev, c, long = true) {
+  if (ev.kind === 'smart') return `Counts to December 31, ${c.target.getFullYear()}${ev.rule === 'holidays' ? ` · ${HOLIDAYS.region}` : ''}`;
   let s = `${c.past ? 'Since ' : ''}${fmtDate(c.target, long ? 'long' : 'short')}`;
   if (ev.time) s += ` · ${fmtTime(ev.time)}`;
   if (ev.zone && ev.zone !== DEVICE_TZ) s += ` ${city(ev.zone)} time${ev.time && long ? ` (${clock(c.at)} here)` : ''}`;
@@ -293,6 +347,7 @@ function metaLong(ev, c, long = true) {
 }
 
 function tickText(ev) {
+  if (ev.kind === 'smart') return `${yearPct()}% of ${today().getFullYear()} done`;
   const c = calc(ev);
   if (c.today && c.ms <= 0) return 'Happening today';
   let ms = Math.abs(c.ms);
@@ -321,6 +376,7 @@ const ICONS = {
   download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 20h14"/>', upload: '<path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 20h14"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/>',
   palette: '<path d="M12 3a9 9 0 000 18c1.4 0 2-1 1.6-2.1-.5-1.3.4-2.4 1.8-2.4H18a3 3 0 003-3c0-5.5-4-10.5-9-10.5z"/><circle cx="7.5" cy="11" r="1.1" fill="currentColor"/><circle cx="10.5" cy="7.5" r="1.1" fill="currentColor"/><circle cx="15" cy="8" r="1.1" fill="currentColor"/>',
+  archive: '<rect x="3.5" y="4" width="17" height="5" rx="1.5"/><path d="M5 9v9a2 2 0 002 2h10a2 2 0 002-2V9M10 13h4"/>',
   bell: '<path d="M6 16v-5a6 6 0 1112 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 004 0"/>', calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
   widgets: '<rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="16" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/>',
   cloud: '<path d="M7 18a4.5 4.5 0 01-.6-9A6 6 0 0118 8.5a4.8 4.8 0 01-1 9.5z"/>', globe: '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.7 2.5 14.3 0 17M12 3.5c-2.5 2.7-2.5 14.3 0 17"/>',
@@ -340,20 +396,24 @@ const proBadge = () => '<span class="pro">Premium</span>';
 // ---------- card ----------
 // motion: play an animated backdrop once (day page on open, editor preview). Lists and widgets show the key photo.
 function layers(L, motion = false) {
-  return `<div class="card-bg${motion && L.bg.animated ? ' motion' : ''}" style="${esc(`background:${bgCSS(L.bg)}`)}"></div>`
+  // Blur is a shared look field (backdrop.blur, 0 to 16) for photos and art.
+  const blur = L.blur && (L.bg.type === 'photo' || L.bg.type === 'art') ? `--b:blur(${L.blur}px);inset:-${L.blur * 2}px;` : '';
+  return `<div class="card-bg${motion && L.bg.animated ? ' motion' : ''}" style="${esc(`background:${bgCSS(L.bg)};${blur}`)}"></div>`
     + (L.dim ? `<div class="card-scrim" style="opacity:${L.dim}"></div>` : '')
     + (L.bg.type === 'photo' ? '<div class="card-legible"></div>' : '')
     + '<div class="card-grain"></div>';
 }
 const count = v => `${v.pre ? `<span class="pre">${v.pre}</span>` : ''}<span class="num${v.long ? ' long' : ''}">${v.num}</span>`;
-const cardClass = (ev, ctx, style = ev.look.style) => `card ctx-${ctx} st-${style} tone-${tone(ev.look)} font-${ev.look.font}`;
+const cardClass = (ev, ctx, style = ev.look.style) => `card ctx-${ctx} st-${style} tone-${tone(ev.look)} font-${ev.look.font} size-${ev.look.size || 'md'}`;
+// Owner-only: memos never reach members or the web. Position comes from remote config (ui.memoBadge).
+const memoBadge = ev => isOwner(ev) && ev.memos.length ? `<span class="memo-badge ${S.config.memoBadge}" aria-label="${ev.memos.length} memos">${icon('memo')}${ev.memos.length > 9 ? '9+' : ev.memos.length}</span>` : '';
 const cardVars = L => esc(`--swatch:${bgCSS(L.bg)};--edge:${edgeColor(L.bg)}`);
 const title = ev => esc(ev.title || 'Untitled day');
 const marks = ev => (ev.pinned ? icon('pin', 'mini') : '') + (ev.owner ? `${icon('people', 'mini')}${esc(ev.owner.name)} · ` : sharedOut(ev) ? icon('people', 'mini') : '');
 const watermark = () => S.share.watermark ? '<div class="mark">Tracked with Days That Matter</div>' : '';
 
 const CTX = {
-  row: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div class="txt"><div class="t">${title(ev)}</div><div class="m">${marks(ev)}${esc(meta(ev, c))}</div></div><div class="cnt">${count(v)}<div class="u">${v.u}</div></div>`,
+  row: (ev, c, v) => `<span class="emo">${ev.emoji}</span><div class="txt"><div class="t">${title(ev)}</div><div class="m">${marks(ev)}${esc(meta(ev, c))}</div>${ev.look.size === 'lg' ? `<div class="m tick" data-tick="${ev.id}">${tickText(ev)}</div>` : ''}</div><div class="cnt">${count(v)}<div class="u">${v.u}</div></div>`,
   tile: (ev, c, v) => `<div class="top"><span class="emo">${ev.emoji}</span><span class="m">${marks(ev).replace(/ · $/, '')}</span></div><div>${count(v)}<div class="u">${v.u}</div><div class="t">${title(ev)}</div><div class="m">${esc(meta(ev, c))}</div></div>`,
   hero: (ev, c, v) => `<div class="top"><span class="glass-pill">${ev.pinned ? `${icon('pin', 'mini')}Pinned` : esc(catOf(ev)[1])}</span><span class="emo">${ev.emoji}</span></div>
     <div><div class="t">${title(ev)}</div><div class="m">${esc(metaLong(ev, c, false))}</div>
@@ -367,13 +427,13 @@ const CTX = {
 function card(ev, ctx, attrs = '', motion = false) {
   const c = calc(ev), v = valueFor(ev, ev.unit, c);
   const style = ['story', 'banner'].includes(ctx) && ev.look.style === 'outline' ? 'clean' : ev.look.style;
-  return `<article class="${cardClass(ev, ctx, style)}" style="${cardVars(ev.look)}" ${attrs}>${layers(ev.look, motion)}<div class="card-body">${CTX[ctx](ev, c, v)}</div></article>`;
+  return `<article class="${cardClass(ev, ctx, style)}" style="${cardVars(ev.look)}" ${attrs}>${layers(ev.look, motion)}${['row', 'tile', 'hero'].includes(ctx) ? memoBadge(ev) : ''}<div class="card-body">${CTX[ctx](ev, c, v)}</div></article>`;
 }
 function openAttrs(ev, act = 'open', arg = ev.id) {
   const v = valueFor(ev, ev.unit, calc(ev));
   return `data-act="${act}" data-arg="${arg}" data-long="${ev.id}" role="button" tabindex="0" aria-label="${esc(`${ev.title}, ${strip(v.pre || '')} ${strip(v.num)} ${strip(v.u)}${ev.owner ? `, shared by ${ev.owner.name}` : ''}`)}"`;
 }
-const catOf = ev => CATS.find(c => c[0] === ev.category) || ['shared', 'Shared', '👥'];
+const catOf = ev => ev.kind === 'smart' ? ['smart', 'Smart day', '✨'] : CATS.find(c => c[0] === ev.category) || ['shared', 'Shared', '👥'];
 
 // ---------- views ----------
 function statusbar() {
@@ -395,15 +455,16 @@ function sortRows(rows) {
 function homeView() {
   const q = S.query.trim().toLowerCase(), pinned = S.settings.showHero && !q && S.filter === 'all' ? pins() : [];
   S.pinIndex = Math.min(S.pinIndex, Math.max(0, pinned.length - 1));
-  let rows = visible().map(e => ({ e, c: calc(e) }));
+  let rows = active().map(e => ({ e, c: calc(e) }));
   if (q) rows = rows.filter(r => r.e.title.toLowerCase().includes(q));
   if (S.filter === 'shared') rows = rows.filter(r => r.e.owner || sharedOut(r.e));
+  if (S.filter === 'smart') rows = rows.filter(r => r.e.kind === 'smart');
   if (CATS.some(c => c[0] === S.filter)) rows = rows.filter(r => r.e.category === S.filter);
   const up = sortRows(rows.filter(r => !r.c.past)), since = sortRows(rows.filter(r => r.c.past));
   const sections = [S.filter !== 'since' && ['Upcoming', up], S.filter !== 'upcoming' && ['Since', since]].filter(s => s && s[1].length);
-  const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['since', 'Since'], ...(S.account ? [['shared', 'Shared']] : []), ...CATS.map(([k, n]) => [k, n])];
+  const filters = [['all', 'All'], ['upcoming', 'Upcoming'], ['since', 'Since'], ...(S.account ? [['shared', 'Shared']] : []), ['smart', 'Smart'], ...CATS.map(([k, n]) => [k, n])];
   const tools = `<div class="tools"><button data-act="layout" aria-label="${S.layout === 'list' ? 'Show as grid' : 'Show as list'}">${icon(S.layout === 'list' ? 'grid' : 'list')}</button><button data-act="sort-menu" aria-label="Sort">${icon('sort')}</button></div>`;
-  const ctx = S.layout === 'grid' ? 'tile' : 'row';
+  const ctx = S.layout === 'grid' ? 'tile' : 'row', nArch = visible().filter(e => e.archived).length;
   const kicker = S.account && S.pending ? `<span class="sync-dot"></span>Syncing ${S.pending} ${S.pending === 1 ? 'change' : 'changes'}…` : new Date().toLocaleDateString('en', { weekday: 'long', month: 'long', day: 'numeric' });
   const carousel = !pinned.length ? '' : `<div class="pins-wrap">
       <div class="pins${pinned.length > 1 ? ' multi' : ''}" aria-roledescription="carousel" aria-label="Pinned days">${pinned.map((e, i) =>
@@ -421,13 +482,31 @@ function homeView() {
     ${sections.length ? sections.map(([name, rs], i) => `<div class="sec-head"><h2>${name}<span>${rs.length}</span></h2>${i === 0 ? tools : ''}</div>
       <div class="${S.layout}">${rs.map(r => card(r.e, ctx, openAttrs(r.e))).join('')}</div>`).join('')
       : `<div class="sec-head"><span></span>${tools}</div><div class="empty"><div class="big">🌤️</div><b>${q ? 'No matches' : 'Nothing here yet'}</b>${q ? 'Try another word.' : 'Add a day and give it a photo or a color.'}</div>`}
+    ${nArch && S.filter === 'all' && !q ? `<button class="arch-row" data-act="go" data-arg="archive">${icon('archive')}<span>Archived</span><span class="cv">${nArch}${icon('chev')}</span></button>` : ''}
     <div style="height:130px"></div>
   </div></section>
   <div class="bottom-fade"></div>
   <button class="fab" data-act="new">${icon('plus')}New day</button>`;
 }
 
+function archiveView() {
+  const list = visible().filter(e => e.archived);
+  return `<section class="view" data-key="archive">
+    <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
+    <h1 class="page-title">Archived</h1>
+    <p class="lead">Hidden from Home, the pinned carousel and widgets. Reminders and notifications are off. Long-press a day to unarchive it.</p>
+    ${list.length ? `<div class="list">${list.map(e => card(e, 'row', openAttrs(e))).join('')}</div>`
+      : '<div class="empty"><div class="big">🗂️</div><b>Nothing archived</b>Archive a day from its menu to tidy up Home.</div>'}
+    <div style="height:40px"></div>
+  </section>`;
+}
+
 function milestonesBlock(ev, c) {
+  if (ev.kind === 'smart') {
+    const pct = yearPct(), left = ev.rule === 'holidays' ? holidaysLeft() : [];
+    return `<div class="block"><h3>This year<span>${pct}% done</span></h3><div class="progress"><i style="width:${pct}%"></i></div>
+      <p class="note">${left.length ? `Next: ${left.map(d => fmtDate(d)).join(' · ')}` : `${fmt(smartCount('year'))} days left, ${fmt(smartCount('weekends'))} weekends.`}</p></div>`;
+  }
   if (!c.past) {
     const start = parse(ev.created), total = Math.max(1, diffDays(start, c.target)), done = Math.min(total, Math.max(0, diffDays(start, today())));
     const pct = Math.round(done / total * 100);
@@ -470,15 +549,17 @@ function detailView() {
   const [, catName, catEmoji] = catOf(ev);
   const rep = ev.repeat === 'none' ? '' : ` · ${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(x => x[0] === ev.repeat)[1]}`;
   const style = ev.look.style === 'outline' ? 'clean' : ev.look.style;
-  const a = ev.audio, playable = a && a.type !== 'spotify';
+  const a = ev.audio, playable = !!a, smart = ev.kind === 'smart';
+  const shareAct = smart ? 'data-act="toast" data-arg="Smart days can’t be shared yet."' : 'data-act="share"';
+  // Spotify: a short preview plays in the app (assumption to check when building); the full song opens in Spotify.
   const music = !a ? '' : a.type === 'spotify'
-    ? `<button class="gbtn spot" data-act="spotify" aria-label="Open ${esc(a.title)} in Spotify">${icon('spotify')}</button>`
+    ? `<button class="gbtn spot" data-act="audio" aria-label="${S.playing ? 'Stop' : 'Play'} preview of ${esc(a.title)}" aria-pressed="${S.playing}">${S.playing ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('spotify')}</button>`
     : `<button class="gbtn" data-act="audio" aria-label="${S.playing ? 'Pause' : 'Play'} ${esc(audioName(a))}" aria-pressed="${S.playing}"><span class="disc ${S.playing ? 'playing' : ''}"></span></button>`;
   const acts = [
     r !== 'viewer' && `<button class="act" data-act="edit" data-arg="${ev.id}">${icon('edit')}${own ? 'Customize' : 'Edit'}</button>`,
-    own && `<button class="act" data-act="share">${icon('share')}Share</button>`,
+    own && !smart && `<button class="act" data-act="share">${icon('share')}Share</button>`,
     !own && r === 'editor' && `<button class="act" data-act="history">${icon('history')}History</button>`,
-    (a || r !== 'viewer') && `<button class="act" data-act="${!a ? 'edit-sound' : a.type === 'spotify' ? 'spotify' : 'audio'}" aria-pressed="${S.playing && playable}">${S.playing && playable ? '<span class="eq"><i></i><i></i><i></i></span>' : icon(a?.type === 'spotify' ? 'spotify' : 'music')}${!a ? 'Add music' : a.type === 'spotify' ? 'Spotify' : 'Music'}</button>`,
+    (a || r !== 'viewer') && `<button class="act" data-act="${!a ? 'edit-sound' : 'audio'}" aria-pressed="${S.playing && playable}">${S.playing && playable ? '<span class="eq"><i></i><i></i><i></i></span>' : icon(a?.type === 'spotify' ? 'spotify' : 'music')}${!a ? 'Add music' : a.type === 'spotify' ? 'Preview' : 'Music'}</button>`,
     own && `<button class="act" data-act="focus-memo">${icon('memo')}Memo</button>`,
     !own && r === 'viewer' && `<button class="act" data-act="report">${icon('flag')}Report</button>`,
     !own && `<button class="act" data-act="leave" data-arg="${ev.id}">${icon('leave')}Leave</button>`,
@@ -489,16 +570,16 @@ function detailView() {
   return `<section class="view detail" data-key="detail">
     <article class="${cardClass(ev, 'detail', style)}" style="${cardVars(ev.look)}" data-act="motion">${layers(ev.look, S.motion)}<div class="card-body">
       <header class="d-bar"><button class="gbtn" data-act="back" aria-label="Back">${icon('back')}</button><span class="sp"></span>
-        ${music}<button class="gbtn" data-act="share" aria-label="Share">${icon('share')}</button>
+        ${music}<button class="gbtn" ${shareAct} aria-label="Share">${icon('share')}</button>
         <button class="gbtn" data-act="more" data-arg="${ev.id}" aria-label="More actions">${icon('more')}</button></header>
       <div class="d-main">
-        <div class="kick"><span class="glass-pill">${ev.owner ? `${icon('people', 'mini')}${esc(ev.owner.name)} · ${ev.role === 'editor' ? 'Editor' : 'Viewer'}` : `${catEmoji} ${catName}`}${rep}</span>${ev.look.bg.animated ? '<span class="glass-pill live"><i></i>Live</span>' : ''}</div>
+        <div class="kick"><span class="glass-pill">${ev.owner ? `${icon('people', 'mini')}${esc(ev.owner.name)} · ${ev.role === 'editor' ? 'Editor' : 'Viewer'}` : `${catEmoji} ${catName}`}${rep}</span>${ev.look.bg.animated ? '<span class="glass-pill live"><i></i>Live</span>' : ''}${ev.archived ? '<span class="glass-pill">Archived</span>' : ''}</div>
         <span class="emo">${ev.emoji}</span>
         <h1 class="t">${title(ev)}</h1>
         <div class="m">${esc(metaLong(ev, c))}${occurrence(ev, c) && !c.today ? ` · ${esc(occurrence(ev, c))}` : ''}</div>
-        <button class="d-count" data-act="cycle-unit" aria-label="Switch unit">${count(v)}<span class="u">${v.u}</span></button>
+        <button class="d-count" data-act="${smart ? 'none' : 'cycle-unit'}" aria-label="Switch unit">${count(v)}<span class="u">${v.u}</span></button>
         <div class="tick" data-tick="${ev.id}">${tickText(ev)}</div>
-        ${r === 'viewer' ? '' : `<div class="seg seg-glass units" role="group" aria-label="Unit">${UNITS.map(([k, n]) => `<button data-act="unit" data-arg="${k}" aria-pressed="${ev.unit === k}">${n}</button>`).join('')}</div>`}
+        ${r === 'viewer' || smart ? '' : `<div class="seg seg-glass units" role="group" aria-label="Unit">${UNITS.map(([k, n]) => `<button data-act="unit" data-arg="${k}" aria-pressed="${ev.unit === k}">${n}</button>`).join('')}</div>`}
       </div></div></article>
     <div class="d-panel"><div class="grabber"></div>
       <div class="actions c${acts.length}">${acts.join('')}</div>
@@ -507,11 +588,13 @@ function detailView() {
       ${own ? `<div class="block" id="memos"><h3>Memos<span>${ev.memos.length ? `${ev.memos.length} · only you` : 'only you'}</span></h3>${memos}
         <div class="compose"><input data-field="memo" placeholder="Write a memory or a note" aria-label="New memo"><button class="send" data-act="add-memo" aria-label="Add memo">${icon('send')}</button></div></div>` : ''}
       <div class="block"><h3>Details</h3>
-        <div class="kv"><span>Date</span><span>${fmtDate(parse(ev.date), 'long')}</span></div>
+        ${smart ? `<div class="kv"><span>Counts</span><span>${SMART[ev.rule].label}</span></div><div class="kv"><span>Updates</span><span>Every day at midnight</span></div>`
+        : `<div class="kv"><span>Date</span><span>${fmtDate(parse(ev.date), 'long')}</span></div>
         <div class="kv"><span>Time</span><span>${ev.time ? fmtTime(ev.time) : 'All day'}</span></div>
         <div class="kv"><span>Time zone</span><span>${zoneText}</span></div>
-        <div class="kv"><span>Repeats</span><span>${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(x => x[0] === ev.repeat)[1]}</span></div>
-        ${a ? `<div class="kv"><span>Music</span><span>${esc(audioName(a))}${a.type === 'track' ? ` · ${esc(track(a.id).artist)}` : a.type === 'spotify' ? ' · Spotify' : ''}</span></div>` : ''}
+        <div class="kv"><span>Repeats</span><span>${ev.repeat === 'custom' ? `Every ${ev.every} days` : REPEATS.find(x => x[0] === ev.repeat)[1]}</span></div>`}
+        ${a ? `<div class="kv"><span>Music</span><span>${esc(audioName(a))}${a.type === 'track' ? ` · ${esc(track(a.id).artist)}` : a.type === 'file' ? ' · My library' : ` · <button class="link-btn" data-act="spotify">Open in Spotify</button>`}</span></div>` : ''}
+        ${ev.archived ? `<div class="kv"><span>Archived</span><span>Yes · <button class="link-btn" data-act="archive" data-arg="${ev.id}">Unarchive</button></span></div>` : ''}
         ${own ? `<div class="kv"><span>Reminder</span><span>${REMINDERS.find(x => x[0] === ev.reminder)[1]}</span></div>
         <div class="kv"><span>Pinned</span><span>${ev.pinned ? 'Yes, in the carousel' : 'No'}</span></div>
         ${ev.notes ? `<div class="kv"><span>Notes</span><span>${esc(ev.notes)}</span></div>` : ''}` : ''}
@@ -541,14 +624,17 @@ const EDITOR_TABS = {
   details: d => {
     const own = isOwner(d), n = pins().filter(e => e.id !== d.id).length;
     const zones = [[DEVICE_TZ, `${city(DEVICE_TZ)} (this device)`], ...(d.zone && d.zone !== DEVICE_TZ ? [[d.zone, city(d.zone)]] : []), ['floating', 'Floating']];
-    return `<div><div class="flabel"><span>Title</span><span class="opt" id="title-count">${d.title.length}/100</span></div><input class="input title" data-field="title" maxlength="100" value="${esc(d.title)}" placeholder="What are you counting?"></div>
-    <div><div class="flabel">Emoji</div><div class="emojis">${EMOJIS.map(e => `<button class="emoji-opt" data-act="emoji" data-arg="${e}" ${pressed(d.emoji, e)} aria-label="Emoji ${e}">${e}</button>`).join('')}</div></div>
-    <div class="row2"><div><div class="flabel">Date</div><input class="input" type="date" data-field="date" value="${d.date}"></div>
+    const when = d.kind === 'smart'
+      ? `<div class="info">${icon('sparkle')}<span><b>Smart day:</b> ${SMART[d.rule].label.toLowerCase()}. The number updates every day.${d.rule === 'holidays' ? ` Holidays: ${HOLIDAYS.region}.` : ''} Smart days can't be shared yet.</span></div>`
+      : `<div class="row2"><div><div class="flabel">Date</div><input class="input" type="date" data-field="date" value="${d.date}"></div>
       <div><div class="flabel"><span>Time</span><span class="opt">optional</span></div><input class="input" type="time" data-field="time" value="${d.time || ''}"></div></div>
     <div><div class="flabel"><span>Time zone</span></div>${chips(zones, 'zone', d.zone || 'floating')}
       <p class="note">${d.zone ? '<b>Fixed:</b> everyone counts to the same moment. Good for flights and launches.' : '<b>Floating:</b> everyone counts to their own local time. Good for birthdays and New Year.'}</p></div>
     <div><div class="flabel">Repeat</div>${chips(REPEATS, 'repeat', d.repeat)}
-      ${d.repeat === 'custom' ? `<label class="inline-num">Every <input class="input" type="number" min="2" max="365" data-field="every" value="${d.every}"> days</label>` : ''}</div>
+      ${d.repeat === 'custom' ? `<label class="inline-num">Every <input class="input" type="number" min="2" max="365" data-field="every" value="${d.every}"> days</label>` : ''}</div>`;
+    return `<div><div class="flabel"><span>Title</span><span class="opt" id="title-count">${d.title.length}/100</span></div><input class="input title" data-field="title" maxlength="100" value="${esc(d.title)}" placeholder="What are you counting?"></div>
+    <div><div class="flabel">Emoji</div><div class="emojis">${EMOJIS.map(e => `<button class="emoji-opt" data-act="emoji" data-arg="${e}" ${pressed(d.emoji, e)} aria-label="Emoji ${e}">${e}</button>`).join('')}</div></div>
+    ${when}
     ${own ? `<div><div class="flabel">Category <span class="opt">only you</span></div>${chips(CATS.map(([k, n, e]) => [k, `${e} ${n}`]), 'cat', d.category)}</div>
     <div class="switch-row"><div><b>Pin to top</b><small>${d.pinned ? 'In the carousel at the top of Home, and still in the list' : n ? `Joins ${n} pinned ${n === 1 ? 'day' : 'days'} in the carousel` : 'Shows in a carousel at the top of Home'}</small></div>
       <button class="switch" role="switch" aria-label="Pin to top" aria-checked="${d.pinned}" data-act="draft-pin"></button></div>
@@ -575,6 +661,7 @@ const EDITOR_TABS = {
       ${pane[S.bgTab]()}
       <div>
         <label class="slider-row">Darken<input type="range" min="0" max="80" value="${Math.round(L.dim * 100)}" data-field="dim"><output id="dim-out">${Math.round(L.dim * 100)}%</output></label>
+        ${bg.type === 'photo' || bg.type === 'art' ? `<label class="slider-row">Blur<input type="range" min="0" max="16" value="${L.blur || 0}" data-field="blur"><output id="blur-out">${L.blur || 0}</output></label>` : ''}
         <div class="contrast ${ci.ok ? '' : 'warn'}" id="contrast"><i></i>${esc(ci.text)}</div>
       </div>`;
   },
@@ -582,10 +669,12 @@ const EDITOR_TABS = {
     const L = d.look, n = strip(valueFor(d, 'days', calc(d)).num).slice(0, 4);
     return `<div><div class="flabel">Card style</div><div class="style-opts">${Object.entries(STYLES).map(([k, [name, sub]]) =>
       `<div class="style-opt" role="button" tabindex="0" data-act="style" data-arg="${k}" ${pressed(L.style, k)}>${card({ ...d, look: { ...L, style: k } }, 'mini')}<div class="lbl">${name}<small>${sub}</small></div></div>`).join('')}</div></div>
+    <div><div class="flabel"><span>Size in the list</span><span class="opt">Home list and grid</span></div><div class="seg">${SIZES.map(([k, n]) => `<button data-act="size" data-arg="${k}" ${pressed(L.size || 'md', k)}>${n}</button>`).join('')}</div>
+      <p class="note">Small fits more days on a screen. Large adds the live countdown and takes the full width in the grid.</p></div>
     <div><div class="flabel">Typeface</div><div class="font-opts">${Object.entries(FONTS).map(([k, name]) => `<button class="font-opt font-${k}" data-act="font" data-arg="${k}" ${pressed(L.font, k)}><b>${n}</b><span>${name}</span></button>`).join('')}</div></div>
     <div><div class="flabel">Text color</div><div class="seg">${[['auto', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="text" data-arg="${k}" ${pressed(L.text, k)}>${n}</button>`).join('')}</div>
       <div class="contrast ${contrastInfo(L).ok ? '' : 'warn'}"><i></i>${esc(contrastInfo(L).text)}</div></div>
-    <div><div class="flabel">Count in</div>${chips(UNITS, 'draft-unit', d.unit)}<p class="note"><b>Auto</b> shows days, then hours and minutes in the last 48 hours. Everyone with access sees this unit.</p></div>`;
+    ${d.kind === 'smart' ? '' : `<div><div class="flabel">Count in</div>${chips(UNITS, 'draft-unit', d.unit)}<p class="note"><b>Auto</b> shows days, then hours and minutes in the last 48 hours. <b>Workdays</b> counts Monday to Friday and skips weekends; public holidays are not skipped yet. Everyone with access sees this unit.</p></div>`}`;
   },
   sound: d => {
     const a = d.audio, t = S.soundTab, u = usage(d.id);
@@ -595,15 +684,26 @@ const EDITOR_TABS = {
           <button class="play" data-act="preview-track" data-arg="${tr.id}" aria-label="Preview ${esc(tr.title)}">${S.trackPreview === tr.id ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('play')}</button>
           <div class="cl"><b>${esc(tr.title)}${tr.premium ? proBadge() : ''}</b><small>${esc(tr.artist)} · ${tr.dur}</small></div><span class="radio"></span></div>`).join('')}</div>
         <p class="note">${TRACKS.filter(x => !x.premium).length} tracks are free; Premium unlocks all ${TRACKS.length}. Anyone who can see this day can play its track. Public domain recordings.</p>`,
-      files: () => `${a?.type === 'file' ? `<div class="track" aria-checked="true"><button class="play" data-act="toast" data-arg="Preview of your file">${icon('play')}</button><div class="cl"><b>${esc(a.title)}</b><small>Keeping ${a.keep} of ${a.dur} · AAC, under 4 MB</small></div><button class="txt-btn" data-act="track" data-arg="">Remove</button></div>
-          <div class="trim" aria-label="Section to keep"><i style="left:11%;right:13%"></i></div>`
-          : `<button class="switch-row" data-act="pick-file"><div><b>${icon('upload', 'mini')}Pick an audio file ${S.plan === 'free' ? proBadge() : ''}</b><small>MP3, M4A, WAV and more</small></div>${icon('chev')}</button>`}
-        <p class="note">Converted on your phone to AAC of at most 4 MB (about 5½ minutes). For a longer song you pick the part to keep. Plays for you and the people you invite, never on public links.${S.plan === 'premium' ? ` ${u.files} of ${LIMITS.premium.files} files in use.` : ' You can preview it free; saving needs Premium.'}</p>`,
-      spotify: () => `${a?.type === 'spotify' ? `<div class="track" aria-checked="true"><span class="play spot">${icon('spotify')}</span><div class="cl"><b>${esc(a.title)}</b><small>${esc(a.kind)} · opens in Spotify</small></div><button class="txt-btn" data-act="track" data-arg="">Remove</button></div>`
+      library: () => {
+        const items = S.library.filter(l => !l.removed).sort((x, y) => y.created - x.created), eq = '<span class="eq"><i></i><i></i><i></i></span>';
+        const pending = a?.isNew ? `<div class="track" aria-checked="true"><button class="play" data-act="preview-track" data-arg="${a.id}" aria-label="Preview">${S.trackPreview === a.id ? eq : icon('play')}</button>
+          <div class="cl"><b>${esc(a.title)}<span class="new">New</span></b><small>Keeping ${a.keep} of ${a.dur} · AAC, under 4 MB</small></div><button class="mini-btn" data-act="track" data-arg="" aria-label="Discard">${icon('close')}</button></div>
+          <div class="trim" aria-label="Section to keep"><i style="left:11%;right:13%"></i></div>` : '';
+        return `<button class="switch-row" data-act="pick-file"><div><b>${icon('upload', 'mini')}Pick an audio file ${S.plan === 'free' ? proBadge() : ''}</b><small>MP3, M4A, WAV and more. Converted on your phone.</small></div>${icon('chev')}</button>
+        ${pending}
+        <p class="group-label flush">Your library · ${items.length}</p>
+        ${items.length ? `<div class="tracks">${items.map(l => { const n = libUsedBy(l.id); return `<div class="track" role="radio" tabindex="0" aria-checked="${a?.type === 'file' && a.id === l.id}" data-act="lib-use" data-arg="${l.id}">
+          <button class="play" data-act="preview-track" data-arg="${l.id}" aria-label="Preview ${esc(l.title)}">${S.trackPreview === l.id ? eq : icon('play')}</button>
+          <div class="cl"><b>${esc(l.title)}</b><small>${l.dur} · ${n ? `used on ${n} ${n === 1 ? 'day' : 'days'}` : 'not used yet'}</small></div>
+          <button class="mini-btn" data-act="lib-remove" data-arg="${l.id}" aria-label="Remove ${esc(l.title)} from your library">${icon('close')}</button></div>`; }).join('')}</div>`
+          : '<p class="note">Songs you add show up here, so you can use them on other days.</p>'}
+        <p class="note">At most 4 MB each (about 5½ minutes); for a longer song you pick the part to keep. Plays for you and the people you invite, never on public links. × removes a song from this list only: days that use it keep playing it, and it counts toward your ${LIMITS.premium.files} songs until no day uses it.${S.plan === 'premium' ? ` ${u.files} of ${LIMITS.premium.files} in use.` : ' Preview is free; saving a song on a day needs Premium.'}</p>`;
+      },
+      spotify: () => `${a?.type === 'spotify' ? `<div class="track" aria-checked="true"><button class="play spot" data-act="preview-track" data-arg="spotify" aria-label="Play preview">${S.trackPreview === 'spotify' ? '<span class="eq"><i></i><i></i><i></i></span>' : icon('spotify')}</button><div class="cl"><b>${esc(a.title)}</b><small>${esc(a.kind)} · 30-second preview here, full song in Spotify</small></div><button class="txt-btn" data-act="track" data-arg="">Remove</button></div>`
           : `<div class="paste"><input class="input" data-field="spotify" placeholder="Paste a Spotify link" aria-label="Spotify link"><button class="save-btn" data-act="add-spotify">Add</button></div>`}
-        <p class="note">Share a song, album or playlist from Spotify to Days That Matter, or paste its link. No Spotify sign-in; playing opens Spotify.${S.plan === 'free' ? ` Free: Spotify on 3 days (${u.spotify} used).` : ''} Not offered in regions without Spotify.</p>`,
+        <p class="note">Share a song, album or playlist from Spotify to Days That Matter, or paste its link. No Spotify sign-in. A short preview plays here (to be checked against Spotify's current rules when building); the full song opens in Spotify.${S.plan === 'free' ? ` Free: Spotify on 3 days (${u.spotify} used).` : ''} Not offered in regions without Spotify.</p>`,
     };
-    return `<div class="seg" role="group" aria-label="Music source">${[['builtin', 'Built-in'], ['files', 'My files'], ['spotify', 'Spotify']].map(([k, n]) => `<button data-act="sound-tab" data-arg="${k}" ${pressed(t, k)}>${n}</button>`).join('')}</div>
+    return `<div class="seg" role="group" aria-label="Music source">${[['builtin', 'Built-in'], ['library', 'My library'], ['spotify', 'Spotify']].map(([k, n]) => `<button data-act="sound-tab" data-arg="${k}" ${pressed(t, k)}>${n}</button>`).join('')}</div>
       ${panes[t]()}
       ${a && a.type !== 'spotify' ? `<p class="group-label flush">On this device</p>
       <div><label class="slider-row">Volume<input type="range" min="0" max="100" value="70"><output>70%</output></label></div>
@@ -647,10 +747,13 @@ function settingsView() {
       <div class="cell"><span class="ci">${icon('sparkle')}</span><span class="cl">Count the first day as Day 1<span class="new">New</span><small>“Day 1,972” instead of “1,971 days since”</small></span>${sw('dayOne', 'Count the first day as Day 1')}</div>
       <div class="cell"><span class="ci">${icon('calendar')}</span><span class="cl">Week starts on</span><div class="seg sm">${[['mon', 'Mon'], ['sun', 'Sun']].map(([k, n]) => `<button data-act="week" data-arg="${k}" ${pressed(st.weekStart, k)}>${n}</button>`).join('')}</div></div>
     </div>
-    <p class="group-label">Reminders<span class="new">New</span></p>
+    <p class="group-label">Notifications<span class="new">New</span></p>
     <div class="group">
-      <div class="cell"><span class="ci">${icon('bell')}</span><span class="cl">Notifications<small>Local reminders and milestones</small></span>${sw('notify', 'Notifications')}</div>
-      ${link('sun', 'Deliver at', 'Time picker', '9:00 AM')}
+      <div class="cell"><span class="ci">${icon('bell')}</span><span class="cl">Reminders<small>Before and on the day, set per day. Work offline.</small></span>${sw('notify', 'Reminders')}</div>
+      ${link('sun', 'Deliver reminders at', 'Time picker', '9:00 AM')}
+      <div class="cell"><span class="ci">${icon('people')}</span><span class="cl">Changes to shared days<small>When someone else edits a day you share</small></span>${sw('notifyShared', 'Changes to shared days')}</div>
+      <div class="cell"><span class="ci">${icon('plus')}</span><span class="cl">Added to a day<small>When someone adds you to a day</small></span>${sw('notifyAdded', 'Added to a day')}</div>
+      <div class="cell"><span class="ci">${icon('sparkle')}</span><span class="cl">Offers and news<small>Like free Premium weeks. Off unless you turn it on; at most 2 a month.</small></span>${sw('notifyOffers', 'Offers and news')}</div>
     </div>
     <p class="group-label">More</p>
     <div class="group">
@@ -666,9 +769,11 @@ function settingsView() {
     <div class="group">
       ${link('edit', 'Display name<small>Members see it in the member list and history</small>', 'Edit display name', esc(a.name))}
       ${link('plus', 'Add sign-in method', 'Apple, Google or email code. Same verified email joins the same account.')}
+      ${link('download', 'Download my data', 'We’ll email you a link to download your days, memos and files. It works for 30 days.')}
       <button class="cell" data-act="sign-out"><span class="ci">${icon('leave')}</span><span class="cl">Sign out<small>This device only. Your days stay here.</small></span></button>
       <button class="cell danger" data-act="delete-account"><span class="ci">${icon('trash')}</span><span class="cl">Delete account</span></button>
-    </div>` : ''}
+    </div>
+    <p class="note pad">Accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a link to download your data.</p>` : ''}
     <p class="foot">Days That Matter · design v2 prototype</p>
   </section>`;
 }
@@ -680,8 +785,8 @@ function widgetLook(ev) {
 }
 
 function widgetsView() {
-  const pin = pins()[0] || visible()[0];
-  const next = visible().filter(e => e !== pin).map(e => ({ e, c: calc(e) })).filter(r => !r.c.past).sort((a, b) => a.c.days - b.c.days).slice(0, 3);
+  const pin = pins()[0] || active()[0];
+  const next = active().filter(e => e !== pin).map(e => ({ e, c: calc(e) })).filter(r => !r.c.past).sort((a, b) => a.c.days - b.c.days).slice(0, 3);
   const second = next[0] ? next[0].e : pin;
   const w = widgetLook(pin), c = calc(pin), v = valueFor(pin, 'days', c);
   const medium = `<article class="${cardClass(w, 'wm')}" style="${cardVars(w.look)}">${layers(w.look)}<div class="card-body">
@@ -761,7 +866,7 @@ function shareBody(ev) {
       <button class="btn btn-primary" data-act="create-link" style="margin-top:14px">Create and copy link</button></div>`
       : `<button class="btn btn-ghost" data-act="new-link" ${ev.links.length >= 10 ? 'disabled' : ''}>${icon('plus')}New public link</button>`}
     ${ev.links[0] ? `<div class="qr-wrap">${qrSVG(ev.links[0].token)}<div><b>Scan to open</b><p class="note" style="margin-top:4px">“${esc(ev.links[0].label || 'Public link')}”. Made on the phone, works offline.</p></div></div>` : ''}
-    <div class="info">${icon('info')}<span>Anyone with a link sees this day live, no account needed: title, date, time, zone, unit, repeat, look, photo and built-in music. <b>Notes, memos, category and pin stay private.</b> Your own music files play for invited people only. Up to 10 links.</span></div>`;
+    <div class="info">${icon('info')}<span>Anyone with a link sees this day live, no account needed: title, date, time, zone, unit, repeat, look, photo and built-in music. <b>Notes, memos, category and pin stay private.</b> Your own music files play for invited people only. Up to 10 links. The web page is view-only.</span></div>`;
   const inv = ev.invites.map((x, i) => `<div class="lrow">${icon('people')}<div class="cl"><b>${x.role === 'editor' ? 'Editor' : 'Viewer'} invite</b><small>${x.uses === 'unlimited' ? `${x.used} joined · unlimited` : `${x.uses - x.used} of ${x.uses} left`} · expires ${esc(x.expires)}</small></div>
       <button class="mini-btn" data-act="toast" data-arg="Invite link copied" aria-label="Copy">${icon('copy')}</button><button class="mini-btn" data-act="revoke-invite" data-arg="${i}" aria-label="Revoke">${icon('trash')}</button></div>`).join('');
   const members = ev.members.map((m, i) => `<div class="lrow"><span class="av ${i % 2 ? 'alt' : ''}">${esc(m.name[0])}</span><div class="cl"><b>${esc(m.name)}</b></div>
@@ -775,7 +880,7 @@ function shareBody(ev) {
     <p class="group-label flush">People · ${ev.members.length + 1} of 100</p>
     <div class="lrow"><span class="av">${esc((S.account?.name || 'Y')[0])}</span><div class="cl"><b>You</b></div><span class="cv">Owner</span></div>${members}
     ${ev.removed.map((m, i) => `<div class="lrow muted"><span class="av">${esc(m.name[0])}</span><div class="cl"><b>${esc(m.name)}</b><small>Removed · can't rejoin through invites</small></div><button class="txt-btn" data-act="allow-again" data-arg="${i}">Allow again</button></div>`).join('')}
-    <p class="note">Invited people sign in, then see this day in their app and on the web. Opening an invite takes no use; joining takes one.</p>`;
+    <p class="note">Invites open in the app. Without the app, the link shows a page to get it; there is no sign-in or editing on the web. Opening an invite takes no use; joining takes one.</p>`;
 }
 
 const SHEETS = {
@@ -785,10 +890,21 @@ const SHEETS = {
     return `<div class="sheet-card">${card(ev, 'row')}</div>
       ${r === 'owner' ? item('pin', 'pin', ev.pinned ? 'Unpin' : 'Pin to top', ev.pinned ? '' : `<small>${pins().length} pinned</small>`) : ''}
       ${r !== 'viewer' ? item('edit', 'palette', r === 'owner' ? 'Customize' : 'Edit') : ''}
-      ${item('share', 'share', r === 'owner' ? 'Share' : 'Share image')}
+      ${ev.kind === 'smart' ? '' : item('share', 'share', r === 'owner' ? 'Share' : 'Share image')}
+      ${item('archive', 'archive', ev.archived ? 'Unarchive' : 'Archive', ev.pinned && !ev.archived ? '<small>also unpins it</small>' : '')}
       ${r !== 'viewer' && S.account ? item('history', 'history', 'History') : ''}
       ${r === 'owner' ? item('duplicate', 'duplicate', 'Duplicate') + item('delete', 'trash', 'Delete', '', 'danger')
         : item('report', 'flag', 'Report') + item('leave', 'leave', 'Leave', '', 'danger')}`;
+  },
+  newday: () => {
+    const y = today().getFullYear(), md = toISO(today()).slice(5);
+    return `${sheetHead('New day')}
+      <button class="menu-item" data-act="new-date">${icon('calendar')}<span class="sp">A date<small class="sub">Birthday, trip, anniversary, deadline</small></span>${icon('chev')}</button>
+      <p class="group-label flush">Smart days<span class="new">New</span></p>
+      ${Object.entries(SMART).map(([k, sd]) => `<button class="menu-item" data-act="new-smart" data-arg="${k}"><span class="emo-i">${sd.emoji}</span><span class="sp">${sd.title(y)}<small class="sub">${sd.hint}</small></span><b class="cv">${fmt(smartCount(k))}</b></button>`).join('')}
+      <p class="group-label flush">Seasonal · limited time</p>
+      ${SEASONAL.map(se => { const open = md >= se.from && md <= se.to; return `<button class="menu-item" ${open ? `data-act="new-season" data-arg="${se.id}"` : 'disabled'}><span class="emo-i">${se.emoji}</span><span class="sp">${se.title}<small class="sub">${open ? `Available until ${se.toText}` : `Opens ${se.fromText}`}</small></span></button>`; }).join('')}
+      <p class="note">Smart days count from a rule and update every day. Holiday sets will come from the server per region; this one is a sample. Smart days can't be shared yet.</p>`;
   },
   sort: () => `${sheetHead('Sort')}
     ${SORTS.map(([k, n]) => `<button class="menu-item" data-act="sort" data-arg="${k}"><span class="sp">${n}</span>${S.sort === k ? icon('check') : ''}</button>`).join('')}
@@ -838,7 +954,7 @@ function overlays() {
 }
 
 // ---------- render ----------
-const VIEWS = { home: homeView, detail: detailView, editor: editorView, settings: settingsView, widgets: widgetsView, onboarding: onboardingView };
+const VIEWS = { archive: archiveView, home: homeView, detail: detailView, editor: editorView, settings: settingsView, widgets: widgetsView, onboarding: onboardingView };
 
 function render() {
   const old = app.querySelector('.view'), oldSheet = app.querySelector('.sheet'), sheetScroll = oldSheet?.scrollTop, hadToast = !!app.querySelector('.toast');
@@ -952,23 +1068,23 @@ function gate(d, prev) {
   const a = d.audio, pa = prev?.audio;
   if (a && JSON.stringify(a) !== JSON.stringify(pa)) {
     if (a.type === 'track' && track(a.id).premium && free) return wall('premium_audio', keepAudio);
-    if (a.type === 'file' && u.files >= L.files) return wall('files', keepAudio);
+    if (a.type === 'file' && (free || (a.isNew && u.files >= L.files))) return wall('files', keepAudio);
     if (a.type === 'spotify' && pa?.type !== 'spotify' && u.spotify >= L.spotify) return wall('spotify', keepAudio);
   }
   return null;
 }
-const defaultLook = () => ({ bg: { type: 'gradient', id: 'lagoon' }, dim: 0, style: 'glass', font: 'sans', text: 'auto' });
+const defaultLook = () => ({ bg: { type: 'gradient', id: 'lagoon' }, dim: 0, blur: 0, style: 'glass', font: 'sans', text: 'auto', size: 'md' });
 
 // ---------- actions ----------
-function openEditor(id, tab = 'details') {
+function openEditor(id, tab = 'details', preset = null) {
   const src = id && byId(id);
   if (!src && usage().events >= LIMITS[S.plan].events) return openSheet({ type: 'paywall', g: gate({ id: '', look: defaultLook() }, null) });
   S.draft = src ? structuredClone(src) : {
     id: 'e' + Date.now().toString(36), title: '', emoji: '✨', date: toISO(addDays(today(), 30)), time: null, zone: DEVICE_TZ, repeat: 'none', every: 10, category: 'life',
     pinned: false, unit: 'auto', created: toISO(today()), reminder: 'day', audio: null, notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [],
-    look: defaultLook(),
+    kind: 'date', rule: null, archived: false, look: defaultLook(), ...preset,
   };
-  S.edTab = tab; S.bgTab = S.draft.look.bg.type; S.soundTab = S.draft.audio?.type === 'spotify' ? 'spotify' : S.draft.audio?.type === 'file' ? 'files' : 'builtin';
+  S.edTab = tab; S.bgTab = S.draft.look.bg.type; S.soundTab = S.draft.audio?.type === 'spotify' ? 'spotify' : S.draft.audio?.type === 'file' ? 'library' : 'builtin';
   S.prevCtx = S.draft.pinned ? 'hero' : 'row'; S.trackPreview = null;
   go('editor', 'up');
 }
@@ -1014,7 +1130,26 @@ const ACT = {
   motion: (a, el) => { if (!byId(S.detailId).look.bg.animated) return; const bg = el.querySelector('.card-bg'); bg.classList.remove('motion'); void bg.offsetWidth; bg.classList.add('motion'); },
   'pin-card': a => +a === S.pinIndex ? ACT.open(pins()[+a].id) : scrollPins(+a),
   'pin-go': a => scrollPins(+a),
-  new: () => openEditor(null),
+  new: () => usage().events >= LIMITS[S.plan].events ? openSheet({ type: 'paywall', g: gate({ id: '', look: defaultLook() }, null) }) : openSheet({ type: 'newday' }),
+  'new-date': () => { S.sheet = null; openEditor(null); },
+  'new-smart': a => { const y = today().getFullYear(); S.sheet = null; openEditor(null, 'details', { kind: 'smart', rule: a, title: SMART[a].title(y), emoji: SMART[a].emoji, date: `${y}-12-31`, category: null, reminder: 'none', look: { ...defaultLook(), bg: { type: 'gradient', id: 'meadow' } } }); },
+  'new-season': a => { const se = SEASONAL.find(x => x.id === a); S.sheet = null; openEditor(null, 'details', { title: se.title, emoji: se.emoji, date: se.date(today().getFullYear()), category: 'holiday', look: { ...defaultLook(), bg: se.bg } }); },
+  archive: a => {
+    const ev = byId(a || S.detailId), was = { archived: ev.archived, pinned: ev.pinned };
+    ev.archived = !ev.archived;
+    if (ev.archived) ev.pinned = false;
+    S.sheet = null; queueSync();
+    toast(ev.archived ? `Archived “${ev.title}”.${was.pinned ? ' It’s no longer pinned.' : ''}` : `“${ev.title}” is back on Home`, () => Object.assign(ev, was));
+    render();
+  },
+  size: a => { S.draft.look.size = a; S.prevCtx = 'row'; render(); },
+  'lib-use': a => { const l = S.library.find(x => x.id === a); S.draft.audio = { type: 'file', id: l.id, title: l.title, dur: l.dur }; render(); },
+  'lib-remove': a => {
+    const l = S.library.find(x => x.id === a), n = libUsedBy(a);
+    l.removed = true;
+    toast(`Removed “${l.title}” from your library.${n ? ` ${n === 1 ? 'The day that uses it keeps' : `The ${n} days that use it keep`} playing it.` : ''}`, () => { l.removed = false; });
+    render();
+  },
   edit: a => openEditor(a || S.detailId),
   'edit-sound': () => openEditor(S.detailId, 'sound'),
   search: () => { S.searching = !S.searching; if (!S.searching) S.query = ''; else S.focus = '.search input'; render(); },
@@ -1079,7 +1214,11 @@ const ACT = {
   undo: () => { S.toast?.undo?.(); S.toast = null; render(); },
   unit: a => { byId(S.detailId).unit = a; queueSync(); render(); },
   'cycle-unit': () => { const ev = byId(S.detailId); if (role(ev) === 'viewer') return; const i = UNITS.findIndex(u => u[0] === ev.unit); ev.unit = UNITS[(i + 1) % UNITS.length][0]; queueSync(); render(); },
-  audio: () => { S.playing = !S.playing; render(); },
+  audio: () => {
+    S.playing = !S.playing;
+    if (S.playing && byId(S.detailId)?.audio?.type === 'spotify') toast('Playing a 30-second preview. Open in Spotify for the whole song.');
+    render();
+  },
   spotify: () => { const a = byId(S.detailId).audio; toast(`Opens “${a.title}” in Spotify`); render(); },
   'focus-memo': () => { const el = app.querySelector('[data-field="memo"]'); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus({ preventScroll: true }); },
   'add-memo': () => {
@@ -1098,6 +1237,7 @@ const ACT = {
     if (g) return openSheet({ type: 'paywall', g });
     if (d.pinned && !prev?.pinned) { d.pinnedAt = Date.now(); S.pinIndex = 0; }
     if (prev) S.events[i] = d; else S.events.push(d);
+    if (d.audio?.isNew) { delete d.audio.isNew; S.library.push({ id: d.audio.id, title: d.audio.title, dur: d.audio.dur, created: Date.now(), removed: false }); }
     pushRevision(prev, d); queueSync();
     S.draft = null; S.screen = S.stack.pop() || 'home';
     if (!prev) { S.stack.push(S.screen); S.screen = 'detail'; S.detailId = d.id; }
@@ -1136,7 +1276,7 @@ const ACT = {
   'sound-tab': a => { S.soundTab = a; render(); },
   track: a => { S.draft.audio = a ? { type: 'track', id: a } : null; render(); },
   'preview-track': a => { S.trackPreview = S.trackPreview === a ? null : a; render(); },
-  'pick-file': () => { S.draft.audio = { type: 'file', title: 'Our first dance.mp3', dur: '7:12', keep: '0:48 – 6:18' }; toast('Longer than 5½ minutes: drag the handles to pick the part to keep'); render(); },
+  'pick-file': () => { S.draft.audio = { type: 'file', id: 'lib' + Date.now().toString(36), title: 'Our song', dur: '7:12', keep: '0:48 – 6:18', isNew: true }; toast('Longer than 5½ minutes: drag the handles to pick the part to keep'); render(); },
   'add-spotify': () => {
     const v = app.querySelector('[data-field="spotify"]').value.trim(), m = v.match(/open\.spotify\.com\/(?:intl-\w+\/)?(track|album|playlist)\/[A-Za-z0-9]+/);
     if (!m) { toast('That link isn’t a Spotify song, album or playlist'); return render(); }
@@ -1220,6 +1360,7 @@ app.addEventListener('input', e => {
   else if (f === 'title') { d.title = val; app.querySelector('#title-count').textContent = `${val.length}/100`; refreshPreview(); }
   else if (f === 'notes') { d.notes = val; app.querySelector('#notes-count').textContent = fmt(val.length); }
   else if (f === 'dim') { d.look.dim = val / 100; app.querySelector('#dim-out').textContent = `${val}%`; refreshPreview(); }
+  else if (f === 'blur') { d.look.blur = +val; app.querySelector('#blur-out').textContent = val; refreshPreview(); }
   else if (f === 'color') { d.look.bg = { type: 'color', value: val.toUpperCase() }; refreshPreview(); }
   else if (f === 'link-label') S.share.linkLabel = val;
   else if (e.target.type === 'range') e.target.nextElementSibling.textContent = `${val}%`;
@@ -1240,6 +1381,7 @@ const SCREENS = [
   ['detail', 'Day', 'Tap the number to change units'],
   ['editor', 'Customize', 'Photo, Live Photo, style, font, music'],
   ['share', 'Share', 'Live links, invites, people, image'],
+  ['archive', 'Archived', 'Hidden days; archiving unpins'],
   ['widgets', 'Widgets', 'Home and Lock Screen'],
   ['settings', 'Settings', 'Account, sync, plan, appearance'],
 ];
@@ -1254,6 +1396,7 @@ function renderPanel() {
       ${seg('Theme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.settings.theme, 'theme')}
       ${seg('Account', [['guest', 'Guest'], ['signed', 'Signed in']], S.account ? 'signed' : 'guest', 'acct')}
       ${seg('Plan', [['free', 'Free'], ['premium', 'Premium']], S.plan, 'plan')}
+      ${seg('Memo badge', [['top-left', 'Left'], ['top-right', 'Right']], S.config.memoBadge, 'badge')}
     </div>
     <div class="panel-foot"><a href="README.md">Design notes &amp; gaps</a><button data-pact="reset">Reset demo</button></div>`;
   panel.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -1264,7 +1407,8 @@ panel.addEventListener('click', e => {
   if (b.dataset.ptheme) { S.settings.theme = b.dataset.ptheme; applyTheme(); return render(); }
   if (b.dataset.pacct) { S.account = b.dataset.pacct === 'signed' ? { ...ACCOUNT } : null; S.filter = 'all'; if (S.screen === 'detail' && !visible().includes(byId(S.detailId))) S.screen = 'home'; return render(); }
   if (b.dataset.pplan) { S.plan = b.dataset.pplan; return render(); }
-  if (k === 'reset') { Object.assign(S, { events: seed(), history: seedHistory(), account: { ...ACCOUNT }, plan: 'free', pending: 0, firstSavePrompted: false, sheet: null, filter: 'all', query: '', searching: false }); S.settings.dayOne = false; return jump('home'); }
+  if (b.dataset.pbadge) { S.config.memoBadge = b.dataset.pbadge; return render(); } // simulates a remote config change
+  if (k === 'reset') { Object.assign(S, { events: seed(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, plan: 'free', pending: 0, firstSavePrompted: false, sheet: null, filter: 'all', query: '', searching: false }); S.settings.dayOne = false; return jump('home'); }
   if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pins()[0]?.id, 'background'); }
   if (k === 'detail' || k === 'share') {
     if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pins()[0] || visible()[0]).id;
