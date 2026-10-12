@@ -49,7 +49,7 @@ Alternatives: a personal size per device (lost: the owner wants size to be part 
 ### D3. The memo badge position comes from remote config
 
 - An owner's card shows a badge with the memo icon and count ("9+" above 9) when the day has memos: on list rows, grid tiles and pinned cards. Never for members, on web pages, on widgets or in share images, because memos are owner-only.
-- Position: `GET /config` returns `"ui": {"memoBadge": "top-left" | "top-right"}`, default `top-right`. `top-left` sits at the top of the card, aligned left with a 14 pt margin; `top-right` sits in the top-right corner, aligned to the top. The operator sets it per deployment without an app release. The app caches the last config and uses the defaults offline.
+- Position: `GET /config` returns `"ui": {"memoBadge": "top-left" | "top-right"}`, default `top-right`. `top-left` hangs from the top edge, 24 pt from the left edge; `top-right` sits flush with the right edge, 10 pt from the top (on pinned cards below the emoji). The operator sets it per deployment without an app release. The app caches the last config and uses the defaults offline.
 
 Alternatives: a user setting (lost: one more setting for a small detail); fixed in the app (lost: changing it would need a release).
 

@@ -736,7 +736,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .ctx-row.size-lg .num { font-size: 46px; }
 .ctx-row.size-lg .u { font-size: 12.5px; }
 .ctx-row.size-lg .tick { margin-top: 6px; font-size: 11.5px; }
-.grid .ctx-tile.size-lg { grid-column: 1 / -1; aspect-ratio: auto; height: 172px; }
+.grid .ctx-tile.size-lg { grid-column: 1 / -1; aspect-ratio: auto; height: 196px; }
 .grid .ctx-tile.size-lg .num { font-size: 60px; }
 .grid .ctx-tile.size-sm { aspect-ratio: 1 / .8; }
 .ctx-tile.size-sm .m { display: none; }
@@ -745,11 +745,16 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 /* Memo badge: a small tab hanging from the top edge; left or right comes from remote config. */
 .memo-badge { position: absolute; z-index: 2; top: 0; display: inline-flex; align-items: center; gap: 3px; height: 18px; padding: 0 7px; border-radius: 0 0 8px 8px; background: var(--accent); color: var(--on-accent); font: 700 10.5px/1 var(--font-ui); text-shadow: none; }
 .memo-badge .i { width: 11px; height: 11px; stroke-width: 2.2; }
-.memo-badge.top-left { left: 14px; }
-.memo-badge.top-right { right: 16px; }
+/* Left: hangs from the top edge, 24 pt in. Right: flush with the right edge, 10 pt down. */
+.memo-badge.top-left { left: 24px; }
+.memo-badge.top-right { top: 10px; right: 0; border-radius: 8px 0 0 8px; padding: 0 8px; }
 .ctx-row.size-sm .memo-badge { height: 14px; font-size: 9.5px; padding: 0 6px; }
 .ctx-row.size-sm .memo-badge .i { width: 9px; height: 9px; }
-.ctx-hero .memo-badge.top-left { left: 22px; }
+.ctx-row.size-sm .memo-badge.top-right { top: 6px; }
+.ctx-hero .memo-badge.top-right { top: 72px; }   /* below the emoji chip */
+/* Keep the number and the tile markers clear of the right tab. */
+.ctx-row:has(.memo-badge.top-right) .cnt { padding-top: 12px; }
+.ctx-tile:has(.memo-badge.top-right) .top { padding-right: 26px; }
 
 /* Archive row at the end of the Home list. */
 .arch-row { display: flex; align-items: center; gap: 12px; width: calc(100% - 32px); margin: 18px 16px 0; padding: 14px 16px; border-radius: 18px; background: var(--surface); box-shadow: var(--shadow-1); color: var(--ink-2); font-weight: 550; }

@@ -128,7 +128,7 @@ One component, drawn in several sizes.
 | :--- | :--- | :--- |
 | Pinned (carousel) | full width × 240; minus 52 when several are pinned; 96 tall when collapsed | Pin badge, emoji, title, short date, time and zone, big number, live ticker; collapsed: title and number only |
 | List row | full width × 64 / 84 / 132 (size Small / Medium / Large) | Small: emoji, title, number. Medium: adds pin or shared marker, short date and repeat, unit. Large: adds the live ticker, bigger number |
-| Grid tile | half width, 1:1.1; Small 1:0.8; Large full width × 172 | Emoji, markers, number, unit, title, date |
+| Grid tile | half width, 1:1.1; Small 1:0.8; Large full width × 196 | Emoji, markers, number, unit, title, date |
 | Day page | full screen | Everything, plus the unit switch; Live Photos play here |
 | Widget small / medium | 1:1 / 2:1 | Number, unit, title; medium adds the next three days |
 | Share story / banner | 9:16 (1080×1920) / 1.91:1 (1200×630) | Emoji, title, number, date, optional watermark "Tracked with Days That Matter" |
@@ -137,7 +137,7 @@ One component, drawn in several sizes.
 
 **Size in the list** (Customize › Style): Small, Medium (default) or Large. It is part of the look, so it syncs and people you share with see the same size in their list. The carousel, day page, widgets, share images and the web page ignore it.
 
-**Memo badge:** an owner's card with memos shows a small accent tab hanging from the top edge with a memo icon and the count ("9+" above 9). Remote config `ui.memoBadge` puts it on the left (14 pt margin) or the right (16 pt margin); default right. Memos are owner-only, so the badge never shows on days shared with you, on the web, on widgets or on share images.
+**Memo badge:** an owner's card with memos shows a small accent tab with a memo icon and the count ("9+" above 9). Remote config `ui.memoBadge` picks the position: **left**, hanging from the top edge 24 pt from the left edge, or **right** (default), flush with the right edge 10 pt from the top (72 pt on pinned cards, below the emoji). With the right tab, the list number moves down 6 pt and grid tile markers move in so nothing overlaps. Memos are owner-only, so the badge never shows on days shared with you, on the web, on widgets or on share images.
 
 **Card styles** (maps to `CardStyle`):
 

@@ -40,7 +40,7 @@ On the owner's cards, a day with memos SHALL show a badge with the memo icon and
 - **THEN** the member's card shows no memo badge
 
 ### Requirement: Memo badge position from remote config
-The badge position SHALL come from `GET /config` field `ui.memoBadge`: `top-left` (top of the card, aligned left with a 14 pt margin) or `top-right` (top-right corner, aligned to the top), default `top-right`. The operator SHALL be able to change it per deployment without an app release. The app SHALL cache the last config and use the default when it has none.
+The badge position SHALL come from `GET /config` field `ui.memoBadge`: `top-left` (hanging from the top edge, 24 pt from the left edge) or `top-right` (flush with the right edge, 10 pt from the top; on pinned cards below the emoji), default `top-right`. The operator SHALL be able to change it per deployment without an app release. The app SHALL cache the last config and use the default when it has none.
 
 #### Scenario: Operator moves the badge
 - **WHEN** the operator sets `ui.memoBadge` to `top-left`
