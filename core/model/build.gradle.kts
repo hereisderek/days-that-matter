@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.kover)
 }
 
 kotlin {
@@ -81,6 +82,31 @@ tasks.register("checkCountdownVectors") {
     doLast {
         if (!committed.exists() || committed.readText() != fresh.readText()) {
             throw GradleException("$committed is out of date: run ./gradlew :core:model:generateCountdownVectors")
+        }
+    }
+}
+
+// The countdown and recurrence calculation has a 100% coverage target
+// (docs/standards/TESTING_STRATEGY.md 2.1). Kover in this module reports on that package only,
+// measured with the JVM tests: ./gradlew :core:model:koverVerify (report: koverHtmlReport).
+kover {
+    reports {
+        filters {
+            includes {
+                classes("dev.derek.daysthatmatter.core.model.countdown.*")
+            }
+        }
+        verify {
+            rule("Countdown engine is fully covered") {
+                bound {
+                    minValue = 100
+                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.LINE
+                }
+                bound {
+                    minValue = 100
+                    coverageUnits = kotlinx.kover.gradle.plugin.dsl.CoverageUnit.BRANCH
+                }
+            }
         }
     }
 }

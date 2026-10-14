@@ -2790,6 +2790,127 @@
       }
     },
     {
+      "name": "monthly-day-passed-this-month",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-15",
+      "targetTime": "10:00:00",
+      "recurrence": {
+        "type": "monthly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-03-20T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-04-15T10:00:00Z",
+        "occurrenceDate": "2026-04-15",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 26,
+        "totalHours": 634,
+        "totalMinutes": 38040,
+        "totalSeconds": 2282400,
+        "years": 0,
+        "months": 0,
+        "days": 26,
+        "hours": 10,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 18,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 26
+          },
+          "days": {
+            "kind": "days",
+            "days": 26
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 3,
+            "days": 5
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 634
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 26
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 18
+          }
+        }
+      }
+    },
+    {
+      "name": "monthly-december-31",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-31",
+      "targetTime": null,
+      "recurrence": {
+        "type": "monthly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-12-31T12:00:00Z",
+      "expected": {
+        "targetInstant": "2026-12-31T00:00:00Z",
+        "occurrenceDate": "2026-12-31",
+        "direction": "today",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 12,
+        "totalMinutes": 720,
+        "totalSeconds": 43200,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 12,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 12,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 12
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
       "name": "custom-days-100",
       "timeZone": "UTC",
       "targetDate": "2026-01-01",

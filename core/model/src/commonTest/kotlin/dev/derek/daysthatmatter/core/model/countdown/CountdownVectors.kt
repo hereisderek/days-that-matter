@@ -268,6 +268,14 @@ object CountdownVectors {
             Expected(occurrence = "2026-10-15", direction = Direction.Today),
         ),
         CountdownCase(
+            "monthly-day-passed-this-month", "UTC", "2026-01-15", "10:00:00", Recurrence.Monthly, null, "2026-03-20T00:00:00Z",
+            Expected("2026-04-15T10:00:00Z", occurrence = "2026-04-15", direction = Direction.Until, totalDays = 26),
+        ),
+        CountdownCase(
+            "monthly-december-31", "UTC", "2026-01-31", null, Recurrence.Monthly, null, "2026-12-31T12:00:00Z",
+            Expected(occurrence = "2026-12-31", direction = Direction.Today),
+        ),
+        CountdownCase(
             "custom-days-100", "UTC", "2026-01-01", null, Recurrence.CustomDays(100), null, "2026-10-12T00:00:00Z",
             Expected(occurrence = "2026-10-28", totalDays = 16),
         ),

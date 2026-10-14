@@ -10,6 +10,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.number
 import kotlinx.datetime.plus
 import kotlinx.datetime.toInstant
@@ -117,7 +118,7 @@ object CountdownEngine {
     const val AUTO_HOURS_LIMIT: Long = 48
 
     fun compute(target: CountdownTarget, now: Instant, viewerZone: TimeZone): Countdown {
-        val zone = target.timeZone?.let { TimeZone.of(it) } ?: viewerZone
+        val zone = if (target.timeZone != null) TimeZone.of(target.timeZone) else viewerZone
         val nowLocal = now.toLocalDateTime(zone)
         val today = nowLocal.date
         val occurrence = nextOccurrence(target.targetDate, target.recurrence, today)
@@ -235,9 +236,8 @@ object CountdownEngine {
     private fun clampedDate(year: Int, month: Int, day: Int): LocalDate =
         LocalDate(year, month, minOf(day, daysInMonth(year, month)))
 
-    private fun daysInMonth(year: Int, month: Int): Int = when (month) {
-        2 -> if (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) 29 else 28
-        4, 6, 9, 11 -> 30
-        else -> 31
+    private fun daysInMonth(year: Int, month: Int): Int {
+        val first = LocalDate(year, month, 1)
+        return first.daysUntil(first.plus(1, DateTimeUnit.MONTH))
     }
 }

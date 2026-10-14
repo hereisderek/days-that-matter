@@ -5,6 +5,8 @@ package dev.derek.daysthatmatter.core.model
 @JsNonModule
 external object JsJodaTimeZoneModule
 
+// Referencing the module is what loads it; the value itself is not needed.
+@Suppress("UNUSED_EXPRESSION")
 actual fun loadTimeZoneDatabase() {
     JsJodaTimeZoneModule
 }

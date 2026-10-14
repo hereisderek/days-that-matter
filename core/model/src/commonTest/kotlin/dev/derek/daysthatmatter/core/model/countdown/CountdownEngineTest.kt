@@ -89,6 +89,8 @@ class CountdownEngineTest {
         val nextDay = compute(target, time, "2026-10-13T00:00:00Z")
         assertEquals(Direction.Since, nextDay.direction)
         assertTrue(nextDay.isPast)
+        assertFalse(nextDay.isToday)
+        assertFalse(before.isPast)
     }
 
     @Test
@@ -163,6 +165,22 @@ class CountdownEngineTest {
         assertEquals(LocalDate(2026, 4, 30), CountdownEngine.nextOccurrence(base, Recurrence.Monthly, LocalDate(2026, 4, 30)))
         assertEquals(LocalDate(2026, 5, 31), CountdownEngine.nextOccurrence(base, Recurrence.Monthly, LocalDate(2026, 5, 1)))
         assertEquals(LocalDate(2027, 1, 31), CountdownEngine.nextOccurrence(base, Recurrence.Monthly, LocalDate(2026, 12, 31).plus(1, DateTimeUnit.DAY)))
+    }
+
+    @Test
+    fun monthlyMovesToNextMonthOnceTheDayPassed() {
+        val base = LocalDate(2026, 1, 15)
+        assertEquals(LocalDate(2026, 4, 15), CountdownEngine.nextOccurrence(base, Recurrence.Monthly, LocalDate(2026, 3, 16)))
+        assertEquals(LocalDate(2027, 1, 15), CountdownEngine.nextOccurrence(base, Recurrence.Monthly, LocalDate(2026, 12, 16)))
+        val end = LocalDate(2026, 1, 31)
+        for ((today, expected) in listOf(
+            LocalDate(2026, 6, 30) to LocalDate(2026, 6, 30),
+            LocalDate(2026, 9, 30) to LocalDate(2026, 9, 30),
+            LocalDate(2026, 11, 30) to LocalDate(2026, 11, 30),
+            LocalDate(2026, 7, 31) to LocalDate(2026, 7, 31),
+        )) {
+            assertEquals(expected, CountdownEngine.nextOccurrence(end, Recurrence.Monthly, today))
+        }
     }
 
     @Test
