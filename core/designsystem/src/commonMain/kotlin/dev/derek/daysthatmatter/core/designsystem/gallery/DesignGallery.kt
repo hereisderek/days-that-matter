@@ -129,7 +129,7 @@ private fun GalleryPanel(dark: Boolean, modeSwitch: (@Composable () -> Unit)?) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            CardPalette.gradients.forEach { (name, mesh) ->
+            CardPalette.gradients.forEach { (_, mesh) ->
                 Box(Modifier.size(width = 76.dp, height = 56.dp).clip(RoundedCornerShape(DtmTheme.radii.md))) {
                     CardBackdrop(mesh, dim = 0f)
                 }
