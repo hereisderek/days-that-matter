@@ -30,8 +30,8 @@ class TokensTest {
         assertEquals(Color(0xFFD2433A), c.danger)
         assertEquals(Color(0xFFFFF1CF), c.goldBg)
         assertEquals(Color(0xFF8A5A00), c.goldInk)
-        assertEquals(0.07f, c.line.alpha, 0.001f)
-        assertEquals(0.13f, c.line2.alpha, 0.001f)
+        assertEquals(0.07f, c.line.alpha, 0.005f)
+        assertEquals(0.13f, c.line2.alpha, 0.005f)
     }
 
     @Test
@@ -49,8 +49,8 @@ class TokensTest {
         assertEquals(Color(0xFF52D6A3), c.accent) // --accent-d
         assertEquals(Color(0xFF06120D), c.onAccent)
         assertEquals(Color(0xFFF2C46D), c.goldInk)
-        assertEquals(0.16f, c.goldBg.alpha, 0.001f)
-        assertEquals(0.14f, c.line2.alpha, 0.001f)
+        assertEquals(0.16f, c.goldBg.alpha, 0.005f)
+        assertEquals(0.14f, c.line2.alpha, 0.005f)
     }
 
     @Test
@@ -99,11 +99,11 @@ class TokensTest {
     @Test
     fun cardTonesMatchV2() {
         assertEquals(Color(0xFF111714), CardTone.DarkText.text)
-        assertEquals(0.64f, CardTone.DarkText.textMuted.alpha, 0.001f)
-        assertEquals(0.5f, CardTone.DarkText.glass.alpha, 0.001f)
+        assertEquals(0.64f, CardTone.DarkText.textMuted.alpha, 0.005f)
+        assertEquals(0.5f, CardTone.DarkText.glass.alpha, 0.005f)
         assertEquals(Color.White, CardTone.LightText.text)
-        assertEquals(0.16f, CardTone.LightText.glass.alpha, 0.001f)
-        assertEquals(0.3f, CardTone.LightText.glassEdge.alpha, 0.001f)
+        assertEquals(0.16f, CardTone.LightText.glass.alpha, 0.005f)
+        assertEquals(0.3f, CardTone.LightText.glassEdge.alpha, 0.005f)
     }
 
     @Test

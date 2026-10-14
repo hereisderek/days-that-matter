@@ -31,7 +31,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.compose.ui.test.runComposeUiTest
+import androidx.compose.ui.test.v2.runComposeUiTest
 import androidx.compose.ui.unit.dp
 import dev.derek.daysthatmatter.core.designsystem.components.BottomFade
 import dev.derek.daysthatmatter.core.designsystem.components.CardBackground
@@ -193,16 +193,16 @@ class ComponentUiTest {
     fun memoBadgeShowsCountAndNineLimit() = runComposeUiTest {
         setContent { Themed { Column { DayCardRow(card(memos = 3)); DayCardRow(card(memos = 12).copy(title = "Other")) } } }
 
-        onNodeWithText("3").assertExists()
-        onNodeWithText("9+").assertExists()
-        onAllNodesWithTag(DtmTestTags.MemoBadge).assertCountEquals(2)
+        onNodeWithText("3", useUnmergedTree = true).assertExists()
+        onNodeWithText("9+", useUnmergedTree = true).assertExists()
+        onAllNodesWithTag(DtmTestTags.MemoBadge, useUnmergedTree = true).assertCountEquals(2)
     }
 
     @Test
     fun noMemoBadgeWithoutMemos() = runComposeUiTest {
         setContent { Themed { DayCardRow(card(memos = 0)) } }
 
-        onAllNodesWithTag(DtmTestTags.MemoBadge).assertCountEquals(0)
+        onAllNodesWithTag(DtmTestTags.MemoBadge, useUnmergedTree = true).assertCountEquals(0)
     }
 
     @Test
@@ -212,13 +212,13 @@ class ComponentUiTest {
             Themed { Box(Modifier.width(360.dp)) { DayCardRow(card(memos = 2).copy(memoBadge = position)) } }
         }
 
-        val right = onNodeWithTag(DtmTestTags.MemoBadge).getUnclippedBoundsInRoot()
+        val right = onNodeWithTag(DtmTestTags.MemoBadge, useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertEquals(360.dp, right.right)
         assertEquals(10.dp, right.top)
 
         position = MemoBadgePosition.TopLeft
         waitForIdle()
-        val left = onNodeWithTag(DtmTestTags.MemoBadge).getUnclippedBoundsInRoot()
+        val left = onNodeWithTag(DtmTestTags.MemoBadge, useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertEquals(24.dp, left.left)
         assertEquals(0.dp, left.top)
     }

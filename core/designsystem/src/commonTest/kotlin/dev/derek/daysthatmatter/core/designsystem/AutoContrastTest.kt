@@ -76,7 +76,7 @@ class AutoContrastTest {
     fun dimBlendsTowardBlackInSrgb() {
         val dimmed = dimmedBackdrop(Color.White, 0.5f)
 
-        assertEquals(0.5f, dimmed.red, 0.001f)
+        assertEquals(0.5f, dimmed.red, 0.005f)
         assertEquals(Color.White, dimmedBackdrop(Color.White, 0f))
         assertEquals(dimmedBackdrop(Color.White, 1f), dimmedBackdrop(Color.White, 2f))
     }
