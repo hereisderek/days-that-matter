@@ -1,0 +1,4728 @@
+{
+  "generatedBy": "./gradlew :core:model:generateContract (do not edit by hand)",
+  "now": "2026-10-12T15:04:05Z",
+  "rules": "Each vector runs one validator on input. valid=true gives the normalized value; valid=false gives every field error in order and the 400 body, which names the first. Sharing vectors are validated at now. eventDocSize checks a stored document: valid=true with value null, or one error.",
+  "vectors": [
+    {
+      "name": "event-minimal",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "event-full-normalized",
+      "kind": "eventNew",
+      "input": {
+        "title": "  Our wedding  ",
+        "emoji": "💍",
+        "targetDate": "2027-06-12",
+        "targetTime": "16:30:00",
+        "timeZone": "Europe/Paris",
+        "unitMode": "calendar",
+        "recurrence": {
+          "type": "yearly",
+          "originalYear": 2027,
+          "days": null
+        },
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern",
+          "gradient": [
+            "#8B5CF6",
+            "#3b82f6"
+          ],
+          "size": "large"
+        },
+        "backdrop": {
+          "kind": "animated",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "motionId": "Hq3bbbbbbbbbbbbbbbbbbb",
+          "dim": 0.3,
+          "blur": 8,
+          "stillUrl": "https://media.example/m/x.jpg",
+          "motionUrl": "https://media.example/m/x.mp4"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "https://open.spotify.com/intl-de/playlist/37i9dQZF1DXcBWIGoYBM5M?si=abc",
+          "title": "Today's Top Hits",
+          "artist": "Spotify"
+        },
+        "notes": "Book the photographer\n\tand the band",
+        "pinnedAt": "2026-10-01T10:00:00+02:00",
+        "categoryId": "anniversaries",
+        "archivedAt": null,
+        "reminders": {
+          "daysBefore": [
+            7,
+            0
+          ],
+          "time": "08:15"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "emoji": "💍",
+          "targetDate": "2027-06-12",
+          "targetTime": "16:30:00",
+          "timeZone": "Europe/Paris",
+          "unitMode": "calendar",
+          "recurrence": {
+            "type": "yearly",
+            "originalYear": 2027
+          },
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern",
+            "gradient": [
+              "#8B5CF6",
+              "#3b82f6"
+            ],
+            "size": "large"
+          },
+          "backdrop": {
+            "kind": "animated",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "motionId": "Hq3bbbbbbbbbbbbbbbbbbb",
+            "dim": 0.3,
+            "blur": 8
+          },
+          "audio": {
+            "kind": "spotify",
+            "url": "https://open.spotify.com/intl-de/playlist/37i9dQZF1DXcBWIGoYBM5M",
+            "title": "Today's Top Hits",
+            "artist": "Spotify"
+          },
+          "notes": "Book the photographer\n\tand the band",
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "categoryId": "anniversaries",
+          "archivedAt": null,
+          "reminders": {
+            "daysBefore": [
+              0,
+              7
+            ],
+            "time": "08:15"
+          }
+        }
+      }
+    },
+    {
+      "name": "event-empty-body",
+      "kind": "eventNew",
+      "input": {},
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "required"
+          },
+          {
+            "field": "targetDate",
+            "reason": "required"
+          },
+          {
+            "field": "theme",
+            "reason": "required"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: required",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "event-unknown-field",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "owner": "x"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): unknown field",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "event-server-field-rev",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "rev": 3
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): unknown field",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-empty",
+      "kind": "eventNew",
+      "input": {
+        "title": "",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "must be 1 to 100 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: must be 1 to 100 characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-blank",
+      "kind": "eventNew",
+      "input": {
+        "title": "   ",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "must be 1 to 100 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: must be 1 to 100 characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-100",
+      "kind": "eventNew",
+      "input": {
+        "title": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "title-101",
+      "kind": "eventNew",
+      "input": {
+        "title": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "must be 1 to 100 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: must be 1 to 100 characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-100-astral",
+      "kind": "eventNew",
+      "input": {
+        "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "title-101-astral",
+      "kind": "eventNew",
+      "input": {
+        "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "must be 1 to 100 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: must be 1 to 100 characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-control-char",
+      "kind": "eventNew",
+      "input": {
+        "title": "Bell\u0007",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: contains forbidden characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-newline",
+      "kind": "eventNew",
+      "input": {
+        "title": "Two\nlines",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: contains forbidden characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-bidi-override",
+      "kind": "eventNew",
+      "input": {
+        "title": "abc‮def",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: contains forbidden characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-bidi-isolate",
+      "kind": "eventNew",
+      "input": {
+        "title": "abc⁦def",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: contains forbidden characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-line-separator",
+      "kind": "eventNew",
+      "input": {
+        "title": "abc def",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: contains forbidden characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-c1-control",
+      "kind": "eventNew",
+      "input": {
+        "title": "abcdef",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: contains forbidden characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-html-kept",
+      "kind": "eventNew",
+      "input": {
+        "title": "<script>alert(1)</script>",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "<script>alert(1)</script>",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "title-number",
+      "kind": "eventNew",
+      "input": {
+        "title": 42,
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "must be a string"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: must be a string",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "title-null",
+      "kind": "eventNew",
+      "input": {
+        "title": null,
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: cannot be cleared",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "emoji-ring",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "💍"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "emoji": "💍"
+        }
+      }
+    },
+    {
+      "name": "emoji-flag",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "🇫🇷"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "emoji": "🇫🇷"
+        }
+      }
+    },
+    {
+      "name": "emoji-heart-variation",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "❤️"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "emoji": "❤️"
+        }
+      }
+    },
+    {
+      "name": "emoji-skin-tone",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "👍🏽"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "emoji": "👍🏽"
+        }
+      }
+    },
+    {
+      "name": "emoji-family-zwj-too-long",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "👨‍👩‍👧"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "emoji",
+            "reason": "must be a single emoji of at most 16 bytes"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "emoji: must be a single emoji of at most 16 bytes",
+            "details": {
+              "field": "emoji"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "emoji-two",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "💍💍"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "emoji",
+            "reason": "must be a single emoji of at most 16 bytes"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "emoji: must be a single emoji of at most 16 bytes",
+            "details": {
+              "field": "emoji"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "emoji-letters",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": "ab"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "emoji",
+            "reason": "must be a single emoji of at most 16 bytes"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "emoji: must be a single emoji of at most 16 bytes",
+            "details": {
+              "field": "emoji"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "emoji-null",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "emoji": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "emoji": null
+        }
+      }
+    },
+    {
+      "name": "date-1899-12-31",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "1899-12-31",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetDate",
+            "reason": "invalid date"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetDate: invalid date",
+            "details": {
+              "field": "targetDate"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "date-1900-01-01",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "1900-01-01",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "1900-01-01",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "date-2200-12-31",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2200-12-31",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2200-12-31",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "date-2201-01-01",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2201-01-01",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetDate",
+            "reason": "invalid date"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetDate: invalid date",
+            "details": {
+              "field": "targetDate"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "date-feb-30",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2026-02-30",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetDate",
+            "reason": "invalid date"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetDate: invalid date",
+            "details": {
+              "field": "targetDate"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "date-feb-29-leap",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2028-02-29",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2028-02-29",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "date-short-format",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2026-2-3",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetDate",
+            "reason": "invalid date"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetDate: invalid date",
+            "details": {
+              "field": "targetDate"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "date-number",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": 20260212,
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetDate",
+            "reason": "must be a string"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetDate: must be a string",
+            "details": {
+              "field": "targetDate"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "time-hh-mm",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "targetTime": "16:30"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetTime",
+            "reason": "must be HH:MM:SS"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetTime: must be HH:MM:SS",
+            "details": {
+              "field": "targetTime"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "time-24",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "targetTime": "24:00:00"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "targetTime",
+            "reason": "must be HH:MM:SS"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "targetTime: must be HH:MM:SS",
+            "details": {
+              "field": "targetTime"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "time-last-second",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "targetTime": "23:59:59"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "targetTime": "23:59:59"
+        }
+      }
+    },
+    {
+      "name": "time-null",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "targetTime": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "targetTime": null
+        }
+      }
+    },
+    {
+      "name": "zone-paris",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "timeZone": "Europe/Paris"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "timeZone": "Europe/Paris"
+        }
+      }
+    },
+    {
+      "name": "zone-utc",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "timeZone": "UTC"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "timeZone": "UTC"
+        }
+      }
+    },
+    {
+      "name": "zone-unknown",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "timeZone": "Mars/Olympus"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "timeZone",
+            "reason": "invalid time zone"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "timeZone: invalid time zone",
+            "details": {
+              "field": "timeZone"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "zone-path",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "timeZone": "../etc/passwd"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "timeZone",
+            "reason": "invalid time zone"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "timeZone: invalid time zone",
+            "details": {
+              "field": "timeZone"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "zone-null-floating",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "timeZone": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "timeZone": null
+        }
+      }
+    },
+    {
+      "name": "unit-auto",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "auto"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "unitMode": "auto"
+        }
+      }
+    },
+    {
+      "name": "unit-days",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "days"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "unitMode": "days"
+        }
+      }
+    },
+    {
+      "name": "unit-weeks",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "weeks"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "unitMode": "weeks"
+        }
+      }
+    },
+    {
+      "name": "unit-hours",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "hours"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "unitMode": "hours"
+        }
+      }
+    },
+    {
+      "name": "unit-calendar",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "calendar"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "unitMode": "calendar"
+        }
+      }
+    },
+    {
+      "name": "unit-workdays",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "workdays"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "unitMode": "workdays"
+        }
+      }
+    },
+    {
+      "name": "unit-years",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "unitMode": "years"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "unitMode",
+            "reason": "unsupported value"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "unitMode: unsupported value",
+            "details": {
+              "field": "unitMode"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-none",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "none"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "recurrence": {
+            "type": "none"
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-monthly-null-members",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "monthly",
+          "originalYear": null,
+          "days": null
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "recurrence": {
+            "type": "monthly"
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-yearly-missing-year",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "yearly"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.originalYear",
+            "reason": "required only for yearly"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.originalYear: required only for yearly",
+            "details": {
+              "field": "recurrence.originalYear"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-yearly-1899",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "yearly",
+          "originalYear": 1899
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.originalYear",
+            "reason": "must be 1900 to 2200"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.originalYear: must be 1900 to 2200",
+            "details": {
+              "field": "recurrence.originalYear"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-none-with-days",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "none",
+          "days": 3
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.days",
+            "reason": "required only for customDays"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.days: required only for customDays",
+            "details": {
+              "field": "recurrence.days"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-custom-0",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "customDays",
+          "days": 0
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.days",
+            "reason": "must be 1 to 3650"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.days: must be 1 to 3650",
+            "details": {
+              "field": "recurrence.days"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-custom-3650",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "customDays",
+          "days": 3650
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "recurrence": {
+            "type": "customDays",
+            "days": 3650
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-custom-3651",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "customDays",
+          "days": 3651
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.days",
+            "reason": "must be 1 to 3650"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.days: must be 1 to 3650",
+            "details": {
+              "field": "recurrence.days"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-custom-fraction",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "customDays",
+          "days": 1.5
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.days",
+            "reason": "must be a whole number"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.days: must be a whole number",
+            "details": {
+              "field": "recurrence.days"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-daily",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "daily"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence.type",
+            "reason": "unsupported value"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence.type: unsupported value",
+            "details": {
+              "field": "recurrence.type"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "recurrence-extra-field",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "recurrence": {
+          "type": "none",
+          "every": 2
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence: unknown field",
+            "details": {
+              "field": "recurrence"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-one-colour",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern",
+          "gradient": [
+            "#8B5CF6"
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme.gradient",
+            "reason": "must be two colours"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme.gradient: must be two colours",
+            "details": {
+              "field": "theme.gradient"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-bad-colour",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern",
+          "gradient": [
+            "#GGGGGG",
+            "#000000"
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme.gradient",
+            "reason": "must be #RRGGBB"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme.gradient: must be #RRGGBB",
+            "details": {
+              "field": "theme.gradient"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-gradient-null",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern",
+          "gradient": null
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-size-small",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern",
+          "size": "small"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern",
+            "size": "small"
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-size-huge",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern",
+          "size": "huge"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme.size",
+            "reason": "unsupported value"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme.size: unsupported value",
+            "details": {
+              "field": "theme.size"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-uppercase-id",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "Violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme.paletteId",
+            "reason": "invalid id"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme.paletteId: invalid id",
+            "details": {
+              "field": "theme.paletteId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-missing-typography",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme.typography",
+            "reason": "required"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme.typography: required",
+            "details": {
+              "field": "theme.typography"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "theme-not-object",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": "violet"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme",
+            "reason": "must be an object"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme: must be an object",
+            "details": {
+              "field": "theme"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-still",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": 0
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-dim-0.8",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": 0.8
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.8
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-dim-0.81",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": 0.81
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.dim",
+            "reason": "must be 0.0 to 0.8"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.dim: must be 0.0 to 0.8",
+            "details": {
+              "field": "backdrop.dim"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-dim-negative",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": -0.1
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.dim",
+            "reason": "must be 0.0 to 0.8"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.dim: must be 0.0 to 0.8",
+            "details": {
+              "field": "backdrop.dim"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-dim-string",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": "0.3"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.dim",
+            "reason": "must be a number"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.dim: must be a number",
+            "details": {
+              "field": "backdrop.dim"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-blur-16",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": 0.2,
+          "blur": 16
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.2,
+            "blur": 16
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-blur-16.5",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": 0.2,
+          "blur": 16.5
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.blur",
+            "reason": "must be 0.0 to 16.0"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.blur: must be 0.0 to 16.0",
+            "details": {
+              "field": "backdrop.blur"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-animated-no-motion",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "animated",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "dim": 0.2
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.motionId",
+            "reason": "required only for animated"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.motionId: required only for animated",
+            "details": {
+              "field": "backdrop.motionId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-still-with-motion",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "motionId": "Hq3bbbbbbbbbbbbbbbbbbb",
+          "dim": 0.2
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.motionId",
+            "reason": "required only for animated"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.motionId: required only for animated",
+            "details": {
+              "field": "backdrop.motionId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-short-id",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "abc",
+          "dim": 0.2
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.stillId",
+            "reason": "invalid media id"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.stillId: invalid media id",
+            "details": {
+              "field": "backdrop.stillId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "backdrop-missing-dim",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "backdrop": {
+          "kind": "still",
+          "stillId": "Pz8aaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "backdrop.dim",
+            "reason": "required"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "backdrop.dim: required",
+            "details": {
+              "field": "backdrop.dim"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-library",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "library",
+          "trackId": "calm-lofi"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "audio": {
+            "kind": "library",
+            "trackId": "calm-lofi"
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-library-bad-id",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "library",
+          "trackId": "Calm Lofi"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.trackId",
+            "reason": "invalid id"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.trackId: invalid id",
+            "details": {
+              "field": "audio.trackId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-library-extra-field",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "library",
+          "trackId": "calm-lofi",
+          "title": "x"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio: unknown field",
+            "details": {
+              "field": "audio"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-custom",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "custom",
+          "mediaId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "title": "  First dance "
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "audio": {
+            "kind": "custom",
+            "mediaId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "title": "First dance"
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-custom-title-201",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "custom",
+          "mediaId": "Pz8aaaaaaaaaaaaaaaaaaa",
+          "title": "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.title",
+            "reason": "must be 1 to 200 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.title: must be 1 to 200 characters",
+            "details": {
+              "field": "audio.title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-custom-no-title",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "custom",
+          "mediaId": "Pz8aaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.title",
+            "reason": "required"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.title: required",
+            "details": {
+              "field": "audio.title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-spotify-track",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "https://open.spotify.com/track/37i9dQZF1DXcBWIGoYBM5M"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "audio": {
+            "kind": "spotify",
+            "url": "https://open.spotify.com/track/37i9dQZF1DXcBWIGoYBM5M"
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-spotify-query-dropped",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "https://open.spotify.com/album/37i9dQZF1DXcBWIGoYBM5M?si=xyz#frag",
+          "title": "Album"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "audio": {
+            "kind": "spotify",
+            "url": "https://open.spotify.com/album/37i9dQZF1DXcBWIGoYBM5M",
+            "title": "Album"
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-spotify-http",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "http://open.spotify.com/track/37i9dQZF1DXcBWIGoYBM5M"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.url",
+            "reason": "not a Spotify track, album or playlist link"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.url: not a Spotify track, album or playlist link",
+            "details": {
+              "field": "audio.url"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-spotify-episode",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "https://open.spotify.com/episode/37i9dQZF1DXcBWIGoYBM5M"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.url",
+            "reason": "not a Spotify track, album or playlist link"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.url: not a Spotify track, album or playlist link",
+            "details": {
+              "field": "audio.url"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-spotify-other-host",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "https://open.spotify.com.evil.test/track/37i9dQZF1DXcBWIGoYBM5M"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.url",
+            "reason": "not a Spotify track, album or playlist link"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.url: not a Spotify track, album or playlist link",
+            "details": {
+              "field": "audio.url"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-spotify-artist-201",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "spotify",
+          "url": "https://open.spotify.com/track/37i9dQZF1DXcBWIGoYBM5M",
+          "artist": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.artist",
+            "reason": "must be 1 to 200 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.artist: must be 1 to 200 characters",
+            "details": {
+              "field": "audio.artist"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-unknown-kind",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": {
+          "kind": "youtube",
+          "url": "https://youtube.com/x"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio.kind",
+            "reason": "unsupported value"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio.kind: unsupported value",
+            "details": {
+              "field": "audio.kind"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "audio-not-object",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "audio": "calm-lofi"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "audio",
+            "reason": "must be an object"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "audio: must be an object",
+            "details": {
+              "field": "audio"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "notes-4000",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "notes": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "notes": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+        }
+      }
+    },
+    {
+      "name": "notes-4001",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "notes": "nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "notes",
+            "reason": "must be at most 4000 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "notes: must be at most 4000 characters",
+            "details": {
+              "field": "notes"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "notes-empty",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "notes": ""
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "notes": ""
+        }
+      }
+    },
+    {
+      "name": "notes-nul",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "notes": "a\u0000b"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "notes",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "notes: contains forbidden characters",
+            "details": {
+              "field": "notes"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "category-ok",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "categoryId": "birthdays_2"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "categoryId": "birthdays_2"
+        }
+      }
+    },
+    {
+      "name": "category-space",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "categoryId": "has space"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "categoryId",
+            "reason": "invalid id"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "categoryId: invalid id",
+            "details": {
+              "field": "categoryId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "category-33",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "categoryId": "ccccccccccccccccccccccccccccccccc"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "categoryId",
+            "reason": "invalid id"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "categoryId: invalid id",
+            "details": {
+              "field": "categoryId"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "pinned-bad-timestamp",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "pinnedAt": "yesterday"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "pinnedAt",
+            "reason": "invalid timestamp"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "pinnedAt: invalid timestamp",
+            "details": {
+              "field": "pinnedAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "archived-offset-normalized",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "archivedAt": "2026-10-12T17:04:05+02:00"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "archivedAt": "2026-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "reminders-all",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": {
+          "daysBefore": [
+            0,
+            1,
+            7
+          ],
+          "time": "21:30"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "reminders": {
+            "daysBefore": [
+              0,
+              1,
+              7
+            ],
+            "time": "21:30"
+          }
+        }
+      }
+    },
+    {
+      "name": "reminders-default-time",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": {
+          "daysBefore": [
+            1
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "reminders": {
+            "daysBefore": [
+              1
+            ],
+            "time": "09:00"
+          }
+        }
+      }
+    },
+    {
+      "name": "reminders-empty",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": {
+          "daysBefore": []
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "reminders": {
+            "daysBefore": [],
+            "time": "09:00"
+          }
+        }
+      }
+    },
+    {
+      "name": "reminders-2",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": {
+          "daysBefore": [
+            2
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "reminders.daysBefore",
+            "reason": "must be distinct values of 0, 1 and 7"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "reminders.daysBefore: must be distinct values of 0, 1 and 7",
+            "details": {
+              "field": "reminders.daysBefore"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reminders-duplicate",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": {
+          "daysBefore": [
+            1,
+            1
+          ]
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "reminders.daysBefore",
+            "reason": "must be distinct values of 0, 1 and 7"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "reminders.daysBefore: must be distinct values of 0, 1 and 7",
+            "details": {
+              "field": "reminders.daysBefore"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reminders-short-time",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": {
+          "daysBefore": [
+            1
+          ],
+          "time": "9:00"
+        }
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "reminders.time",
+            "reason": "must be HH:MM"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "reminders.time: must be HH:MM",
+            "details": {
+              "field": "reminders.time"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "reminders-null",
+      "kind": "eventNew",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "reminders": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "reminders": null
+        }
+      }
+    },
+    {
+      "name": "patch-empty",
+      "kind": "eventPatch",
+      "input": {},
+      "expected": {
+        "valid": true,
+        "value": {}
+      }
+    },
+    {
+      "name": "patch-title",
+      "kind": "eventPatch",
+      "input": {
+        "title": " New title "
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "title": "New title"
+        }
+      }
+    },
+    {
+      "name": "patch-clear-title",
+      "kind": "eventPatch",
+      "input": {
+        "title": null
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: cannot be cleared",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "patch-clear-theme",
+      "kind": "eventPatch",
+      "input": {
+        "theme": null
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "theme",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "theme: cannot be cleared",
+            "details": {
+              "field": "theme"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "patch-clear-unit-mode",
+      "kind": "eventPatch",
+      "input": {
+        "unitMode": null
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "unitMode",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "unitMode: cannot be cleared",
+            "details": {
+              "field": "unitMode"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "patch-clear-recurrence",
+      "kind": "eventPatch",
+      "input": {
+        "recurrence": null
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "recurrence",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "recurrence: cannot be cleared",
+            "details": {
+              "field": "recurrence"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "patch-clear-optional",
+      "kind": "eventPatch",
+      "input": {
+        "emoji": null,
+        "targetTime": null,
+        "timeZone": null,
+        "backdrop": null,
+        "audio": null,
+        "notes": null,
+        "pinnedAt": null,
+        "categoryId": null,
+        "archivedAt": null,
+        "reminders": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "emoji": null,
+          "targetTime": null,
+          "timeZone": null,
+          "backdrop": null,
+          "audio": null,
+          "notes": null,
+          "pinnedAt": null,
+          "categoryId": null,
+          "archivedAt": null,
+          "reminders": null
+        }
+      }
+    },
+    {
+      "name": "patch-unknown-field",
+      "kind": "eventPatch",
+      "input": {
+        "title": "x",
+        "id": "other"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): unknown field",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "patch-two-errors",
+      "kind": "eventPatch",
+      "input": {
+        "title": "",
+        "unitMode": "years"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "title",
+            "reason": "must be 1 to 100 characters"
+          },
+          {
+            "field": "unitMode",
+            "reason": "unsupported value"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "title: must be 1 to 100 characters",
+            "details": {
+              "field": "title"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "patch-archive",
+      "kind": "eventPatch",
+      "input": {
+        "archivedAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "archivedAt": "2026-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "doc-size-small",
+      "kind": "eventDocSize",
+      "input": {
+        "title": "Our wedding",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": null
+      }
+    },
+    {
+      "name": "doc-size-over-16k",
+      "kind": "eventDocSize",
+      "input": {
+        "title": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        },
+        "notes": "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "event document exceeds 16384 bytes"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): event document exceeds 16384 bytes",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-valid",
+      "kind": "memoNew",
+      "input": {
+        "content": "Booked the venue today.",
+        "milestoneTag": "Day 100",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "content": "Booked the venue today.",
+          "milestoneTag": "Day 100",
+          "createdAt": "2026-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "memo-multiline",
+      "kind": "memoNew",
+      "input": {
+        "content": "Line one\n\tLine two",
+        "createdAt": "2026-10-12T17:04:05+02:00"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "content": "Line one\n\tLine two",
+          "createdAt": "2026-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "memo-empty",
+      "kind": "memoNew",
+      "input": {
+        "content": "",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "content",
+            "reason": "must not be empty"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "content: must not be empty",
+            "details": {
+              "field": "content"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-blank",
+      "kind": "memoNew",
+      "input": {
+        "content": " \n ",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "content",
+            "reason": "must not be empty"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "content: must not be empty",
+            "details": {
+              "field": "content"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-10000",
+      "kind": "memoNew",
+      "input": {
+        "content": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "content": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+          "createdAt": "2026-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "memo-10001",
+      "kind": "memoNew",
+      "input": {
+        "content": "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "content",
+            "reason": "must be at most 10000 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "content: must be at most 10000 characters",
+            "details": {
+              "field": "content"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-control-char",
+      "kind": "memoNew",
+      "input": {
+        "content": "a\u0007b",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "content",
+            "reason": "contains forbidden characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "content: contains forbidden characters",
+            "details": {
+              "field": "content"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-tag-101",
+      "kind": "memoNew",
+      "input": {
+        "content": "x",
+        "milestoneTag": "ttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt",
+        "createdAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "milestoneTag",
+            "reason": "must be 1 to 100 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "milestoneTag: must be 1 to 100 characters",
+            "details": {
+              "field": "milestoneTag"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-no-created-at",
+      "kind": "memoNew",
+      "input": {
+        "content": "x"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "createdAt",
+            "reason": "required"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "createdAt: required",
+            "details": {
+              "field": "createdAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-unknown-field",
+      "kind": "memoNew",
+      "input": {
+        "content": "x",
+        "createdAt": "2026-10-12T15:04:05Z",
+        "eventId": "e"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): unknown field",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-patch-clear-tag",
+      "kind": "memoPatch",
+      "input": {
+        "milestoneTag": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "milestoneTag": null
+        }
+      }
+    },
+    {
+      "name": "memo-patch-clear-content",
+      "kind": "memoPatch",
+      "input": {
+        "content": null
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "content",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "content: cannot be cleared",
+            "details": {
+              "field": "content"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-patch-clear-created-at",
+      "kind": "memoPatch",
+      "input": {
+        "createdAt": null
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "createdAt",
+            "reason": "cannot be cleared"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "createdAt: cannot be cleared",
+            "details": {
+              "field": "createdAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "memo-patch-content",
+      "kind": "memoPatch",
+      "input": {
+        "content": "Edited"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "content": "Edited"
+        }
+      }
+    },
+    {
+      "name": "link-defaults",
+      "kind": "linkNew",
+      "input": {},
+      "expected": {
+        "valid": true,
+        "value": {
+          "expiresAt": null
+        }
+      }
+    },
+    {
+      "name": "link-label",
+      "kind": "linkNew",
+      "input": {
+        "label": " Instagram ",
+        "expiresAt": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "label": "Instagram",
+          "expiresAt": null
+        }
+      }
+    },
+    {
+      "name": "link-label-empty",
+      "kind": "linkNew",
+      "input": {
+        "label": ""
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "label",
+            "reason": "must be 1 to 100 characters"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "label: must be 1 to 100 characters",
+            "details": {
+              "field": "label"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "link-label-null",
+      "kind": "linkNew",
+      "input": {
+        "label": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "label": null,
+          "expiresAt": null
+        }
+      }
+    },
+    {
+      "name": "link-expiry-past",
+      "kind": "linkNew",
+      "input": {
+        "expiresAt": "2026-10-12T15:04:04Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "expiresAt",
+            "reason": "must be after now and at most 5 years ahead"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "expiresAt: must be after now and at most 5 years ahead",
+            "details": {
+              "field": "expiresAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "link-expiry-now",
+      "kind": "linkNew",
+      "input": {
+        "expiresAt": "2026-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "expiresAt",
+            "reason": "must be after now and at most 5 years ahead"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "expiresAt: must be after now and at most 5 years ahead",
+            "details": {
+              "field": "expiresAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "link-expiry-5-years",
+      "kind": "linkNew",
+      "input": {
+        "expiresAt": "2031-10-12T15:04:05Z"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "expiresAt": "2031-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "link-expiry-5-years-1s",
+      "kind": "linkNew",
+      "input": {
+        "expiresAt": "2031-10-12T15:04:06Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "expiresAt",
+            "reason": "must be after now and at most 5 years ahead"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "expiresAt: must be after now and at most 5 years ahead",
+            "details": {
+              "field": "expiresAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "link-unknown-field",
+      "kind": "linkNew",
+      "input": {
+        "label": "x",
+        "role": "editor"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): unknown field",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "link-patch-never",
+      "kind": "linkPatch",
+      "input": {
+        "expiresAt": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "expiresAt": null
+        }
+      }
+    },
+    {
+      "name": "link-patch-empty",
+      "kind": "linkPatch",
+      "input": {},
+      "expected": {
+        "valid": true,
+        "value": {}
+      }
+    },
+    {
+      "name": "invite-defaults",
+      "kind": "inviteNew",
+      "input": {
+        "role": "editor"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "role": "editor",
+          "maxUses": 1,
+          "expiresAt": "2026-11-11T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "invite-no-role",
+      "kind": "inviteNew",
+      "input": {},
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "role",
+            "reason": "required"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "role: required",
+            "details": {
+              "field": "role"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invite-owner-role",
+      "kind": "inviteNew",
+      "input": {
+        "role": "owner"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "role",
+            "reason": "unsupported value"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "role: unsupported value",
+            "details": {
+              "field": "role"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invite-uses-0",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": 0
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "maxUses",
+            "reason": "must be 1 to 100"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "maxUses: must be 1 to 100",
+            "details": {
+              "field": "maxUses"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invite-uses-1",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": 1
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "role": "viewer",
+          "maxUses": 1,
+          "expiresAt": "2026-11-11T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "invite-uses-100",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": 100
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "role": "viewer",
+          "maxUses": 100,
+          "expiresAt": "2026-11-11T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "invite-uses-101",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": 101
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "maxUses",
+            "reason": "must be 1 to 100"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "maxUses: must be 1 to 100",
+            "details": {
+              "field": "maxUses"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invite-uses-unlimited",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": null,
+        "expiresAt": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "role": "viewer",
+          "maxUses": null,
+          "expiresAt": null
+        }
+      }
+    },
+    {
+      "name": "invite-uses-fraction",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": 1.5
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "maxUses",
+            "reason": "must be a whole number"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "maxUses: must be a whole number",
+            "details": {
+              "field": "maxUses"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invite-uses-string",
+      "kind": "inviteNew",
+      "input": {
+        "role": "viewer",
+        "maxUses": "5"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "maxUses",
+            "reason": "must be a whole number"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "maxUses: must be a whole number",
+            "details": {
+              "field": "maxUses"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "invite-patch-role",
+      "kind": "invitePatch",
+      "input": {
+        "role": "viewer"
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "role": "viewer"
+        }
+      }
+    },
+    {
+      "name": "invite-patch-expiry-past",
+      "kind": "invitePatch",
+      "input": {
+        "expiresAt": "2020-01-01T00:00:00Z"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "expiresAt",
+            "reason": "must be after now and at most 5 years ahead"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "expiresAt: must be after now and at most 5 years ahead",
+            "details": {
+              "field": "expiresAt"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "membership-archive",
+      "kind": "membershipPatch",
+      "input": {
+        "archived": true,
+        "reminders": {
+          "daysBefore": [
+            1
+          ]
+        }
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "archived": true,
+          "reminders": {
+            "daysBefore": [
+              1
+            ],
+            "time": "09:00"
+          }
+        }
+      }
+    },
+    {
+      "name": "membership-unarchive",
+      "kind": "membershipPatch",
+      "input": {
+        "archived": false,
+        "reminders": null
+      },
+      "expected": {
+        "valid": true,
+        "value": {
+          "archived": false,
+          "reminders": null
+        }
+      }
+    },
+    {
+      "name": "membership-archived-string",
+      "kind": "membershipPatch",
+      "input": {
+        "archived": "yes"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "archived",
+            "reason": "must be true or false"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "archived: must be true or false",
+            "details": {
+              "field": "archived"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "membership-unknown-field",
+      "kind": "membershipPatch",
+      "input": {
+        "role": "editor"
+      },
+      "expected": {
+        "valid": false,
+        "errors": [
+          {
+            "field": "",
+            "reason": "unknown field"
+          }
+        ],
+        "body": {
+          "error": {
+            "code": "invalid_payload",
+            "message": "(body): unknown field",
+            "details": {
+              "field": ""
+            }
+          }
+        }
+      }
+    }
+  ]
+}

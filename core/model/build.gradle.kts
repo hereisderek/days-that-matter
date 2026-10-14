@@ -94,6 +94,48 @@ tasks.register("checkCountdownVectors") {
     }
 }
 
+// Backend contract (task 2.8): the JVM build writes backend/core/contract/ (JSON Schema of the API
+// types, plan table, fixed limits, error codes, validation and merge vectors) for the TypeScript
+// backend core. The writer and its cases live in jvmTest. Output is deterministic.
+val contractDir: Directory = rootProject.layout.projectDirectory.dir("backend/core/contract")
+
+fun JavaExec.runContractWriter(output: File) {
+    classpath(jvmTestCompilation.output.allOutputs, jvmTestCompilation.runtimeDependencyFiles)
+    mainClass.set("dev.derek.daysthatmatter.core.model.contract.ContractWriterKt")
+    args(output.absolutePath)
+}
+
+tasks.register<JavaExec>("generateContract") {
+    group = "build"
+    description = "Writes backend/core/contract/ from the shared model."
+    runContractWriter(contractDir.asFile)
+    outputs.dir(contractDir)
+}
+
+val freshContract = layout.buildDirectory.dir("contract")
+
+val writeFreshContract = tasks.register<JavaExec>("writeFreshContract") {
+    description = "Writes a fresh backend contract into the build directory."
+    runContractWriter(freshContract.get().asFile)
+    outputs.dir(freshContract)
+}
+
+tasks.register("checkContract") {
+    group = "verification"
+    description = "Fails when the committed backend contract differs from a fresh generation."
+    dependsOn(writeFreshContract)
+    val committed = contractDir.asFile
+    val fresh = freshContract.get().asFile
+    inputs.dir(fresh)
+    doLast {
+        fun files(dir: File): Map<String, String> =
+            dir.listFiles().orEmpty().filter { it.isFile }.associate { it.name to it.readText() }
+        if (files(committed) != files(fresh)) {
+            throw GradleException("$committed is out of date: run ./gradlew :core:model:generateContract")
+        }
+    }
+}
+
 // The countdown and recurrence calculation has a 100% coverage target
 // (docs/standards/TESTING_STRATEGY.md 2.1). Kover in this module reports on that package only,
 // measured with the JVM tests: ./gradlew :core:model:koverVerify (report: koverHtmlReport).

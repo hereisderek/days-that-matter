@@ -1,0 +1,29 @@
+{
+  "generatedBy": "./gradlew :core:model:generateContract (do not edit by hand)",
+  "limits": {
+    "ACTIVE_INVITES_PER_EVENT": 20,
+    "ACTIVE_LINKS_PER_EVENT": 10,
+    "AUDIO_MAX_BYTES": 4194304,
+    "AUDIO_TEXT_MAX_CHARS": 200,
+    "BLUR_MAX": 16.0,
+    "CUSTOM_DAYS_MAX": 3650,
+    "DIM_MAX": 0.8,
+    "EMOJI_MAX_UTF8_BYTES": 16,
+    "EVENT_DOC_MAX_BYTES": 16384,
+    "EXPIRY_MAX_YEARS": 5,
+    "INVITE_MAX_USES": 100,
+    "JSON_BODY_MAX_BYTES": 65536,
+    "LABEL_MAX_CHARS": 100,
+    "MAX_YEAR": 2200,
+    "MEMBERS_PER_EVENT": 100,
+    "MEMOS_PER_EVENT": 500,
+    "MEMO_MAX_CHARS": 10000,
+    "MIN_YEAR": 1900,
+    "MOTION_MAX_BYTES": 4194304,
+    "NOTES_MAX_CHARS": 4000,
+    "REVISIONS_KEPT": 200,
+    "STILL_MAX_BYTES": 1572864,
+    "TITLE_MAX_CHARS": 100,
+    "UPLOAD_MAX_BYTES": 4194304
+  }
+}
