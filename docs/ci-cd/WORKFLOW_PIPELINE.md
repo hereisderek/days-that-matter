@@ -27,11 +27,10 @@ Sensitive signing certificates and Firebase configurations are never committed d
   1. Checkout repository code.
   2. Setup JDK 21 (Temurin) and Android SDK.
   3. Setup Gradle with build cache support.
-  4. Inject mock secrets (`google-services.json.mock` &rarr; `google-services.json`).
-  5. Run multiplatform checks: `./gradlew allTests` (or `testDebugUnitTest`).
-  6. Run static lint: `./gradlew lintDebug`.
-  7. Build debug snapshot APK: `./gradlew :composeApp:assembleDebug`.
-  8. Upload debug snapshot artifact with commit hash and run date.
+  4. Run multiplatform checks: `./gradlew allTests` (or `testDebugUnitTest`). No Firebase configuration or mock secrets are needed.
+  5. Run static lint: `./gradlew lintDebug`.
+  6. Build debug snapshot APK: `./gradlew :androidApp:assembleDebug`.
+  7. Upload debug snapshot artifact with commit hash and run date.
 
 ### 3.2 Production Release Pipeline (`release.yml`)
 - **Trigger:** Push to `release` branch or tag `v*.*.*`.

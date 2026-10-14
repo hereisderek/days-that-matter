@@ -55,7 +55,7 @@ Active changes:
 - **Coding Standards & Kotlin Idioms:** [`docs/standards/CODING_STANDARDS.md`](docs/standards/CODING_STANDARDS.md)
 - **Testing Pyramid & QA Strategy:** [`docs/standards/TESTING_STRATEGY.md`](docs/standards/TESTING_STRATEGY.md)
 - **CI/CD Pipeline & GitHub Workflows:** [`docs/ci-cd/WORKFLOW_PIPELINE.md`](docs/ci-cd/WORKFLOW_PIPELINE.md)
-- **Toolchain & Build Guidelines (JDK 21, Gradle 8.13+):** [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](docs/ci-cd/TOOLCHAIN_GUIDELINES.md)
+- **Toolchain & Build Guidelines (JDK 21, Gradle 9.8.1 and the other latest stable versions):** [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](docs/ci-cd/TOOLCHAIN_GUIDELINES.md)
 - **Superseded, kept as reference until removed:** the TypeScript share service in `services/share/`: [`SHARE_SERVICE.md`](docs/architecture/SHARE_SERVICE.md), [`SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md), [`SHARE_SERVICE_STATUS.md`](docs/plans/SHARE_SERVICE_STATUS.md).
 
 ### 4.2 Feature Specifications
@@ -97,3 +97,7 @@ Active changes:
 | **Validate OpenSpec** | `openspec validate --all --strict` (CI: `.github/workflows/openspec.yml`) |
 
 `testDebugUnitTest` covers only `:androidApp`. Tests in the multiplatform modules, including their Android host tests (`testAndroidHostTest`), run with `allTests`. Apple targets are skipped on Linux and Windows. Run one Gradle build at a time on small hosts; memory settings and toolchain versions are in [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](docs/ci-cd/TOOLCHAIN_GUIDELINES.md).
+
+### Project skills
+
+Android skills live in `.agents/skills/` (symlinked from `.claude/skills/`): `android-cli` (device install, UI inspection, screenshots), `edge-to-edge`, `adaptive`, `navigation-3`, `android-intent-security`, `r8-analyzer` and `android-profiler`, plus the OpenSpec skills and `days-that-matter-orchestrator`. Use `android-cli` for on-device checks, with `--device <serial>`.
