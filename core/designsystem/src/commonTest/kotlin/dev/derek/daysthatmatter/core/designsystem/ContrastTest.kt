@@ -27,4 +27,21 @@ class ContrastTest {
         assertEquals(contrastRatio(background, text), contrastRatio(text, background))
         assertTrue(contrastRatio(background, text) >= 4.5f)
     }
+
+    @Test
+    fun inkOnTheV2PageBackgroundPassesAa() {
+        assertTrue(contrastRatio(Color(0xFF111714), Color(0xFFF5F7F3)) >= AA_CONTRAST)
+        assertTrue(contrastRatio(Color(0xFFECF1EE), Color(0xFF0F1312)) >= AA_CONTRAST)
+    }
+
+    @Test
+    fun accentTextOnItsOwnSoftSurfaceIsReadableInBothThemes() {
+        val light = dev.derek.daysthatmatter.core.designsystem.theme.lightDtmColors()
+        val dark = dev.derek.daysthatmatter.core.designsystem.theme.darkDtmColors()
+
+        assertTrue(contrastRatio(light.accent, light.surface) >= 3f)
+        assertTrue(contrastRatio(dark.accent, dark.surface) >= AA_CONTRAST)
+        assertTrue(contrastRatio(light.onAccent, light.accent) >= 3f)
+        assertTrue(contrastRatio(dark.onAccent, dark.accent) >= AA_CONTRAST)
+    }
 }
