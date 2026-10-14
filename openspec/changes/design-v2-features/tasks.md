@@ -5,7 +5,8 @@ Order: groups 1 and 2 need only `:core:model` and the app; groups 3 and 4 need t
 ## 1. Countdown units
 
 - [x] 1.1 Add the six `UnitMode` values and workday counting to the countdown engine in `:core:model`; verify unit tests for each unit, including workdays across a weekend, a target on a Saturday, a count-up started on a Friday, the target day itself, and Auto at 48 hours.
-- [ ] 1.2 Add every unit to the countdown vector generator (task 2.7 of the active change); verify `countdown.js` passes the new vectors and CI fails when the committed file differs from a fresh generation.
+- [x] 1.2 Add every unit to the countdown vector generator (task 2.7 of the active change); verify `countdown.js` passes the new vectors and CI fails when the committed file differs from a fresh generation.
+  - Note: the vector file covers all six units and workdays (generated since wave 0b); `backend/core/web/countdown.js` passes every vector and `pr-check.yml` runs `checkCountdownVectors`, verified locally to fail on a changed file.
 - [ ] 1.3 Accept the six API values in `unitMode` validation and reject a viewer's change; verify `:core:model` validation tests, a core test for `403 forbidden` from a viewer, and a conformance suite run on the cloudflare and selfhost variants.
 - [ ] 1.4 Day page: tap the number to switch to the next unit, a list of all six, no control for viewers, and a note that public holidays are not skipped; verify ViewModel tests for owner, editor and viewer.
 
