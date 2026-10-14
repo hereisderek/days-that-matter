@@ -9,7 +9,7 @@ Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 
 
 ## 2. Shared model `:core:model`
 
-- [ ] 2.1 Create the Gradle module with targets android, iosArm64, iosSimulatorArm64, jvm and js, depending only on kotlinx-serialization and kotlinx-datetime; verify `./gradlew :core:model:allTests` runs on every target.
+- [x] 2.1 Create the Gradle module with targets android, iosArm64, iosSimulatorArm64, jvm and js, depending only on kotlinx-serialization and kotlinx-datetime; verify `./gradlew :core:model:allTests` runs on every target.
 - [ ] 2.2 Add `EventDoc`, `Memo`, the shared and owner-only field sets, roles, backdrop and audio types, invite and link settings, and the API types from BACKEND.md section 7; verify JSON round-trip tests and that unknown fields are ignored on read.
 - [ ] 2.3 Port validation from `services/share/src/lib/validate.ts` and extend it to notes, memos, backdrop, audio, Spotify URLs, link expiry and invite use counts; verify with the hostile input table from the old tests and limits at and past each value.
 - [ ] 2.4 Implement patch apply, inverse patch and overwritten-field detection (design D5); verify tests for different fields, same field, nested object replacement and null clearing.

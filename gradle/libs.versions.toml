@@ -3,8 +3,10 @@
 
 [versions]
 # Android SDK levels
-android-compileSdk = "36"
-android-targetSdk = "36"
+# compileSdk 37.2 = API level 37, minor API level 2 (AGP minor-API DSL). Compose 1.12 needs 37 or later.
+android-compileSdk = "37"
+android-compileSdkMinor = "2"
+android-targetSdk = "37"
 android-minSdk = "26"
 # AGP 9.4 defaults to build tools 36.0.0; 37.0.0 is the newest stable release and is what the dev host has.
 android-buildTools = "37.0.0"

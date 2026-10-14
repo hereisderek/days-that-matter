@@ -8,7 +8,11 @@ plugins {
 kotlin {
     android {
         namespace = "dev.derek.daysthatmatter.core.common"
-        compileSdk = libs.versions.android.compileSdk.get().toInt()
+        compileSdk {
+            version = release(libs.versions.android.compileSdk.get().toInt()) {
+                minorApiLevel = libs.versions.android.compileSdkMinor.get().toInt()
+            }
+        }
         minSdk = libs.versions.android.minSdk.get().toInt()
         buildToolsVersion = libs.versions.android.buildTools.get()
         withHostTestBuilder {}

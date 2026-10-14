@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A calendar page inside the 66 dp safe zone of the 108 dp adaptive icon canvas. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,36h32a4,4 0,0 1,4 4v30a4,4 0,0 1,-4 4h-32a4,4 0,0 1,-4 -4v-30a4,4 0,0 1,4 -4zM38,46v24h32v-24z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M42,31h4v9h-4zM62,31h4v9h-4zM49,52h10v10h-10z" />
+</vector>

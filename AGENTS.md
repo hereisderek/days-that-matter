@@ -18,7 +18,7 @@
 1. **Verify & Align:** Before generating code or modifying architectural boundaries, rephrase requirements and verify alignment against the feature specification.
 2. **Specification Adherence:** Never invent ad-hoc data schemas or business logic that diverge from the specifications in [`openspec/specs/`](openspec/specs/), the active changes in [`openspec/changes/`](openspec/changes/), and [`docs/features/`](docs/features/). Where they disagree, the active OpenSpec change wins.
 3. **Documentation Sync:** When a significant architectural choice, schema modification, or feature is added, update the corresponding documentation immediately.
-4. **Toolchain Discipline:** Do not hardcode dependency versions in `build.gradle.kts`. Always use the Gradle Version Catalog (`gradle/libs.versions.toml`).
+4. **Toolchain Discipline:** Do not hardcode dependency versions in `build.gradle.kts`. Always use the Gradle Version Catalog (`gradle/libs.versions.toml`). Use the latest stable release of every dependency, SDK, compileSdk, targetSdk and Gradle unless the owner explicitly pins a version.
 5. **No Platform Code in Domain:** Keep domain entities and use cases strictly pure Kotlin. `:core:model` is also compiled for the backend (JS, JVM), so it may depend only on Kotlin stdlib, kotlinx-serialization and kotlinx-datetime.
 6. **Backend Core and Variants:** all backend behavior lives in `backend/core/`. A variant directory (`backend/cloudflare`, `backend/selfhost`, `backend/vercel`, `backend/firebase`) holds only port implementations (`Store`, `BlobStore`, `LiveHub`), an entry file and deploy config. Performance and low running cost come first.
 7. **Premium Features:** any change to what a plan includes updates the plan table in `:core:model` and [`docs/features/premium/SPEC.md`](docs/features/premium/SPEC.md) in the same PR. Gating uses the plan of the person saving; viewing is never gated.
@@ -84,11 +84,16 @@ Active changes:
 
 | Operation | Command |
 | :--- | :--- |
-| **Run Android Unit Tests** | `./gradlew testDebugUnitTest` |
-| **Run Lint Check** | `./gradlew lintDebug` |
-| **Build Android Debug APK** | `./gradlew :composeApp:assembleDebug` |
-| **Build Android Release Bundle** | `./gradlew :composeApp:bundleRelease` |
-| **Run Desktop (JVM)** | `./gradlew :composeApp:run` |
-| **Run Web (Wasm)** | `./gradlew :composeApp:wasmJsBrowserDevelopmentRun` |
+| **Run multiplatform tests (every target the host can run)** | `./gradlew allTests` |
+| **Run shared model tests (android, jvm, js; iOS on macOS)** | `./gradlew :core:model:allTests` |
+| **Run Android app unit tests** | `./gradlew testDebugUnitTest` |
+| **Run Lint Check (app and its modules)** | `./gradlew lintDebug` |
+| **Build Android Debug APK** | `./gradlew :androidApp:assembleDebug` |
+| **Build Android Release Bundle** | `./gradlew :androidApp:bundleRelease` |
+| **Stop the Gradle daemon after a build session** | `./gradlew --stop` |
+| **Run Desktop (JVM)** | Later: no Desktop target yet |
+| **Run Web (Wasm)** | Later: no Wasm target yet |
 | **List OpenSpec changes / specs** | `openspec list` / `openspec list --specs` |
 | **Validate OpenSpec** | `openspec validate --all --strict` (CI: `.github/workflows/openspec.yml`) |
+
+`testDebugUnitTest` covers only `:androidApp`. Tests in the multiplatform modules, including their Android host tests (`testAndroidHostTest`), run with `allTests`. Apple targets are skipped on Linux and Windows. Run one Gradle build at a time on small hosts; memory settings and toolchain versions are in [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](docs/ci-cd/TOOLCHAIN_GUIDELINES.md).
