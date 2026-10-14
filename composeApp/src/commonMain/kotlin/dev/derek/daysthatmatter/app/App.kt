@@ -1,26 +1,22 @@
 package dev.derek.daysthatmatter.app
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import dev.derek.daysthatmatter.core.designsystem.gallery.DesignGallery
+import dev.derek.daysthatmatter.core.designsystem.theme.DaysThatMatterTheme
+import dev.derek.daysthatmatter.core.designsystem.theme.DtmTheme
 
-/** Root of the app UI on every platform. The theme from :core:designsystem replaces MaterialTheme later. */
+/**
+ * Root of the app UI on every platform. Until the real screens exist it shows the design gallery of
+ * :core:designsystem inside the theme; the gallery draws its own light and dark panels.
+ */
 @Composable
 fun App(modifier: Modifier = Modifier) {
-    MaterialTheme {
-        Surface(modifier = modifier.fillMaxSize()) {
-            Box(
-                modifier = Modifier.fillMaxSize().safeDrawingPadding(),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(text = "Hello, Days That Matter", style = MaterialTheme.typography.headlineMedium)
-            }
+    DaysThatMatterTheme {
+        Surface(modifier = modifier, color = DtmTheme.colors.bg) {
+            DesignGallery(Modifier.safeDrawingPadding())
         }
     }
 }

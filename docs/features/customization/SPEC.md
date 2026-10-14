@@ -16,7 +16,7 @@ Empowers users to transform simple dates into personalized visual art. Offers cu
 6. **Dim and Blur:** every backdrop has a dim level (0 to 0.8, shared as `backdrop.dim`). Photo and art backdrops also have a blur radius from 0 to 16, default 0, shared as `backdrop.blur`. The radius is in points at a 390 pt card width and scales with the card, so a 195 pt card uses half. The app and the public web page render it; the server never blurs. Compose: `Modifier.blur` needs Android 12; below that, draw a pre-blurred, downscaled bitmap. Requirements: the [`event-backdrops`](../../../openspec/changes/pluggable-backend-live-sharing/specs/event-backdrops/spec.md) spec ("Backdrop blur").
 
 ### 2.2 Typography Presets
-- **Modern Sans:** Crisp, geometric readability (Inter / Roboto).
+- **Modern Sans:** Crisp, geometric readability (Geist, bundled; v2 uses it for the app and the Modern card typeface).
 - **Classic Serif:** Elegant, romantic milestones (Playfair / Merriweather).
 - **Playful Rounded:** Birthdays, fun events (Nunito / Quicksand).
 - **Monospace Tech:** Deadlines, count-ups, productivity (JetBrains Mono).
