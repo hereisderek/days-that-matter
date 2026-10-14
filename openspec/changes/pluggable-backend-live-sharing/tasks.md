@@ -2,10 +2,9 @@
 
 Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 10 add the other provider variants. Each group lands its own tests and doc updates. Paths and names refer to [`docs/architecture/BACKEND.md`](../../../docs/architecture/BACKEND.md). China is a separate change ([`CHINA.md`](../../../docs/architecture/CHINA.md)).
 
-## 1. Language spike (decides design D1)
+## 1. Language decision (design D1)
 
-- [ ] 1.1 Build two routes, link read (`GET /api/v1/links/{token}`: one D1 read, JSON out) and event patch (`PATCH /api/v1/events/{id}`: validation, merge, one D1 batch), once in Kotlin/JS (IR, ES modules, no kotlinx-coroutines) and once in TypeScript (from `services/share/`); deploy both to a Workers Free preview; verify by recording Worker startup time, warm CPU time p50 over 1,000 requests and gzip bundle size for each in BACKEND.md section 13.
-- [ ] 1.2 Apply the D1 criteria (warm CPU ≤ 1.25 × TypeScript, startup ≤ 100 ms, bundle ≤ 1 MB gzip) and record the result in design.md D1 and BACKEND.md section 13; verify that tasks 2.8 and group 3 name the chosen language before group 3 starts.
+- [x] 1.1 Record the owner's decision (TypeScript for `backend/core`, Kotlin/JS kept open with revisit triggers) in design.md D1 and BACKEND.md section 13; verify that task 2.8 and group 3 name TypeScript.
 
 ## 2. Shared model `:core:model`
 
@@ -19,7 +18,7 @@ Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 
 - [x] 2.6 Implement the plan table (`Plan`, `Feature`, limits for free, premium and premium_plus) and the gate check for a change given the writer's plan and the writer's counts; verify tests for each row of `docs/features/premium/SPEC.md`, including lapsed plans and counts above the limit keeping existing content.
 - [x] 2.7 Implement the countdown engine per `docs/features/events/SPEC.md` and a JVM task that writes `backend/core/web/test/countdown-vectors.json`; verify `countdown.js` passes every generated vector and CI fails when the committed file differs from a fresh generation.
   - Note: engine tests pass on JVM, JS and Android host with 100% line and branch coverage (`koverVerify`), and the vector file is deterministic; the `countdown.js` check is pending until the backend core exists. `:core:model:checkCountdownVectors` is ready for the CI step.
-- [ ] 2.8 If task 1.2 chose TypeScript: generate `backend/core/contract/` from `:core:model` (JSON Schema of the API types, plan table JSON, validation and merge vectors); verify a CI step regenerates it and fails on any difference.
+- [ ] 2.8 Generate `backend/core/contract/` from `:core:model` (JSON Schema of the API types, plan table JSON, validation and merge vectors); verify a CI step regenerates it and fails on any difference.
 - [x] 2.9 Update `docs/features/events/SPEC.md` and `docs/features/premium/SPEC.md` with any change made while implementing; verify they match the code.
   - Note: events SPEC gained the calculation rules (section 2.5) and the shared types; the premium SPEC already matched the plan table, so it is unchanged.
 
@@ -110,3 +109,4 @@ Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 
 - Archive the change with `openspec archive pluggable-backend-live-sharing` after review, so its specs move to `openspec/specs/`.
 - Remove the superseded notes from the share service docs once they are deleted.
 - Start a separate change for the China region when the open points in `docs/architecture/CHINA.md` are answered.
+- When a Kotlin/JS revisit trigger in design D1 fires, build the two-route measurement (link read, event patch) on a Workers Free preview, record it in BACKEND.md section 13, and decide in a new change.

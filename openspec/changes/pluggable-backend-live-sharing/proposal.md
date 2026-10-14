@@ -7,7 +7,7 @@ Today a share publishes a frozen snapshot through a TypeScript service that only
 ## What Changes
 
 - One backend: a core with all behavior in `backend/core/`, and one variant per provider in its own directory (`backend/cloudflare/`, `backend/selfhost/`, `backend/vercel/`, `backend/firebase/`). Variants only implement small ports: store, blob storage, live updates, mail.
-- The core is written in Kotlin/JS or TypeScript, whichever is cheaper and faster in a measured spike. Either way, the rules come from `:core:model`, the app's shared Kotlin module.
+- The core is written in TypeScript (owner decision, 2026-10-14). Kotlin/JS stays an option if the core grows (design D1). Either way, the rules come from `:core:model`, the app's shared Kotlin module.
 - **BREAKING** (docs only, nothing shipped): the backend replaces Firestore and Firebase Auth. The app talks to one HTTP API on every provider.
 - Accounts: sign in with Google, Apple or an email code in the app; more methods can be added. Anything online needs an account; guests stay local and get a sign-in prompt. Users can download their data. Accounts unused for 24 months (owner to confirm) are deleted after two emails with a data download link.
 - Signed-in users sync everything: events and memos now, comments when they ship. Sync runs after each edit; a Sync button syncs at once and says edits sync automatically.

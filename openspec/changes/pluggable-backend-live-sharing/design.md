@@ -33,15 +33,31 @@ Reference architecture (directories, ports, variants, schema, API table, limits)
 
 ## Decisions
 
-### D1. Backend language is chosen by measurement; performance and cost win
+### D1. Backend language: TypeScript now, Kotlin/JS kept open
 
-Two candidates for `backend/core`:
-- **Kotlin/JS**: compiles `:core:model` straight into the backend.
-- **TypeScript**: smaller bundles and faster start; `services/share/` is a head start. Rules come from `:core:model` as generated contract files (JSON Schema of the API types, the plan table as JSON, test vectors for validation, merge and countdown), checked in CI.
+Decided by the owner on 2026-10-14 without the planned spike: `backend/core` is written in **TypeScript**. Rules still come from `:core:model`, the shared Kotlin module, as generated contract files (JSON Schema of the API types, the plan table as JSON, test vectors for validation, merge and countdown), checked in CI (task 2.8).
 
-Task 1 builds the same two routes in both and deploys them to a Workers preview. Kotlin/JS is chosen only if warm CPU per request is at most 1.25 × the TypeScript build, Worker startup is at most 100 ms and the gzip bundle is at most 1 MB. Otherwise TypeScript. Every other decision holds for either language.
+Why TypeScript first:
+- Smaller bundles and faster start, which matters under the Workers Free limit of 10 ms CPU per request.
+- `services/share/` is a head start (Hono, D1, 179 tests); see D13.
+- Kotlin/JS cold starts on Workers are reported at 100 to 200 ms, and cost matters more than sharing code.
 
-Alternatives: decide Kotlin now (reported 100 to 200 ms cold starts, and cost matters more than sharing code); Ktor on the JVM (no JVM on Workers or Vercel); Kotlin/Wasm (less proven on Workers; can join the spike if Kotlin/JS narrowly fails).
+What Kotlin/JS would give us, and what we accept losing for now:
+- One implementation of validation, patch and merge, role projections, the plan table and the countdown engine. No second copy to keep in step and no generated contract.
+- The app tests and the backend tests exercise the same code.
+- One language across app and backend.
+
+How TypeScript covers the gap: the generated `backend/core/contract/` is regenerated in CI and fails on any difference; the countdown vectors are generated from `:core:model` and `countdown.js` must pass them; validation and merge vectors do the same for those rules.
+
+Revisit and move to Kotlin/JS (a new change) when any of these holds:
+- Rules drift between the model and the core causes repeated bugs.
+- Keeping the contract and vectors in step costs more than it saves.
+- The core has grown so large that two copies of the rules are a real burden.
+- A measurement of the same two routes (link read, event patch) on a Workers preview shows Kotlin/JS with warm CPU at most 1.25 times TypeScript, startup at most 100 ms and a gzip bundle at most 1 MB.
+
+Keeping a later move cheap: handlers stay thin and call the ports; no web framework beyond a tiny router; the HTTP conformance suite is black-box, so a Kotlin/JS core can replace the TypeScript one route by route against the same suite. Every other decision here holds for either language.
+
+Alternatives: run the spike first (rejected by the owner for now; it stays available under the revisit triggers); Ktor on the JVM (no JVM on Workers or Vercel); Kotlin/Wasm (less proven on Workers).
 
 ### D2. One core directory, one directory per variant, small ports
 
@@ -131,7 +147,7 @@ Not built in this change. Rules from the owner: comments have the same visibilit
 
 ### D13. Retire the TypeScript share service
 
-`services/share/` is frozen. If TypeScript wins D1, its code is the starting point of `backend/core`. Its tests become the reference either way. When the Cloudflare variant passes conformance, it is deleted.
+`services/share/` is frozen. TypeScript is the chosen core language (D1), so its code is the starting point of `backend/core`, and its tests become the reference. When the Cloudflare variant passes conformance, it is deleted.
 
 ### D14. Plans, limits and native store purchases
 
@@ -215,7 +231,7 @@ Alternatives: SQL queries through each provider's console (different per variant
 
 ## Risks / Trade-offs
 
-- [Kotlin/JS is slower or larger than TypeScript] → D1 measures first; TypeScript is a full option.
+- [Rules drift between the Kotlin model and the TypeScript core] → The generated contract and vectors fail CI on any difference (task 2.8); D1 lists when to revisit Kotlin/JS.
 - [Native purchases take longer than RevenueCat and miss edge cases] → Store sandbox tests for renewal, grace period, refund and restore; RevenueCat stays a fallback.
 - [Free tier caps on Cloudflare] → Budget in BACKEND.md; Workers Paid past about 30,000 page views per day.
 - [Vercel Hobby forbids commercial use; Firebase needs Blaze] → Cloudflare is the primary variant.

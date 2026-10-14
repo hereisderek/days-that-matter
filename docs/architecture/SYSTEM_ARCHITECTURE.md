@@ -98,6 +98,6 @@ days-that-matter/
 Android Gradle Plugin 9 does not allow the Android application plugin in a Kotlin Multiplatform module, so `composeApp` is a multiplatform library (with `com.android.kotlin.multiplatform.library`, like every `core/` module) and the thin `androidApp` module is the Android application. Android builds use `:androidApp:assembleDebug` and `:androidApp:bundleRelease`. The application id `dev.derek.daysthatmatter` is provisional (an owner input in [`BACKEND.md`](BACKEND.md) section 15) and is set only in `androidApp/build.gradle.kts`.
 
 Dependency rules:
-- `core/model` depends on nothing but kotlinx-serialization and kotlinx-datetime. The app depends on it; the backend core either compiles it in (Kotlin/JS) or uses the contract files generated from it (TypeScript).
+- `core/model` depends on nothing but kotlinx-serialization and kotlinx-datetime. The app depends on it; the backend core (TypeScript) uses the contract files generated from it; a later Kotlin/JS core would compile it in instead.
 - `backend/core` never depends on app modules or any vendor SDK.
 - A variant depends on `backend/core` and its own vendor SDK only, and contains no behavior of its own.

@@ -10,7 +10,7 @@ This document replaces [`SHARE_SERVICE.md`](SHARE_SERVICE.md), which describes t
 
 - One backend for accounts, sync (events, memos, later comments), sharing, history, backdrops, audio, plans and purchases.
 - `backend/core/` holds all behavior. Each provider is a variant in its own directory: **cloudflare** (primary), **selfhost**, **vercel**, **firebase**.
-- Core language: Kotlin/JS or TypeScript, whichever wins the spike on CPU time, startup and bundle size (design D1, results in section 13). Either way the rules come from `:core:model`, the Kotlin module the app uses.
+- Core language: TypeScript (owner decision, design D1 and section 13); Kotlin/JS stays an option if the core grows. Either way the rules come from `:core:model`, the Kotlin module the app uses.
 - Purchases are verified with Apple and Google directly (no RevenueCat). Sign-in: Google, Apple, email codes, as plug-ins.
 - A region is one deployment. The global region runs on Cloudflare; a China region would be a separate deployment (section 16).
 - Share web pages are read-only (design D17): the public link page shows the event; invite and member links open the app. No browser sessions, no cookies.
@@ -61,7 +61,7 @@ backend/
     web/                    share page assets: share.css, countdown.js, live.js, admin.js (operator page), fonts, og/, .well-known/, test vectors
     audio/catalog.json      built-in track list
     smart/catalog.json      seasonal smart day templates (draft, change design-v2-features)
-    contract/               generated from :core:model; only when the core is TypeScript (task 2.8)
+    contract/               generated from :core:model (task 2.8)
     conformance/            black-box HTTP suite every variant must pass
   cloudflare/               Worker entry, D1 driver, R2 store, EventRoom Durable Object, wrangler.jsonc
   selfhost/                 Node entry, node:sqlite driver, disk store, WebSocket hub, SMTP mailer, Dockerfile, compose.yaml
@@ -69,13 +69,13 @@ backend/
   firebase/                 function entry, FirestoreStore, Cloud Storage store, firebase.json, firestore.rules, storage.rules
 ```
 
-With Kotlin, `backend/*` are Gradle modules (`:backend:core`, `:backend:cloudflare`, ...) built to JS, each variant bundling only its own vendor code. With TypeScript, they are npm workspaces.
+`backend/*` are npm workspaces (TypeScript), each variant bundling only its own vendor code. If the core later moves to Kotlin/JS, they become Gradle modules (`:backend:core`, `:backend:cloudflare`, ...) built to JS.
 
 ---
 
 ## 4. Ports and plug-ins
 
-Shown in Kotlin; the TypeScript version has the same shape.
+Shown in Kotlin notation for readability; the implementation is TypeScript with the same shape.
 
 ```kotlin
 interface Store {                       // use-case level; one call = one transaction
@@ -714,16 +714,16 @@ Other costs: self-host is the server only. Vercel Hobby forbids commercial use. 
 
 ---
 
-## 13. Spike results
+## 13. Language decision
 
-To be filled by tasks 1.1 and 1.2.
+Decided by the owner on 2026-10-14 without a spike: `backend/core` is TypeScript (design D1). No measurements were taken. The table is kept for a later comparison, which design D1 describes (same two routes, link read and event patch, on a Workers Free preview).
 
 | Build | Worker startup | Warm CPU p50 | Bundle (gzip) |
 | :--- | :--- | :--- | :--- |
-| TypeScript | | | |
-| Kotlin/JS | | | |
+| TypeScript | not measured | not measured | not measured |
+| Kotlin/JS | not measured | not measured | not measured |
 
-Decision: (pending). Criteria: Kotlin/JS only if warm CPU ≤ 1.25 × TypeScript, startup ≤ 100 ms and bundle ≤ 1 MB gzip.
+Revisit when a trigger in design D1 fires. Kotlin/JS would be worth choosing only with warm CPU at most 1.25 times TypeScript, startup at most 100 ms and a bundle of at most 1 MB gzip.
 
 ---
 
@@ -742,7 +742,7 @@ Testing (details in [`TESTING_STRATEGY.md`](../standards/TESTING_STRATEGY.md)):
 - Store conformance suite against each `Store` (SQLite, Firestore emulator).
 - HTTP conformance suite in `backend/core/conformance/` against each variant: `wrangler dev`, the self-host container, the Vercel handler on Node with a libSQL file, the Firebase emulators.
 - Purchase verification against recorded sandbox payloads (Apple JWS, notifications) and a fake Google API.
-- Countdown vectors generated from `:core:model`; `countdown.js` must pass them. With a TypeScript core, also the generated contract checks (task 2.8).
+- Countdown vectors generated from `:core:model`; `countdown.js` must pass them. Also the generated contract checks (task 2.8).
 
 Operations:
 - Maintenance: `MAINTENANCE=1` makes writes return `503`; reads keep working.
