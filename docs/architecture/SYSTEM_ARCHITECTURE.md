@@ -83,7 +83,8 @@ days-that-matter/
 │   ├── ios/              # iOS entry point, WidgetKit bridge, Live Photo conversion (AVFoundation), StoreKit 2 bridge, share extension
 │   ├── desktop/          # Later: JVM entry point, window lifecycle, menu bar tray
 │   └── web/              # Later: Wasm browser canvas entry point
-├── composeApp/           # Main application shell and root navigation graph
+├── composeApp/           # Main application shell and root navigation graph (KMP library; builds the iOS framework)
+├── androidApp/           # Android application: Application, MainActivity, manifest, signing, application id
 ├── backend/              # See docs/architecture/BACKEND.md
 │   ├── core/             # ALL backend behavior: API, auth, sync, sharing, history, media checks, plans, audio,
 │   │                     #   pages, purge; plus migrations/, web/, audio/catalog.json, conformance/
@@ -93,6 +94,8 @@ days-that-matter/
 │   └── firebase/         # variant: function entry, Firestore, Cloud Storage, Hosting config
 └── openspec/             # Spec-driven changes and behavior specs
 ```
+
+Android Gradle Plugin 9 does not allow the Android application plugin in a Kotlin Multiplatform module, so `composeApp` is a multiplatform library (with `com.android.kotlin.multiplatform.library`, like every `core/` module) and the thin `androidApp` module is the Android application. Android builds use `:androidApp:assembleDebug` and `:androidApp:bundleRelease`. The application id `dev.derek.daysthatmatter` is provisional (an owner input in [`BACKEND.md`](BACKEND.md) section 15) and is set only in `androidApp/build.gradle.kts`.
 
 Dependency rules:
 - `core/model` depends on nothing but kotlinx-serialization and kotlinx-datetime. The app depends on it; the backend core either compiles it in (Kotlin/JS) or uses the contract files generated from it (TypeScript).

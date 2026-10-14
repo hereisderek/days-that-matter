@@ -1,0 +1,60 @@
+name: Android PR Check
+
+# Pull request verification for the Kotlin Multiplatform app (docs/ci-cd/WORKFLOW_PIPELINE.md section 3.1).
+# Added with the first Gradle project: AGP 9 needs the Android application in its own module, so the APK
+# comes from :androidApp, and Compose 1.12 needs compileSdk 37.2, which the runner image may not have yet.
+# No google-services.json step: the app no longer uses Firebase.
+on:
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Tests, lint and debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Same SDK packages as docs/ci-cd/TOOLCHAIN_GUIDELINES.md section 1. Builds never download SDK
+      # components themselves (android.builder.sdkDownload=false), so they are installed here.
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-37.2 build-tools;37.0.0'
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # allTests runs the multiplatform modules (Android host, JVM and JS tests; Apple targets are skipped
+      # on Linux). testDebugUnitTest covers :androidApp. lintDebug lints the app and its modules.
+      - name: Test and lint
+        run: ./gradlew allTests testDebugUnitTest lintDebug
+
+      - name: Build debug APK
+        run: ./gradlew :androidApp:assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: days-that-matter-debug-${{ github.sha }}
+          path: androidApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+      - name: Upload reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports-${{ github.sha }}
+          path: '**/build/reports/'
