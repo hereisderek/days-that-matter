@@ -23,7 +23,15 @@ kotlin {
     iosSimulatorArm64()
     jvm()
     js {
-        nodejs()
+        nodejs {
+            // The first test that uses a time zone loads the whole @js-joda/timezone database, which
+            // can take longer than Mocha's 2 second default on a busy host.
+            testTask {
+                useMocha {
+                    timeout = "30s"
+                }
+            }
+        }
     }
 
     jvmToolchain(21)

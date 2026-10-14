@@ -1,6 +1,7 @@
 package dev.derek.daysthatmatter.core.model.validation
 
 import dev.derek.daysthatmatter.core.model.ModelJson
+import dev.derek.daysthatmatter.core.model.utf16Unit
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -33,11 +34,13 @@ class TextRulesTest {
 
     @Test
     fun loneSurrogatesAreFound() {
-        assertTrue(TextRules.hasLoneSurrogate("\uD800"))
-        assertTrue(TextRules.hasLoneSurrogate("a\uDC00"))
-        assertTrue(TextRules.hasLoneSurrogate("\uD800a"))
-        assertFalse(TextRules.hasLoneSurrogate("😀"))
-        assertEquals(listOf(0xD800, 'a'.code), TextRules.codePoints("\uD800a"))
+        val high = utf16Unit(0xD800)
+        val low = utf16Unit(0xDC00)
+        assertTrue(TextRules.hasLoneSurrogate(high))
+        assertTrue(TextRules.hasLoneSurrogate("a$low"))
+        assertTrue(TextRules.hasLoneSurrogate(high + "a"))
+        assertFalse(TextRules.hasLoneSurrogate("\uD83D\uDE00"))
+        assertEquals(listOf(0xD800, 'a'.code), TextRules.codePoints(high + "a"))
     }
 
     @Test

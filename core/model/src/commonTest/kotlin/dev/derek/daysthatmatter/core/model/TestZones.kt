@@ -13,3 +13,9 @@ fun zone(id: String): TimeZone {
     loadTimeZoneDatabase()
     return TimeZone.of(id)
 }
+
+/**
+ * A string holding the single UTF-16 unit [code], built at run time. The Kotlin/JS compiler folds
+ * constant expressions into literals, and a lone surrogate does not survive its UTF-8 output.
+ */
+fun utf16Unit(code: Int): String = CharArray(1) { code.toChar() }.concatToString()

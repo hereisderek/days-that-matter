@@ -4,6 +4,7 @@ import dev.derek.daysthatmatter.core.model.ModelJson
 import dev.derek.daysthatmatter.core.model.api.ApiErrorCode
 import dev.derek.daysthatmatter.core.model.event.EventDoc
 import dev.derek.daysthatmatter.core.model.loadTimeZoneDatabase
+import dev.derek.daysthatmatter.core.model.utf16Unit
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
@@ -161,8 +162,8 @@ class EventValidationTest {
             "PS in title" to text("title", "a" + cp(0x2029) + "b"),
             "RLO in title" to text("title", "a" + cp(0x202E) + "b"),
             "bidi isolate in title" to text("title", "a" + cp(0x2066) + "b"),
-            "lone high surrogate" to text("title", "a" + 0xD800.toChar() + "b"),
-            "lone low surrogate" to text("title", "a" + 0xDC00.toChar() + "b"),
+            "lone high surrogate" to text("title", "a" + utf16Unit(0xD800) + "b"),
+            "lone low surrogate" to text("title", "a" + utf16Unit(0xDC00) + "b"),
             "newline in title" to text("title", "a\nb"),
             "bad IANA zone" to text("timeZone", "Mars/Phobos"),
             "empty zone" to text("timeZone", ""),
