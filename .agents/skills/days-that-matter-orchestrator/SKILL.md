@@ -300,7 +300,7 @@ For every Android branch (starting with Wave 0 and repeating for each Wave 1 fea
      
      ```
 
-  3. **Clean up the merged worker (AGENTS.md rule 9)**: first record anything the diff does not show in `tasks.md` notes, `docs/` or AgentMemory. After the release above, close the terminal if release leaves it `retained`, stop leftover processes started in the worktree, and remove the worktree and branch with `wt remove` once the branch is an ancestor of the integration branch and the worktree is clean. Do these deletions only with the owner's yes. Verify with `wt list` and `worker-list --terminal-state reclaimable`.
+  3. **Clean up the merged worker (AGENTS.md rule 9)**: first record anything the diff does not show in `tasks.md` notes, `docs/` or AgentMemory. After the release above, close the terminal if release leaves it `retained`, stop leftover processes started in the worktree, and remove the worktree and branch with `wt remove` once the branch is an ancestor of the integration branch and the worktree is clean. Do these deletions only with the owner's yes. If a live agent session that you did not dispatch is still open in the merged worktree, prompt the owner to close it (handles, what it shows, nothing lost) and wait for the yes; do not remove the worktree under it. Verify with `wt list` and `worker-list --terminal-state reclaimable`.
 
 
 ### Gate 4: Living Documentation, OpenSpec Sync & Memory Consolidation
