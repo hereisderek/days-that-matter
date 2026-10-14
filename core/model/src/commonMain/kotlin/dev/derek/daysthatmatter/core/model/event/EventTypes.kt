@@ -1,5 +1,7 @@
 package dev.derek.daysthatmatter.core.model.event
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -81,11 +83,13 @@ enum class MemberRole {
  * Reminder choices (owner-only `reminders`, or a member's own on their membership).
  *
  * @property daysBefore a subset of 0 (on the day), 1 and 7.
- * @property time local delivery time, `HH:MM`.
+ * @property time local delivery time, `HH:MM`; always written, so it matches the validated form.
  */
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class Reminders(
     val daysBefore: List<Int>,
+    @EncodeDefault
     @Serializable(with = HmTimeSerializer::class)
     val time: kotlinx.datetime.LocalTime = DEFAULT_TIME,
 ) {

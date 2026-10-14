@@ -56,7 +56,7 @@ sealed interface CountdownValue {
  *
  * Totals ([totalDays] to [totalSeconds]) are real elapsed time between [now] and [target], floored.
  * The calendar breakdown ([years] to [seconds]) uses wall-clock fields in [zone], with end-of-month
- * clamping. [workdays] counts Monday to Friday by date (see [CountdownEngine.workdays]).
+ * clamping, and is floored the same way, so a fraction of a second never shows as a whole one. [workdays] counts Monday to Friday by date (see [CountdownEngine.workdays]).
  */
 data class Countdown(
     val zone: TimeZone,
@@ -118,9 +118,7 @@ object CountdownEngine {
 
     fun compute(target: CountdownTarget, now: Instant, viewerZone: TimeZone): Countdown {
         val zone = target.timeZone?.let { TimeZone.of(it) } ?: viewerZone
-        val nowLocal = now.toLocalDateTime(zone).let {
-            LocalDateTime(it.date, LocalTime(it.hour, it.minute, it.second))
-        }
+        val nowLocal = now.toLocalDateTime(zone)
         val today = nowLocal.date
         val occurrence = nextOccurrence(target.targetDate, target.recurrence, today)
         val targetLocal = LocalDateTime(occurrence, target.targetTime ?: LocalTime(0, 0))

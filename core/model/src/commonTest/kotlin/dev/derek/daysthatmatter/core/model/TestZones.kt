@@ -1,0 +1,15 @@
+package dev.derek.daysthatmatter.core.model
+
+import kotlinx.datetime.TimeZone
+
+/**
+ * Makes the IANA time zone database available to kotlinx-datetime. Needed on JS only, where the
+ * zones come from the npm package `@js-joda/timezone`; a no-op on the other targets.
+ */
+expect fun loadTimeZoneDatabase()
+
+/** The zone [id], with the database loaded. */
+fun zone(id: String): TimeZone {
+    loadTimeZoneDatabase()
+    return TimeZone.of(id)
+}

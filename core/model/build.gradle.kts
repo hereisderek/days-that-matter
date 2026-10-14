@@ -35,5 +35,52 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
+        // kotlinx-datetime on JS has no time zone data of its own. Tests load it from this npm
+        // package; a Kotlin/JS backend would load it the same way. Main code adds no dependency.
+        jsTest.dependencies {
+            implementation(npm("@js-joda/timezone", libs.versions.npm.jsjoda.timezone.get()))
+        }
+    }
+}
+
+// Countdown parity vectors (task 2.7 of the change pluggable-backend-live-sharing): the JVM build of
+// the engine writes backend/core/web/test/countdown-vectors.json, which the share page's countdown.js
+// must pass. The cases live in commonTest, the writer in jvmTest. Output is deterministic.
+val countdownVectorsFile: RegularFile =
+    rootProject.layout.projectDirectory.file("backend/core/web/test/countdown-vectors.json")
+val jvmTestCompilation = kotlin.jvm().compilations.getByName("test")
+
+fun JavaExec.runVectorWriter(output: File) {
+    classpath(jvmTestCompilation.output.allOutputs, jvmTestCompilation.runtimeDependencyFiles)
+    mainClass.set("dev.derek.daysthatmatter.core.model.countdown.CountdownVectorWriterKt")
+    args(output.absolutePath)
+}
+
+tasks.register<JavaExec>("generateCountdownVectors") {
+    group = "build"
+    description = "Writes backend/core/web/test/countdown-vectors.json from the countdown engine."
+    runVectorWriter(countdownVectorsFile.asFile)
+    outputs.file(countdownVectorsFile)
+}
+
+val freshVectors = layout.buildDirectory.file("countdown-vectors/countdown-vectors.json")
+
+val writeFreshCountdownVectors = tasks.register<JavaExec>("writeFreshCountdownVectors") {
+    description = "Writes a fresh countdown vector file into the build directory."
+    runVectorWriter(freshVectors.get().asFile)
+    outputs.file(freshVectors)
+}
+
+tasks.register("checkCountdownVectors") {
+    group = "verification"
+    description = "Fails when the committed countdown vectors differ from a fresh generation."
+    dependsOn(writeFreshCountdownVectors)
+    val committed = countdownVectorsFile.asFile
+    val fresh = freshVectors.get().asFile
+    inputs.files(committed, fresh)
+    doLast {
+        if (!committed.exists() || committed.readText() != fresh.readText()) {
+            throw GradleException("$committed is out of date: run ./gradlew :core:model:generateCountdownVectors")
+        }
     }
 }
