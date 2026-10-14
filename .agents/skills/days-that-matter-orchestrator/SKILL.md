@@ -9,6 +9,8 @@ description: Orchestrate end-to-end implementation of the Days That Matter Andro
 - Workspace is the current git worktree, not `/workspace/myapp/days-that-matter`.
 - Do not create extra worktrees for the Coordinator itself. Child workers use Orca `--worktree new-child`.
 - If the AgentMemory daemon (port 3111) is not running and cannot be started, skip AgentMemory steps and say so. Use OpenSpec `tasks.md` as the shared record.
+- Device QA uses the `android-cli` skill (`android run`, `android layout`, `android screen capture`, `android screen capture --annotate`) plus `adb shell input`, always with `--device <serial>`. Read its `references/interact.md` and `references/journeys.md` first and look at every screenshot.
+- Nothing is merged until it is validated on the device: build and install the branch, launch it, exercise the changed screens with the android CLI, check `adb logcat -d *:E` for crashes, then merge.
 - Model names below are targets. If a model flag is rejected, use the nearest available model of the same tier.
 
 # Master Orchestrator Instructions: `days-that-matter` (Android App + `services/share`)
