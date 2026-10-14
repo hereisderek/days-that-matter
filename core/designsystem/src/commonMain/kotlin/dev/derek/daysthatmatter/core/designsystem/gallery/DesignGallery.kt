@@ -25,11 +25,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.derek.daysthatmatter.core.designsystem.components.BottomFade
+import dev.derek.daysthatmatter.core.designsystem.components.CardBackdrop
 import dev.derek.daysthatmatter.core.designsystem.components.CardSize
 import dev.derek.daysthatmatter.core.designsystem.components.CardStyle
 import dev.derek.daysthatmatter.core.designsystem.components.CardTypeface
@@ -97,8 +99,8 @@ private fun GalleryPanel(dark: Boolean, modeSwitch: (@Composable () -> Unit)?) {
     val colors = DtmTheme.colors
     Column(Modifier.fillMaxWidth().background(colors.bg).padding(bottom = 24.dp)) {
         DtmTopBar(
-            title = if (dark) "Design gallery · Dark" else "Design gallery · Light",
-            kicker = "Days That Matter · design v2",
+            title = if (dark) "Gallery · Dark" else "Gallery · Light",
+            kicker = "Days That Matter · design v2 tokens",
             actions = {
                 IconCircleButton(DtmIcons.Search, "Search", onClick = {})
                 IconCircleButton(DtmIcons.User, "Account", onClick = {})
@@ -128,11 +130,8 @@ private fun GalleryPanel(dark: Boolean, modeSwitch: (@Composable () -> Unit)?) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             CardPalette.gradients.forEach { (name, mesh) ->
-                Box(Modifier.size(width = 76.dp, height = 56.dp)) {
-                    DayCardRow(
-                        sample("", name, "", size = CardSize.Small).copy(background = mesh),
-                        Modifier.fillMaxSize(),
-                    )
+                Box(Modifier.size(width = 76.dp, height = 56.dp).clip(RoundedCornerShape(DtmTheme.radii.md))) {
+                    CardBackdrop(mesh, dim = 0f)
                 }
             }
         }

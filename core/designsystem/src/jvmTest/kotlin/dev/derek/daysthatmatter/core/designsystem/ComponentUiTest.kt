@@ -472,12 +472,12 @@ class ComponentUiTest {
     fun galleryShowsLightPanelFirstAndTogglesToBoth() = runComposeUiTest {
         setContent { DesignGallery() }
 
-        onNodeWithText("Design gallery · Light").assertExists()
-        onNodeWithText("Design gallery · Dark").assertDoesNotExist()
+        onNodeWithText("Gallery · Light").assertExists()
+        onNodeWithText("Gallery · Dark").assertDoesNotExist()
 
         onNodeWithText("Both").performClick()
 
-        onNodeWithText("Design gallery · Dark").assertExists()
+        onNodeWithText("Gallery · Dark").assertExists()
         assertFalse(onAllNodesWithTag(DtmTestTags.DayCard).fetchSemanticsNodes().isEmpty())
     }
 
@@ -487,7 +487,7 @@ class ComponentUiTest {
 
         onNodeWithText("Dark").performClick()
 
-        onNodeWithText("Design gallery · Dark").assertExists()
-        onNodeWithText("Design gallery · Light").assertDoesNotExist()
+        onNodeWithText("Gallery · Dark").assertExists()
+        onNodeWithText("Gallery · Light").assertDoesNotExist()
     }
 }
