@@ -1,5 +1,6 @@
 // Room KMP database: entities, DAOs and migrations (docs/architecture/PERSISTENCE_AND_SYNC.md section 2).
-// The real schema comes with the sync work (OpenSpec change pluggable-backend-live-sharing, task 7.3).
+// Version 2 holds events and memos; the sync engine comes later (OpenSpec change pluggable-backend-live-sharing,
+// task 7.3). Mappers turn rows into :core:model documents.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
@@ -33,6 +34,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
+            api(projects.core.model)
             api(libs.androidx.room.runtime)
             implementation(libs.androidx.sqlite.bundled)
             implementation(libs.kotlinx.coroutines.core)
@@ -40,6 +42,10 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.turbine)
+        }
+        jvmTest.dependencies {
+            implementation(libs.androidx.room.testing)
         }
     }
 }
