@@ -1,0 +1,26 @@
+{
+  "name": "days-that-matter-backend",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Days That Matter backend: one core and one workspace per provider variant (docs/architecture/BACKEND.md).",
+  "type": "module",
+  "workspaces": [
+    "core"
+  ],
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces",
+    "lint": "eslint .",
+    "test": "npm test --workspaces"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "eslint": "^10.12.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^5.0.4"
+  }
+}
