@@ -13,6 +13,7 @@ import dev.derek.daysthatmatter.feature.events.domain.ObserveEventsUseCase
 import dev.derek.daysthatmatter.feature.events.domain.PinEventUseCase
 import dev.derek.daysthatmatter.feature.events.domain.RestoreEventUseCase
 import dev.derek.daysthatmatter.feature.events.domain.SetUnitModeUseCase
+import dev.derek.daysthatmatter.feature.events.domain.ClockTicker
 import dev.derek.daysthatmatter.feature.events.domain.Ticker
 import dev.derek.daysthatmatter.feature.events.domain.UnarchiveEventUseCase
 import dev.derek.daysthatmatter.feature.events.presentation.archived.ArchivedViewModel
@@ -32,7 +33,7 @@ typealias DeviceZone = () -> TimeZone
  */
 val eventsModule = module {
     single<DeviceZone> { { TimeZone.currentSystemDefault() } }
-    single { Ticker(get()) }
+    single<Ticker> { ClockTicker(get()) }
     single<EventRepository> { RoomEventRepository(get<AppDatabase>().eventDao(), get()) }
 
     factory { ObserveEventsUseCase(get(), get(), get<DeviceZone>()) }
