@@ -667,7 +667,7 @@ The plan table in `:core:model` is the source of truth; [`docs/features/premium/
 | Title | 1 to 100 characters |
 | Notes | 4,000 characters |
 | Memo text | 10,000 characters |
-| Event document | 16 KB |
+| Event document | 16 KB, counted in UTF-8 bytes after a patch is merged (`EventValidation.checkDocumentSize`). Per-field limits count characters, so four-byte characters in notes alone can pass them and still exceed 16 KB; the size check after the merge is what rejects it. |
 | Memos per event | 500 |
 | Active public links per event | 10 |
 | Active invites per event | 20 |
@@ -723,7 +723,7 @@ Decided by the owner on 2026-10-14 without a spike: `backend/core` is TypeScript
 | TypeScript | not measured | not measured | not measured |
 | Kotlin/JS | not measured | not measured | not measured |
 
-Revisit when a trigger in design D1 fires. Kotlin/JS would be worth choosing only with warm CPU at most 1.25 times TypeScript, startup at most 100 ms and a bundle of at most 1 MB gzip.
+If Kotlin/JS is adopted later, the backend must also load the `@js-joda/timezone` npm package: `kotlinx-datetime` on JS ships no time zone data, so every named zone fails without it (`:core:model` loads it for its own JS tests). Revisit when a trigger in design D1 fires. Kotlin/JS would be worth choosing only with warm CPU at most 1.25 times TypeScript, startup at most 100 ms and a bundle of at most 1 MB gzip.
 
 ---
 
@@ -763,7 +763,7 @@ Needed before the global launch:
 - `ADMIN_TOKEN` for the storage report, and the inactive account period (24 months is a placeholder).
 - Email provider account and a sending domain with SPF, DKIM and DMARC.
 - Licensed audio tracks and the free and Premium split.
-- Android package name and signing key fingerprints for `assetlinks.json`.
+- Android package name and signing key fingerprints for `assetlinks.json`. The app currently uses `dev.derek.daysthatmatter` as a provisional application id (debug builds add `.debug`), defined once in `androidApp/build.gradle.kts`. It is permanent once published: confirm or replace it before the first release.
 - Abuse contact address, privacy policy owner and jurisdiction.
 - Terms of service, privacy policy and disclaimer ([`docs/legal/`](../legal/README.md)), and a DMCA designated agent registered with the US Copyright Office.
 - For other providers when used: Turso database and Vercel Blob store; a Firebase project on Blaze.
