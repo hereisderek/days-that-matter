@@ -1,0 +1,2914 @@
+{
+  "generatedBy": "./gradlew :core:model:generateCountdownVectors (do not edit by hand)",
+  "rules": "Totals are real elapsed time, floored. The breakdown uses wall-clock fields in the event zone with end-of-month clamping. A time in a DST gap moves forward by the gap; an ambiguous time takes the earlier instant. A date-only event counts to 00:00:00. timeZone null means viewerZone (UTC when viewerZone is null). Workdays count Monday to Friday by date. Auto shows hours and minutes below 48 hours.",
+  "vectors": [
+    {
+      "name": "future-utc-date-only",
+      "timeZone": "UTC",
+      "targetDate": "2027-01-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2027-01-01T00:00:00Z",
+        "occurrenceDate": "2027-01-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 82,
+        "totalHours": 1977,
+        "totalMinutes": 118620,
+        "totalSeconds": 7117200,
+        "years": 0,
+        "months": 2,
+        "days": 21,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 60,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 82
+          },
+          "days": {
+            "kind": "days",
+            "days": 82
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 11,
+            "days": 5
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 1977
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 2,
+            "days": 21
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 60
+          }
+        }
+      }
+    },
+    {
+      "name": "past-leap-origin",
+      "timeZone": "UTC",
+      "targetDate": "2020-02-29",
+      "targetTime": "12:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2020-02-29T12:00:00Z",
+        "occurrenceDate": "2020-02-29",
+        "direction": "since",
+        "upcoming": false,
+        "totalDays": 2415,
+        "totalHours": 57963,
+        "totalMinutes": 3477780,
+        "totalSeconds": 208666800,
+        "years": 6,
+        "months": 7,
+        "days": 11,
+        "hours": 3,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1725,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 2415
+          },
+          "days": {
+            "kind": "days",
+            "days": 2415
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 345,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 57963
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 6,
+            "months": 7,
+            "days": 11
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1725
+          }
+        }
+      }
+    },
+    {
+      "name": "yearly-feb29-clamped",
+      "timeZone": "UTC",
+      "targetDate": "2024-02-29",
+      "targetTime": null,
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2024,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2027-02-28T00:00:00Z",
+        "occurrenceDate": "2027-02-28",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 140,
+        "totalHours": 3369,
+        "totalMinutes": 202140,
+        "totalSeconds": 12128400,
+        "years": 0,
+        "months": 4,
+        "days": 17,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": 3,
+        "workdays": 100,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 140
+          },
+          "days": {
+            "kind": "days",
+            "days": 140
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 20,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 3369
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 4,
+            "days": 17
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 100
+          }
+        }
+      }
+    },
+    {
+      "name": "yearly-feb29-leap-year",
+      "timeZone": "UTC",
+      "targetDate": "2024-02-29",
+      "targetTime": null,
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2024,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2027-12-01T00:00:00Z",
+      "expected": {
+        "targetInstant": "2028-02-29T00:00:00Z",
+        "occurrenceDate": "2028-02-29",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 90,
+        "totalHours": 2160,
+        "totalMinutes": 129600,
+        "totalSeconds": 7776000,
+        "years": 0,
+        "months": 2,
+        "days": 28,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": 4,
+        "workdays": 64,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 90
+          },
+          "days": {
+            "kind": "days",
+            "days": 90
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 12,
+            "days": 6
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 2160
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 2,
+            "days": 28
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 64
+          }
+        }
+      }
+    },
+    {
+      "name": "yearly-day-of-event-london",
+      "timeZone": "Europe/London",
+      "targetDate": "1990-05-17",
+      "targetTime": null,
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 1990,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-05-17T10:00:00Z",
+      "expected": {
+        "targetInstant": "2026-05-16T23:00:00Z",
+        "occurrenceDate": "2026-05-17",
+        "direction": "today",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 11,
+        "totalMinutes": 660,
+        "totalSeconds": 39600,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 11,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": 36,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 11,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 11
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "monthly-clamp-feb",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-31",
+      "targetTime": "09:00:00",
+      "recurrence": {
+        "type": "monthly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-02-15T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-02-28T09:00:00Z",
+        "occurrenceDate": "2026-02-28",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 13,
+        "totalHours": 321,
+        "totalMinutes": 19260,
+        "totalSeconds": 1155600,
+        "years": 0,
+        "months": 0,
+        "days": 13,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 10,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 13
+          },
+          "days": {
+            "kind": "days",
+            "days": 13
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 1,
+            "days": 6
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 321
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 13
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 10
+          }
+        }
+      }
+    },
+    {
+      "name": "monthly-back-to-31",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-31",
+      "targetTime": "09:00:00",
+      "recurrence": {
+        "type": "monthly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-03-01T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-03-31T09:00:00Z",
+        "occurrenceDate": "2026-03-31",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 30,
+        "totalHours": 729,
+        "totalMinutes": 43740,
+        "totalSeconds": 2624400,
+        "years": 0,
+        "months": 0,
+        "days": 30,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 22,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 30
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 4,
+            "days": 2
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 729
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 30
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 22
+          }
+        }
+      }
+    },
+    {
+      "name": "weekly-new-york",
+      "timeZone": "America/New_York",
+      "targetDate": "2026-10-05",
+      "targetTime": "18:00:00",
+      "recurrence": {
+        "type": "weekly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-12T22:00:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 2,
+        "totalHours": 55,
+        "totalMinutes": 3300,
+        "totalSeconds": 198000,
+        "years": 0,
+        "months": 0,
+        "days": 2,
+        "hours": 7,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 2
+          },
+          "days": {
+            "kind": "days",
+            "days": 2
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 2
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 55
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 2
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "custom-days-10",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "customDays",
+        "originalYear": null,
+        "days": 10
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-11T00:00:00Z",
+        "occurrenceDate": "2026-10-11",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 9,
+        "totalMinutes": 540,
+        "totalSeconds": 32400,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 9,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 9
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "dst-gap-spring-forward",
+      "timeZone": "America/New_York",
+      "targetDate": "2026-03-08",
+      "targetTime": "02:30:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-03-07T12:00:00Z",
+      "expected": {
+        "targetInstant": "2026-03-08T07:30:00Z",
+        "occurrenceDate": "2026-03-08",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 19,
+        "totalMinutes": 1170,
+        "totalSeconds": 70200,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 19,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 19,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 19
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "dst-overlap-fall-back",
+      "timeZone": "America/New_York",
+      "targetDate": "2026-11-01",
+      "targetTime": "01:30:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-31T12:00:00Z",
+      "expected": {
+        "targetInstant": "2026-11-01T05:30:00Z",
+        "occurrenceDate": "2026-11-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 17,
+        "totalMinutes": 1050,
+        "totalSeconds": 63000,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 17,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 17,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 17
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "dst-spanning-interval",
+      "timeZone": "America/New_York",
+      "targetDate": "2026-03-09",
+      "targetTime": "12:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-03-07T17:00:00Z",
+      "expected": {
+        "targetInstant": "2026-03-09T16:00:00Z",
+        "occurrenceDate": "2026-03-09",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1,
+        "totalHours": 47,
+        "totalMinutes": 2820,
+        "totalSeconds": 169200,
+        "years": 0,
+        "months": 0,
+        "days": 2,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 47,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 1
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 47
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 2
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "floating-auckland",
+      "timeZone": null,
+      "targetDate": "2027-01-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": "Pacific/Auckland",
+      "nowInstant": "2026-12-31T10:00:00Z",
+      "expected": {
+        "targetInstant": "2026-12-31T11:00:00Z",
+        "occurrenceDate": "2027-01-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 1,
+        "totalMinutes": 60,
+        "totalSeconds": 3600,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 1,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 1,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 1
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "floating-honolulu",
+      "timeZone": null,
+      "targetDate": "2027-01-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": "Pacific/Honolulu",
+      "nowInstant": "2026-12-31T10:00:00Z",
+      "expected": {
+        "targetInstant": "2027-01-01T10:00:00Z",
+        "occurrenceDate": "2027-01-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1,
+        "totalHours": 24,
+        "totalMinutes": 1440,
+        "totalSeconds": 86400,
+        "years": 0,
+        "months": 0,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 24,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 1
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 24
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "since-one-second",
+      "timeZone": "UTC",
+      "targetDate": "2025-12-31",
+      "targetTime": "23:59:59",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-01-01T00:00:00Z",
+      "expected": {
+        "targetInstant": "2025-12-31T23:59:59Z",
+        "occurrenceDate": "2025-12-31",
+        "direction": "since",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 0,
+        "totalMinutes": 0,
+        "totalSeconds": 1,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 1,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 0,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 0
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "yearly-future-start",
+      "timeZone": "UTC",
+      "targetDate": "2030-06-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2030,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2030-06-01T00:00:00Z",
+        "occurrenceDate": "2030-06-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1329,
+        "totalHours": 31905,
+        "totalMinutes": 1914300,
+        "totalSeconds": 114858000,
+        "years": 3,
+        "months": 7,
+        "days": 21,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": 0,
+        "workdays": 950,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 1329
+          },
+          "days": {
+            "kind": "days",
+            "days": 1329
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 189,
+            "days": 6
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 31905
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 3,
+            "months": 7,
+            "days": 21
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 950
+          }
+        }
+      }
+    },
+    {
+      "name": "same-day-later-today",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-10",
+      "targetTime": "20:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-10T15:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-10T20:00:00Z",
+        "occurrenceDate": "2026-10-10",
+        "direction": "today",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 5,
+        "totalMinutes": 300,
+        "totalSeconds": 18000,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 5,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 5,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 5
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "past-month-end-clamp",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-31",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-03-01T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-01-31T00:00:00Z",
+        "occurrenceDate": "2026-01-31",
+        "direction": "since",
+        "upcoming": false,
+        "totalDays": 29,
+        "totalHours": 696,
+        "totalMinutes": 41760,
+        "totalSeconds": 2505600,
+        "years": 0,
+        "months": 1,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 20,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 29
+          },
+          "days": {
+            "kind": "days",
+            "days": 29
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 4,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 696
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 1,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 20
+          }
+        }
+      }
+    },
+    {
+      "name": "units-weeks-158-days",
+      "timeZone": "UTC",
+      "targetDate": "2027-03-19",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:00Z",
+      "expected": {
+        "targetInstant": "2027-03-19T00:00:00Z",
+        "occurrenceDate": "2027-03-19",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 158,
+        "totalHours": 3792,
+        "totalMinutes": 227520,
+        "totalSeconds": 13651200,
+        "years": 0,
+        "months": 5,
+        "days": 7,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 114,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 158
+          },
+          "days": {
+            "kind": "days",
+            "days": 158
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 22,
+            "days": 4
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 3792
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 5,
+            "days": 7
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 114
+          }
+        }
+      }
+    },
+    {
+      "name": "units-hours-38",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-14",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T09:30:00Z",
+      "expected": {
+        "targetInstant": "2026-10-14T00:00:00Z",
+        "occurrenceDate": "2026-10-14",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1,
+        "totalHours": 38,
+        "totalMinutes": 2310,
+        "totalSeconds": 138600,
+        "years": 0,
+        "months": 0,
+        "days": 1,
+        "hours": 14,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 2,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 38,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 1
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 38
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "units-auto-30h15m",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-13",
+      "targetTime": "06:15:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-13T06:15:00Z",
+        "occurrenceDate": "2026-10-13",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1,
+        "totalHours": 30,
+        "totalMinutes": 1815,
+        "totalSeconds": 108900,
+        "years": 0,
+        "months": 0,
+        "days": 1,
+        "hours": 6,
+        "minutes": 15,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 30,
+            "minutes": 15
+          },
+          "days": {
+            "kind": "days",
+            "days": 1
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 30
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "units-auto-at-48h",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-14",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-14T00:00:00Z",
+        "occurrenceDate": "2026-10-14",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 2,
+        "totalHours": 48,
+        "totalMinutes": 2880,
+        "totalSeconds": 172800,
+        "years": 0,
+        "months": 0,
+        "days": 2,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 2,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 2
+          },
+          "days": {
+            "kind": "days",
+            "days": 2
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 2
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 48
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 2
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 2
+          }
+        }
+      }
+    },
+    {
+      "name": "units-auto-below-48h",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-13",
+      "targetTime": "23:59:59",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-13T23:59:59Z",
+        "occurrenceDate": "2026-10-13",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1,
+        "totalHours": 47,
+        "totalMinutes": 2879,
+        "totalSeconds": 172799,
+        "years": 0,
+        "months": 0,
+        "days": 1,
+        "hours": 23,
+        "minutes": 59,
+        "seconds": 59,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 47,
+            "minutes": 59
+          },
+          "days": {
+            "kind": "days",
+            "days": 1
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 47
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "units-calendar",
+      "timeZone": "UTC",
+      "targetDate": "2029-02-20",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:00Z",
+      "expected": {
+        "targetInstant": "2029-02-20T00:00:00Z",
+        "occurrenceDate": "2029-02-20",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 862,
+        "totalHours": 20688,
+        "totalMinutes": 1241280,
+        "totalSeconds": 74476800,
+        "years": 2,
+        "months": 4,
+        "days": 8,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 616,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 862
+          },
+          "days": {
+            "kind": "days",
+            "days": 862
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 123,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 20688
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 2,
+            "months": 4,
+            "days": 8
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 616
+          }
+        }
+      }
+    },
+    {
+      "name": "units-auto-count-up",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-11",
+      "targetTime": "12:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:01Z",
+      "expected": {
+        "targetInstant": "2026-10-11T12:00:00Z",
+        "occurrenceDate": "2026-10-11",
+        "direction": "since",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 12,
+        "totalMinutes": 720,
+        "totalSeconds": 43201,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 12,
+        "minutes": 0,
+        "seconds": 1,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 12,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 12
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "workdays-deadline",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-23",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T08:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-23T00:00:00Z",
+        "occurrenceDate": "2026-10-23",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 10,
+        "totalHours": 256,
+        "totalMinutes": 15360,
+        "totalSeconds": 921600,
+        "years": 0,
+        "months": 0,
+        "days": 10,
+        "hours": 16,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 9,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 10
+          },
+          "days": {
+            "kind": "days",
+            "days": 10
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 1,
+            "days": 3
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 256
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 10
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 9
+          }
+        }
+      }
+    },
+    {
+      "name": "workdays-saturday-target",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-17",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T08:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-17T00:00:00Z",
+        "occurrenceDate": "2026-10-17",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 4,
+        "totalHours": 112,
+        "totalMinutes": 6720,
+        "totalSeconds": 403200,
+        "years": 0,
+        "months": 0,
+        "days": 4,
+        "hours": 16,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 4,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 4
+          },
+          "days": {
+            "kind": "days",
+            "days": 4
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 4
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 112
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 4
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 4
+          }
+        }
+      }
+    },
+    {
+      "name": "workdays-count-up-from-friday",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-09",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T08:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-09T00:00:00Z",
+        "occurrenceDate": "2026-10-09",
+        "direction": "since",
+        "upcoming": false,
+        "totalDays": 3,
+        "totalHours": 80,
+        "totalMinutes": 4800,
+        "totalSeconds": 288000,
+        "years": 0,
+        "months": 0,
+        "days": 3,
+        "hours": 8,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 3
+          },
+          "days": {
+            "kind": "days",
+            "days": 3
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 3
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 80
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 3
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "workdays-target-day",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-12",
+      "targetTime": "17:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T08:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-12T17:00:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "today",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 9,
+        "totalMinutes": 540,
+        "totalSeconds": 32400,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 9,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 9,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 9
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "workdays-holiday-counted",
+      "timeZone": "UTC",
+      "targetDate": "2026-12-28",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-12-21T08:00:00Z",
+      "expected": {
+        "targetInstant": "2026-12-28T00:00:00Z",
+        "occurrenceDate": "2026-12-28",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 6,
+        "totalHours": 160,
+        "totalMinutes": 9600,
+        "totalSeconds": 576000,
+        "years": 0,
+        "months": 0,
+        "days": 6,
+        "hours": 16,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 5,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 6
+          },
+          "days": {
+            "kind": "days",
+            "days": 6
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 6
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 160
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 6
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 5
+          }
+        }
+      }
+    },
+    {
+      "name": "workdays-floating-zone-date",
+      "timeZone": null,
+      "targetDate": "2026-10-17",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": "Pacific/Auckland",
+      "nowInstant": "2026-10-11T20:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-16T11:00:00Z",
+        "occurrenceDate": "2026-10-17",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 4,
+        "totalHours": 111,
+        "totalMinutes": 6660,
+        "totalSeconds": 399600,
+        "years": 0,
+        "months": 0,
+        "days": 4,
+        "hours": 15,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 4,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 4
+          },
+          "days": {
+            "kind": "days",
+            "days": 4
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 4
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 111
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 4
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 4
+          }
+        }
+      }
+    },
+    {
+      "name": "zero-exact",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-12",
+      "targetTime": "12:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T12:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-12T12:00:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "today",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 0,
+        "totalMinutes": 0,
+        "totalSeconds": 0,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 0,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 0
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "zero-one-second-before",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-12",
+      "targetTime": "12:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T11:59:59Z",
+      "expected": {
+        "targetInstant": "2026-10-12T12:00:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "today",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 0,
+        "totalMinutes": 0,
+        "totalSeconds": 1,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 1,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 0,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 0
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "zero-one-second-after",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-12",
+      "targetTime": "12:00:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T12:00:01Z",
+      "expected": {
+        "targetInstant": "2026-10-12T12:00:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "today",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 0,
+        "totalMinutes": 0,
+        "totalSeconds": 1,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 1,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 0,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 0
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "day-before-midnight",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-13",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T23:59:59Z",
+      "expected": {
+        "targetInstant": "2026-10-13T00:00:00Z",
+        "occurrenceDate": "2026-10-13",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 0,
+        "totalMinutes": 0,
+        "totalSeconds": 1,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 1,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 0,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 0
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "leap-day-countdown",
+      "timeZone": "UTC",
+      "targetDate": "2028-02-29",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2028-02-28T00:00:00Z",
+      "expected": {
+        "targetInstant": "2028-02-29T00:00:00Z",
+        "occurrenceDate": "2028-02-29",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 1,
+        "totalHours": 24,
+        "totalMinutes": 1440,
+        "totalSeconds": 86400,
+        "years": 0,
+        "months": 0,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 24,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 1
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 1
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 24
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "yearly-feb29-century-2100",
+      "timeZone": "UTC",
+      "targetDate": "2096-02-29",
+      "targetTime": null,
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2096,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2100-01-01T00:00:00Z",
+      "expected": {
+        "targetInstant": "2100-02-28T00:00:00Z",
+        "occurrenceDate": "2100-02-28",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 58,
+        "totalHours": 1392,
+        "totalMinutes": 83520,
+        "totalSeconds": 5011200,
+        "years": 0,
+        "months": 1,
+        "days": 27,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": 4,
+        "workdays": 40,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 58
+          },
+          "days": {
+            "kind": "days",
+            "days": 58
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 8,
+            "days": 2
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 1392
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 1,
+            "days": 27
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 40
+          }
+        }
+      }
+    },
+    {
+      "name": "yearly-feb29-today-clamped",
+      "timeZone": "UTC",
+      "targetDate": "2024-02-29",
+      "targetTime": null,
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2024,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2027-02-28T10:00:00Z",
+      "expected": {
+        "targetInstant": "2027-02-28T00:00:00Z",
+        "occurrenceDate": "2027-02-28",
+        "direction": "today",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 10,
+        "totalMinutes": 600,
+        "totalSeconds": 36000,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 10,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": 3,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 10,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 10
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "calendar-across-leap-day",
+      "timeZone": "UTC",
+      "targetDate": "2028-03-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2028-01-31T00:00:00Z",
+      "expected": {
+        "targetInstant": "2028-03-01T00:00:00Z",
+        "occurrenceDate": "2028-03-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 30,
+        "totalHours": 720,
+        "totalMinutes": 43200,
+        "totalSeconds": 2592000,
+        "years": 0,
+        "months": 1,
+        "days": 1,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 22,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 30
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 4,
+            "days": 2
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 720
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 1,
+            "days": 1
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 22
+          }
+        }
+      }
+    },
+    {
+      "name": "dst-overlap-paris",
+      "timeZone": "Europe/Paris",
+      "targetDate": "2026-10-25",
+      "targetTime": "02:30:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-24T22:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-25T00:30:00Z",
+        "occurrenceDate": "2026-10-25",
+        "direction": "today",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 2,
+        "totalMinutes": 150,
+        "totalSeconds": 9000,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 2,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 2,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 2
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "dst-gap-paris",
+      "timeZone": "Europe/Paris",
+      "targetDate": "2026-03-29",
+      "targetTime": "02:30:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-03-28T23:00:00Z",
+      "expected": {
+        "targetInstant": "2026-03-29T01:30:00Z",
+        "occurrenceDate": "2026-03-29",
+        "direction": "today",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 2,
+        "totalMinutes": 150,
+        "totalSeconds": 9000,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 2,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 2,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 2
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "dst-overlap-sydney",
+      "timeZone": "Australia/Sydney",
+      "targetDate": "2026-04-05",
+      "targetTime": "02:30:00",
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-04-04T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-04-04T15:30:00Z",
+        "occurrenceDate": "2026-04-05",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 15,
+        "totalMinutes": 930,
+        "totalSeconds": 55800,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 15,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 15,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 15
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "half-hour-kolkata",
+      "timeZone": "Asia/Kolkata",
+      "targetDate": "2026-10-12",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-11T18:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-11T18:30:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 0,
+        "totalMinutes": 30,
+        "totalSeconds": 1800,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 0,
+        "minutes": 30,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 0,
+            "minutes": 30
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 0
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "floating-tokyo",
+      "timeZone": null,
+      "targetDate": "2027-01-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "none",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": "Asia/Tokyo",
+      "nowInstant": "2026-12-31T14:00:00Z",
+      "expected": {
+        "targetInstant": "2026-12-31T15:00:00Z",
+        "occurrenceDate": "2027-01-01",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 1,
+        "totalMinutes": 60,
+        "totalSeconds": 3600,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 1,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 1,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 1
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "weekly-dst-new-york",
+      "timeZone": "America/New_York",
+      "targetDate": "2026-10-26",
+      "targetTime": "09:00:00",
+      "recurrence": {
+        "type": "weekly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-11-02T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-11-02T14:00:00Z",
+        "occurrenceDate": "2026-11-02",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 0,
+        "totalHours": 14,
+        "totalMinutes": 840,
+        "totalSeconds": 50400,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 14,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 1,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 14,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 14
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 1
+          }
+        }
+      }
+    },
+    {
+      "name": "monthly-today",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-15",
+      "targetTime": null,
+      "recurrence": {
+        "type": "monthly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-15T20:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-15T00:00:00Z",
+        "occurrenceDate": "2026-10-15",
+        "direction": "today",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 20,
+        "totalMinutes": 1200,
+        "totalSeconds": 72000,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 20,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 20,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 20
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    },
+    {
+      "name": "custom-days-100",
+      "timeZone": "UTC",
+      "targetDate": "2026-01-01",
+      "targetTime": null,
+      "recurrence": {
+        "type": "customDays",
+        "originalYear": null,
+        "days": 100
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T00:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-28T00:00:00Z",
+        "occurrenceDate": "2026-10-28",
+        "direction": "until",
+        "upcoming": true,
+        "totalDays": 16,
+        "totalHours": 384,
+        "totalMinutes": 23040,
+        "totalSeconds": 1382400,
+        "years": 0,
+        "months": 0,
+        "days": 16,
+        "hours": 0,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 12,
+        "units": {
+          "auto": {
+            "kind": "days",
+            "days": 16
+          },
+          "days": {
+            "kind": "days",
+            "days": 16
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 2,
+            "days": 2
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 384
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 16
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 12
+          }
+        }
+      }
+    },
+    {
+      "name": "weekly-on-target-day",
+      "timeZone": "UTC",
+      "targetDate": "2026-10-12",
+      "targetTime": "18:00:00",
+      "recurrence": {
+        "type": "weekly",
+        "originalYear": null,
+        "days": null
+      },
+      "viewerZone": null,
+      "nowInstant": "2026-10-12T20:00:00Z",
+      "expected": {
+        "targetInstant": "2026-10-12T18:00:00Z",
+        "occurrenceDate": "2026-10-12",
+        "direction": "today",
+        "upcoming": false,
+        "totalDays": 0,
+        "totalHours": 2,
+        "totalMinutes": 120,
+        "totalSeconds": 7200,
+        "years": 0,
+        "months": 0,
+        "days": 0,
+        "hours": 2,
+        "minutes": 0,
+        "seconds": 0,
+        "anniversary": null,
+        "workdays": 0,
+        "units": {
+          "auto": {
+            "kind": "hoursMinutes",
+            "hours": 2,
+            "minutes": 0
+          },
+          "days": {
+            "kind": "days",
+            "days": 0
+          },
+          "weeks": {
+            "kind": "weeksDays",
+            "weeks": 0,
+            "days": 0
+          },
+          "hours": {
+            "kind": "hours",
+            "hours": 2
+          },
+          "calendar": {
+            "kind": "calendar",
+            "years": 0,
+            "months": 0,
+            "days": 0
+          },
+          "workdays": {
+            "kind": "workdays",
+            "workdays": 0
+          }
+        }
+      }
+    }
+  ]
+}
