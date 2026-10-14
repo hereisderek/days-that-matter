@@ -19,9 +19,10 @@ import androidx.compose.ui.layout.ContentScale
 /**
  * Background of a day card: the color layer, the black dim scrim and, for photos, the legibility gradient
  * (`.card-bg`, `.card-scrim`, `.card-legible` in design/v2/styles.css). The film grain of `.card-grain` is not drawn.
+ * Public so full-bleed screens (the day page) draw the same backdrop as the cards.
  */
 @Composable
-internal fun CardBackdrop(background: CardBackground, dim: Float, modifier: Modifier = Modifier) {
+fun CardBackdrop(background: CardBackground, dim: Float, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxSize()) {
         when (background) {
             is CardBackground.Solid -> Box(Modifier.fillMaxSize().background(background.color))
