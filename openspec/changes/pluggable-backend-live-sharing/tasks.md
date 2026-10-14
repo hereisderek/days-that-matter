@@ -10,14 +10,18 @@ Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 
 ## 2. Shared model `:core:model`
 
 - [x] 2.1 Create the Gradle module with targets android, iosArm64, iosSimulatorArm64, jvm and js, depending only on kotlinx-serialization and kotlinx-datetime; verify `./gradlew :core:model:allTests` runs on every target.
-- [ ] 2.2 Add `EventDoc`, `Memo`, the shared and owner-only field sets, roles, backdrop and audio types, invite and link settings, and the API types from BACKEND.md section 7; verify JSON round-trip tests and that unknown fields are ignored on read.
-- [ ] 2.3 Port validation from `services/share/src/lib/validate.ts` and extend it to notes, memos, backdrop, audio, Spotify URLs, link expiry and invite use counts; verify with the hostile input table from the old tests and limits at and past each value.
-- [ ] 2.4 Implement patch apply, inverse patch and overwritten-field detection (design D5); verify tests for different fields, same field, nested object replacement and null clearing.
-- [ ] 2.5 Implement the role projections (owner, editor, viewer, public link); verify that no projection other than the owner's contains notes, pin state, category, memos or account identifiers, and that public links omit custom audio.
-- [ ] 2.6 Implement the plan table (`Plan`, `Feature`, limits for free, premium and premium_plus) and the gate check for a change given the writer's plan and the writer's counts; verify tests for each row of `docs/features/premium/SPEC.md`, including lapsed plans and counts above the limit keeping existing content.
-- [ ] 2.7 Implement the countdown engine per `docs/features/events/SPEC.md` and a JVM task that writes `backend/core/web/test/countdown-vectors.json`; verify `countdown.js` passes every generated vector and CI fails when the committed file differs from a fresh generation.
+- [x] 2.2 Add `EventDoc`, `Memo`, the shared and owner-only field sets, roles, backdrop and audio types, invite and link settings, and the API types from BACKEND.md section 7; verify JSON round-trip tests and that unknown fields are ignored on read.
+  - Note: bodies BACKEND.md section 7 does not show yet (sign-in response, `GET /me`, the `POST /events/fetch` and revisions page wrappers, the memo PATCH wrapper) get their types with group 3.
+- [x] 2.3 Port validation from `services/share/src/lib/validate.ts` and extend it to notes, memos, backdrop, audio, Spotify URLs, link expiry and invite use counts; verify with the hostile input table from the old tests and limits at and past each value.
+  - Note: titles are trimmed but not NFC-normalized: common Kotlin has no Unicode normalization and the domain may not use platform APIs, so the app platform layer or the backend core adds it (KDoc on `TextRules`). Link labels and memo milestone tags use the title rule (1 to 100 characters).
+- [x] 2.4 Implement patch apply, inverse patch and overwritten-field detection (design D5); verify tests for different fields, same field, nested object replacement and null clearing.
+- [x] 2.5 Implement the role projections (owner, editor, viewer, public link); verify that no projection other than the owner's contains notes, pin state, category, memos or account identifiers, and that public links omit custom audio.
+- [x] 2.6 Implement the plan table (`Plan`, `Feature`, limits for free, premium and premium_plus) and the gate check for a change given the writer's plan and the writer's counts; verify tests for each row of `docs/features/premium/SPEC.md`, including lapsed plans and counts above the limit keeping existing content.
+- [x] 2.7 Implement the countdown engine per `docs/features/events/SPEC.md` and a JVM task that writes `backend/core/web/test/countdown-vectors.json`; verify `countdown.js` passes every generated vector and CI fails when the committed file differs from a fresh generation.
+  - Note: engine tests pass on JVM, JS and Android host with 100% line and branch coverage (`koverVerify`), and the vector file is deterministic; the `countdown.js` check is pending until the backend core exists. `:core:model:checkCountdownVectors` is ready for the CI step.
 - [ ] 2.8 If task 1.2 chose TypeScript: generate `backend/core/contract/` from `:core:model` (JSON Schema of the API types, plan table JSON, validation and merge vectors); verify a CI step regenerates it and fails on any difference.
-- [ ] 2.9 Update `docs/features/events/SPEC.md` and `docs/features/premium/SPEC.md` with any change made while implementing; verify they match the code.
+- [x] 2.9 Update `docs/features/events/SPEC.md` and `docs/features/premium/SPEC.md` with any change made while implementing; verify they match the code.
+  - Note: events SPEC gained the calculation rules (section 2.5) and the shared types; the premium SPEC already matched the plan table, so it is unchanged.
 
 ## 3. Backend core `backend/core/`
 

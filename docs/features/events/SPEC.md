@@ -28,16 +28,26 @@ The engine uses `kotlinx-datetime` and computes time relative to the event's tim
 - **Day of Event:** Emphasizes celebratory state ("Today is [Event Title]! 🎉") with optional confetti animation.
 
 ### 2.3 Recurrence Rules
-- **Annual:** Automatically advances target date to the next occurrence once passed (e.g., Birthdays, Wedding Anniversaries, New Year). Retains original anchor year to display milestone anniversary count (e.g., "5th Anniversary").
-- **Monthly:** Advances to the same day next month (with leap year / end-of-month clamping, e.g. Jan 31 &rarr; Feb 28).
-- **Weekly / Custom Cadence:** Repeats every N days.
+- **Annual:** Automatically advances target date to the next occurrence once passed (e.g., Birthdays, Wedding Anniversaries, New Year). Retains original anchor year to display milestone anniversary count (e.g., "5th Anniversary"). A Feb 29 date falls on Feb 28 in other years and on Feb 29 again in leap years.
+- **Monthly:** Advances to the same day next month (with leap year / end-of-month clamping, e.g. Jan 31 &rarr; Feb 28). The anchor day stays: Jan 31 &rarr; Feb 28 &rarr; Mar 31.
+- **Weekly / Custom Cadence:** Repeats every 7 days (weekly) or every N days (custom, 1 to 3,650), counted from the target date.
+- A repeating day counts to its first occurrence on or after today's date in its zone. The occurrence stays "today" for the whole day, also after its time has passed, and moves on the next day.
 
 ### 2.4 Time Zones
 - `timeZone` is an IANA zone id or null.
 - A fixed zone means every viewer sees the same instant (a flight, a launch). New events default to the device's zone.
 - Null means "floating": the viewer's local zone is used (New Year, birthdays).
 - An event with no `targetTime` counts to 00:00 in its zone.
-- The engine lives in `:core:model`, so the app and the backend compute the same result. The share page's `countdown.js` is checked against test vectors generated from this engine.
+- The engine lives in `:core:model`, so the app and the backend compute the same result. The share page's `countdown.js` is checked against test vectors generated from this engine (`./gradlew :core:model:generateCountdownVectors` writes `backend/core/web/test/countdown-vectors.json`; `checkCountdownVectors` fails when the committed file is out of date).
+- A local time in a DST gap moves forward by the length of the gap (02:30 on a spring-forward night is 03:30). An ambiguous time in a DST overlap takes the earlier instant.
+
+### 2.5 Calculation Rules
+Implemented by `CountdownEngine` in `:core:model` (package `dev.derek.daysthatmatter.core.model.countdown`).
+- **Totals** (days, hours, minutes, seconds) are the real elapsed time between now and the target instant, rounded down. Days and Weeks count whole 24-hour periods: a date-only day 38 hours and 30 minutes away shows 1 day in Days, 38 in Hours, and 38 h 30 min in Auto. Across a DST change, 2 calendar days can be 47 or 49 hours.
+- **Calendar breakdown** (years, months, days, then hours, minutes, seconds) uses wall-clock fields in the event's zone with end-of-month clamping (Jan 31 + 1 month = Feb 28 or 29), rounded down the same way as totals.
+- **Auto** switches from days to hours and minutes when less than 48 whole hours remain (47:59 shows hours and minutes; 48:00 shows 2 days).
+- **Workdays** count dates, not hours: Monday to Friday after today up to and including the occurrence date for a countdown, from the day after the date up to and including today for a count-up, and 0 on the day itself.
+- **Direction:** "today" when the occurrence date is today's date in the event's zone; otherwise "until" or "since" by the target instant. A one-time day stays "today" for the rest of its date, then counts up.
 
 ---
 
@@ -61,7 +71,7 @@ data class Event(
     val targetTime: LocalTime? = null,
     val timeZone: String? = null,               // IANA id; null = floating (section 2.4)
     val unitMode: UnitMode = UnitMode.Auto,
-    val recurrence: RecurrenceRule = RecurrenceRule.None,
+    val recurrence: Recurrence = Recurrence.None,
     val pinnedAt: Instant? = null,              // owner only; null = not pinned; carousel shows newest first
     val archivedAt: Instant? = null,            // owner only, personal; members archive on their membership
     val reminders: Reminders? = null,           // owner only, personal; members keep theirs on their membership
@@ -82,26 +92,30 @@ data class Reminders(
 )
 
 @Serializable
-sealed interface RecurrenceRule {
-    @Serializable data object None : RecurrenceRule
-    @Serializable data class Yearly(val originalYear: Int) : RecurrenceRule
-    @Serializable data object Monthly : RecurrenceRule
-    @Serializable data object Weekly : RecurrenceRule
-    @Serializable data class CustomDays(val days: Int) : RecurrenceRule
+sealed interface Recurrence {                   // API JSON: {"type": "yearly", "originalYear": 2027, "days": null}
+    data object None : Recurrence
+    data class Yearly(val originalYear: Int) : Recurrence
+    data object Monthly : Recurrence
+    data object Weekly : Recurrence
+    data class CustomDays(val days: Int) : Recurrence     // 1 to 3,650
 }
 
-data class TimeRemaining(
-    val isPast: Boolean,
-    val totalDays: Long,
-    val years: Int,
-    val months: Int,
-    val days: Int,
-    val hours: Int,
-    val minutes: Int,
-    val seconds: Int,
-    val isToday: Boolean
-)
+// Engine output (:core:model, CountdownEngine.compute(target, now, viewerZone)); replaces TimeRemaining.
+data class Countdown(
+    val occurrenceDate: LocalDate,
+    val target: Instant,
+    val direction: Direction,                   // Until, Since, Today
+    val totalDays: Long, val totalHours: Long, val totalMinutes: Long, val totalSeconds: Long,
+    val years: Int, val months: Int, val days: Int, val hours: Int, val minutes: Int, val seconds: Int,
+    val anniversary: Int?,                      // yearly only: occurrence year minus originalYear
+    val workdays: Long
+    // ...
+) {
+    fun value(mode: UnitMode): CountdownValue   // Days, HoursMinutes, WeeksDays, Hours, Calendar or Workdays
+}
 ```
+
+The types shared with the backend live in `:core:model` (package `dev.derek.daysthatmatter.core.model`): `event.EventDoc` (the API document of BACKEND.md section 7.2), `event.Recurrence`, `event.UnitMode`, `event.Reminders`, and `countdown.CountdownEngine`, `Countdown` and `CountdownValue`. The app's `Event` above maps to and from `EventDoc`.
 
 ---
 

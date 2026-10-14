@@ -33,6 +33,13 @@ androidx-sqlite = "2.7.1"
 koin = "4.2.2"
 ktor = "3.6.0"
 
+# npm packages for Kotlin/JS tests
+# Time zone data for kotlinx-datetime on JS (its own JS build ships no zones). Used by :core:model jsTest only.
+npm-jsjoda-timezone = "3.1.0"
+
+# Code coverage (:core:model countdown engine, docs/standards/TESTING_STRATEGY.md 2.1)
+kover = "0.9.11"
+
 [libraries]
 # Kotlin
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
@@ -85,3 +92,4 @@ compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "
 compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidx-room = { id = "androidx.room", version.ref = "androidx-room" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }
