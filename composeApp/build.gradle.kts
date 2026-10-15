@@ -40,6 +40,7 @@ kotlin {
             implementation(projects.core.database)
             implementation(projects.core.network)
             implementation(projects.feature.events)
+            implementation(projects.feature.eventeditor)
             api(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.koin.compose.viewmodel)

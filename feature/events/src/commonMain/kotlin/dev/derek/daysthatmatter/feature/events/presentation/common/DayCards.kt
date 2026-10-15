@@ -36,6 +36,8 @@ object EventsTestTags {
     const val WorkdaysNote = "workdays-note"
     const val SortButton = "sort-button"
     const val LayoutButton = "layout-button"
+    const val NewDayFab = "new-day-fab"
+    const val EditButton = "edit-button"
 }
 
 /**

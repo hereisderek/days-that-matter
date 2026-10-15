@@ -2,6 +2,9 @@ package dev.derek.daysthatmatter.app
 
 import dev.derek.daysthatmatter.core.common.AppDispatchers
 import dev.derek.daysthatmatter.core.model.event.EventDoc
+import dev.derek.daysthatmatter.feature.eventeditor.domain.CheckNewEventGateUseCase
+import dev.derek.daysthatmatter.feature.eventeditor.domain.LoadEditableEventUseCase
+import dev.derek.daysthatmatter.feature.eventeditor.domain.UpsertEventUseCase
 import dev.derek.daysthatmatter.feature.events.debug.SeedSampleEventsUseCase
 import dev.derek.daysthatmatter.feature.events.domain.ArchiveEventUseCase
 import dev.derek.daysthatmatter.feature.events.domain.EventRepository
@@ -43,6 +46,16 @@ class AppKoinTest {
         koin.get<ArchiveEventUseCase>()
         koin.get<SetUnitModeUseCase>()
         koin.get<SeedSampleEventsUseCase>()
+    }
+
+    @Test
+    fun theEditorUseCasesResolve() {
+        val koin = initKoin { allowOverride(true) }.koin
+        koin.loadModules(listOf(module { single<EventRepository> { NoEvents } }), allowOverride = true)
+
+        koin.get<LoadEditableEventUseCase>()
+        koin.get<CheckNewEventGateUseCase>()
+        koin.get<UpsertEventUseCase>()
     }
 
     private object NoEvents : EventRepository {

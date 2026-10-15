@@ -4,6 +4,7 @@ import androidx.navigation3.runtime.NavKey
 import dev.derek.daysthatmatter.app.navigation.AppNavigator
 import dev.derek.daysthatmatter.app.navigation.ArchivedKey
 import dev.derek.daysthatmatter.app.navigation.DayKey
+import dev.derek.daysthatmatter.app.navigation.EditorKey
 import dev.derek.daysthatmatter.app.navigation.GalleryKey
 import dev.derek.daysthatmatter.app.navigation.HomeKey
 import kotlin.test.Test
@@ -37,5 +38,36 @@ class AppNavigatorTest {
         navigator.openGallery()
 
         assertEquals(listOf(HomeKey, DayKey("trip"), GalleryKey), stack)
+    }
+
+    @Test
+    fun aNewDayReplacesTheEditorWithItsDayPage() {
+        navigator.openNewDay()
+        navigator.openNewDay()
+        assertEquals(listOf(HomeKey, EditorKey()), stack)
+
+        navigator.closeEditor("new-id", created = true)
+        assertEquals(listOf(HomeKey, DayKey("new-id")), stack)
+    }
+
+    @Test
+    fun anEditReturnsToTheDayPage() {
+        navigator.openDay("trip")
+        navigator.openEditor("trip")
+        assertEquals(listOf(HomeKey, DayKey("trip"), EditorKey("trip")), stack)
+
+        navigator.closeEditor("trip", created = false)
+        assertEquals(listOf(HomeKey, DayKey("trip")), stack)
+    }
+
+    @Test
+    fun cancellingTheEditorPopsOnlyTheEditor() {
+        navigator.openDay("trip")
+        navigator.closeEditor()
+        assertEquals(listOf(HomeKey, DayKey("trip")), stack)
+
+        navigator.openNewDay()
+        navigator.closeEditor()
+        assertEquals(listOf(HomeKey, DayKey("trip")), stack)
     }
 }
