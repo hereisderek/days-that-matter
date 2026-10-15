@@ -121,7 +121,7 @@ export class MemoryStore implements Store {
       updatedAt: input.now,
     };
     this.#events.set(event.id, event);
-    this.#revisions.set(input.eventId, [
+    const appended: RevisionRecord[] = [
       ...revisions,
       {
         eventId: input.eventId,
@@ -131,9 +131,11 @@ export class MemoryStore implements Store {
         patch: result.applied,
         inverse: result.inverse,
         overwrote: overwritten,
-        restoredFrom: null,
+        restoredFrom: input.restoredFrom ?? null,
       },
-    ]);
+    ];
+    const keep = input.keepRevisions;
+    this.#revisions.set(input.eventId, keep === undefined ? appended : appended.filter((r) => r.rev > rev - keep));
     return { status: 'ok', event: copyEvent(event), applied: copyJson(result.applied), overwritten };
   }
 
@@ -151,6 +153,15 @@ export class MemoryStore implements Store {
       .sort((a, b) => b.rev - a.rev)
       .slice(0, query.limit)
       .map((r) => ({ ...r, patch: copyJson(r.patch), inverse: copyJson(r.inverse), overwrote: [...r.overwrote] }));
+  }
+
+  async displayNames(ids: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    const out = new Map<string, string>();
+    for (const id of ids) {
+      const account = this.#accounts.get(id);
+      if (account) out.set(id, account.displayName);
+    }
+    return out;
   }
 
   // ---- Accounts ----

@@ -128,6 +128,7 @@ Implementation notes (`backend/core/src/ports/`, wave 1):
 - `Ports` also carries `keys`, the `KeyFetcher` for Google's and Apple's JWKS: `cachedKeyFetcher(fetch, clock)` in production (cached an hour per URL, refetched at most once a minute for an unknown key id), a fixed set of locally generated keys in tests.
 - Identity providers live in `src/auth/`: `googleProvider` and `appleProvider` (`TokenProvider`, built from `Config` and `keys`) and the email code functions over the `Store` and `Mailer`.
 - The store conformance suite (`src/store/conformance.ts`) has no test framework dependency; it runs against `SqlStore` on `node:sqlite` and the in-memory `MemoryStore`, and a test checks that it fails for a store with a lost-update bug.
+- History (wave 3): each write that adds a revision deletes the event's revisions older than the newest 200 (`LIMITS.REVISIONS_KEPT`) in the same batch, guarded like the write itself; a write that changes nothing prunes nothing. Revisions of a deleted event go with the purge job (3.13) or account deletion.
 - Reads by role (wave 2): `GET /events/{id}` answers `404 not_found` for an unknown or malformed id, `403 forbidden` for an event the caller is not owner, viewer or editor of (removed members included), and `410 deleted` for a deleted event the caller could read. `POST /events/fetch` leaves those out instead. Members see `childSeq` 0 in the manifest. Memo writes past 500 per event answer `429 quota_exceeded` with `details.limit` = `memos_per_event`. Repeating `DELETE /events/{id}` or a memo `DELETE` answers `204`. Lists of ids go to SQL as one JSON parameter (`json_each`), which stays under D1's 100 bound parameters.
 
 ---
@@ -561,6 +562,15 @@ Fetch (`POST /events/fetch`): `{"events": [EventDoc, …]}`, each projected by t
 Memos: `PUT /events/{id}/memos/{memoId}` with `{"content": "…", "milestoneTag": "Day 100", "createdAt": "…"}` → the memo (section 7.2) with `201` when new, `200` when the id already exists on this event; `PATCH` with `{"patch": {"content": "…", "milestoneTag": null}}` → the memo (null clears `milestoneTag` only); `DELETE` → `204`.
 
 Revisions page (`GET /events/{id}/revisions`): `{"revisions": [Revision, …], "next": 9}`; `next` is the `before` of the next page, null at the end.
+- `limit` 1 to 50 (default 50), `before` a rev (whole number from 1); anything else answers `400 invalid_payload`. `Cache-Control: no-store`.
+- The owner sees every change. An editor sees only shared fields: `changes` and `overwrote` leave owner-only fields out, and a revision that changed only owner-only fields is left out of the editor's pages (pages stay full). Viewers get `403 forbidden`; public links have no history.
+- `changes[].from` and `to` are the old and new values; null means absent (cleared). `author` is null once the author deleted their account. `restoredFrom` is the rev a restore brought back, else null.
+
+Restore (`POST /events/{id}/restore`, owner or editor): `{"rev": 4}` → `200` with the patch answer `{"event": …, "overwritten": […]}`.
+- Brings back the shared fields as they were at `rev`, for the owner too; owner-only fields keep their current values. `unitMode` and `recurrence` that were absent at `rev` come back as `"auto"` and `{"type": "none"}` (they cannot be cleared).
+- The changed fields are written as one new revision with `restoredFrom` = `rev`; earlier revisions stay. When the shared fields already match, nothing is written and the rev stays.
+- It goes through the same write path as `PATCH /events/{id}`: validation (a value the rules no longer accept answers `400 invalid_payload` naming the field), role checks, plan gates (tasks 3.10 and 3.12) and the live `rev` notice.
+- A `rev` above the current rev, or one whose later revisions were pruned (all revisions after `rev` are needed), answers `400 invalid_payload` with `details.field` = `rev`. Viewers get `403 forbidden`.
 
 Status codes without a body of their own: `PUT /events/{id}` `201` when created, `200` with the current document when it exists; `DELETE /events/{id}` `204`; `POST /auth/signout` `204`; `DELETE /me` `204`; `POST /auth/email/start` `202` with no body.
 

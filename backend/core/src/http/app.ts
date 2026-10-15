@@ -8,6 +8,7 @@ import { applyResponseHeaders } from './headers.ts';
 import { consoleLog, logLine } from './log.ts';
 import type { LogSink } from './log.ts';
 import { accountRoutes } from './accounts.ts';
+import { historyRoutes } from './history.ts';
 import { API } from './paths.ts';
 import { Router } from './router.ts';
 import { syncRoutes } from './sync.ts';
@@ -44,7 +45,7 @@ const healthRoutes: readonly Route<Handler>[] = [
 ];
 
 /** The routes of the core so far. Later tasks add theirs here. */
-export const coreRoutes: readonly Route<Handler>[] = [...healthRoutes, ...accountRoutes, ...syncRoutes];
+export const coreRoutes: readonly Route<Handler>[] = [...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes];
 
 export interface AppOptions {
   readonly routes?: readonly Route<Handler>[];

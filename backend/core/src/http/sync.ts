@@ -34,14 +34,14 @@ import type { Route } from './router.ts';
 import { emptyResponse, jsonResponse } from './types.ts';
 import type { HttpResponse } from './types.ts';
 
-const NO_STORE = { 'Cache-Control': 'no-store' };
+export const NO_STORE = { 'Cache-Control': 'no-store' };
 /** First sign-in uploads: the session must be younger than this, and at most this many per session. */
 export const FIRST_UPLOAD_WINDOW_SECONDS = 86_400;
 export const FIRST_UPLOADS_PER_SESSION = 500;
 const MAX_FETCH_IDS = 100;
 
-const forbidden = (): ApiError => new ApiError('forbidden', 'Not allowed for your role');
-const deleted = (): ApiError => new ApiError('deleted', 'This day was deleted');
+export const forbidden = (): ApiError => new ApiError('forbidden', 'Not allowed for your role');
+export const deleted = (): ApiError => new ApiError('deleted', 'This day was deleted');
 
 /**
  * The error for a counted limit: `402 premium_required` when a higher plan allows more,
@@ -95,30 +95,33 @@ function memoChange(m: MemoRecord): MemoChange {
 
 // ---- Helpers ----
 
-/** A body's ETag: a hash of its JSON. Answers `304` when `If-None-Match` names it. */
-async function withEtag(ctx: RequestContext, body: unknown): Promise<HttpResponse> {
-  const etag = `"${(await sha256Hex(JSON.stringify(body))).slice(0, 32)}"`;
-  const headers = { ETag: etag, 'Cache-Control': 'private, no-cache' };
+/**
+ * A body's ETag: a hash of `tagged` (the body itself by default). Answers `304` when `If-None-Match`
+ * names it. `cacheControl` defaults to `private, no-cache`.
+ */
+export async function withEtag(ctx: RequestContext, body: unknown, tagged: unknown = body, cacheControl = 'private, no-cache'): Promise<HttpResponse> {
+  const etag = `"${(await sha256Hex(JSON.stringify(tagged))).slice(0, 32)}"`;
+  const headers = { ETag: etag, 'Cache-Control': cacheControl };
   const match = ctx.req.headers.get('If-None-Match');
   if (match !== null && match.split(',').some((t) => t.trim() === etag || t.trim() === '*')) return emptyResponse(304, headers);
   return jsonResponse(200, body, headers);
 }
 
-function eventId(ctx: RequestContext): string {
+export function eventId(ctx: RequestContext): string {
   const id = ctx.params['id'] ?? '';
   if (!isUuid(id)) throw notFound();
   return id;
 }
 
 /** The event as the caller may read it: `404` when unknown, `403` without access, `410` once deleted. */
-async function readable(ports: Ports, session: Session, id: string): Promise<ReaderEvent> {
+export async function readable(ports: Ports, session: Session, id: string): Promise<ReaderEvent> {
   const [r] = await ports.store.readEvents(session.accountId, [id]);
   if (!r) throw (await ports.store.getEvent(id)) ? forbidden() : notFound();
   if (r.event.deletedAt !== null) throw deleted();
   return r;
 }
 
-async function ownerOnly(ports: Ports, session: Session, id: string): Promise<ReaderEvent> {
+export async function ownerOnly(ports: Ports, session: Session, id: string): Promise<ReaderEvent> {
   const r = await readable(ports, session, id);
   if (r.role !== 'owner') throw forbidden();
   return r;
@@ -209,14 +212,31 @@ const patchEvent: Handler = async (ctx) => {
   if (typeof baseRev !== 'number' || !Number.isSafeInteger(baseRev) || baseRev < 0) throw invalidPayload('baseRev', 'must be a whole number');
   if (!isJsonObject(body['patch'])) throw invalidPayload('patch', body['patch'] === undefined ? 'required' : 'must be an object');
   const patch = valid(validateEventPatch(body['patch']));
-
   const access = await readable(ports, session, id);
+  return jsonResponse(200, await writeEvent(ports, session, access, baseRev, patch), NO_STORE);
+};
+
+/**
+ * The one write path for event changes, used by `PATCH /events/{id}` and by restores (task 3.7): role
+ * checks, the merge with its revision, pruning past the revisions kept, and the live notice. `patch`
+ * is already validated. Plan gates on patches (tasks 3.10, 3.12) belong here, so restores get them too.
+ */
+export async function writeEvent(
+  ports: Ports,
+  session: Session,
+  access: ReaderEvent,
+  baseRev: number,
+  patch: JsonObject,
+  restoredFrom?: number,
+): Promise<PatchResponse> {
   if (access.role === 'viewer') throw forbidden();
   if (access.role === 'editor' && Object.keys(patch).some((f) => OWNER_ONLY_FIELDS.has(f))) {
     throw new ApiError('field_not_allowed', 'Only the owner can change this field');
   }
+  const id = access.event.id;
   const outcome = await ports.store.applyPatch({
     eventId: id, authorId: session.accountId, baseRev, patch, now: nowSeconds(ports.clock), maxDocBytes: LIMITS.EVENT_DOC_MAX_BYTES,
+    keepRevisions: LIMITS.REVISIONS_KEPT, ...(restoredFrom === undefined ? {} : { restoredFrom }),
   });
   switch (outcome.status) {
     case 'not_found':
@@ -225,13 +245,11 @@ const patchEvent: Handler = async (ctx) => {
       throw deleted();
     case 'too_large':
       throw invalidPayload('', `event document exceeds ${LIMITS.EVENT_DOC_MAX_BYTES} bytes`);
-    case 'ok': {
+    case 'ok':
       if (Object.keys(outcome.applied).length > 0) await ports.live.publish(id, { type: 'rev', rev: outcome.event.rev });
-      const answer: PatchResponse = { event: projectEvent({ ...access, event: outcome.event }), overwritten: [...outcome.overwritten] };
-      return jsonResponse(200, answer, NO_STORE);
-    }
+      return { event: projectEvent({ ...access, event: outcome.event }), overwritten: [...outcome.overwritten] };
   }
-};
+}
 
 const deleteEvent: Handler = async (ctx) => {
   const { ports, req } = ctx;

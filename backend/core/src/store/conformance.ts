@@ -299,6 +299,46 @@ export const storeConformanceCases: readonly ConformanceCase[] = [
       same(await store.listRevisions('missing', { limit: 10 }), [], 'unknown event');
     },
   },
+  // ---- History (task 3.7) ----
+  {
+    name: 'revisions: a restore records the rev it brought back',
+    async run(store) {
+      await withEvent(store);
+      ok(await patch(store, OWNER, 1, { title: 'T2' }));
+      const restored = ok(await store.applyPatch({ eventId: EVENT, authorId: EDITOR, baseRev: 2, patch: { title: 'Our wedding' }, now: T0 + 90, restoredFrom: 1 }));
+      same(restored.event.rev, 3, 'rev');
+      const [latest, earlier] = await store.listRevisions(EVENT, { limit: 2 });
+      same(latest?.restoredFrom, 1, 'restore marker');
+      same(latest?.authorId, EDITOR, 'author');
+      same(latest?.inverse, { title: 'T2' }, 'inverse');
+      same(earlier?.restoredFrom, null, 'plain patch');
+    },
+  },
+  {
+    name: 'revisions: pruning keeps the newest ones in the same write',
+    async run(store) {
+      await withEvent(store);
+      for (let rev = 1; rev <= 4; rev++) ok(await patch(store, OWNER, rev, { title: `T${rev}` }, T0 + rev));
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [5, 4, 3, 2], 'kept without a limit');
+      const pruned = ok(await store.applyPatch({ eventId: EVENT, authorId: OWNER, baseRev: 5, patch: { title: 'T5' }, now: T0 + 9, keepRevisions: 3 }));
+      same(pruned.event.rev, 6, 'rev');
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [6, 5, 4], 'newest 3 kept');
+      ok(await store.applyPatch({ eventId: EVENT, authorId: OWNER, baseRev: 6, patch: { title: 'T6' }, now: T0 + 10, keepRevisions: 3 }));
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [7, 6, 5], 'oldest dropped on the next write');
+      ok(await store.applyPatch({ eventId: EVENT, authorId: OWNER, baseRev: 7, patch: { title: 'T6' }, now: T0 + 11, keepRevisions: 1 }));
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [7, 6, 5], 'a patch that changes nothing prunes nothing');
+    },
+  },
+  {
+    name: 'accounts: display names of the ids that exist',
+    async run(store) {
+      await store.createAccount({ id: OWNER, displayName: 'Mum', now: T0 });
+      await store.createAccount({ id: EDITOR, displayName: 'Dad', now: T0 });
+      const names = await store.displayNames([OWNER, EDITOR, OTHER, OWNER]);
+      same([...names.entries()].sort(), [[EDITOR, 'Dad'], [OWNER, 'Mum']], 'names');
+      same((await store.displayNames([])).size, 0, 'no ids');
+    },
+  },
   {
     name: 'isolation: records returned to callers are copies',
     async run(store) {

@@ -218,11 +218,11 @@ export class SqlStore implements Store {
       const [, updated] = await this.#db.batch([
         {
           sql: `INSERT INTO revisions (event_id, rev, author_id, created_at, patch, inverse, overwrote, restored_from)
-                SELECT ?, ?, ?, ?, ?, ?, ?, NULL
+                SELECT ?, ?, ?, ?, ?, ?, ?, ?
                 WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND rev = ? AND deleted_at IS NULL)`,
           args: [
             input.eventId, rev, input.authorId, input.now, JSON.stringify(result.applied), JSON.stringify(result.inverse),
-            overwritten.length > 0 ? JSON.stringify(overwritten) : null, ...guard,
+            overwritten.length > 0 ? JSON.stringify(overwritten) : null, input.restoredFrom ?? null, ...guard,
           ],
         },
         {
@@ -230,6 +230,14 @@ export class SqlStore implements Store {
                 WHERE id = ? AND rev = ? AND deleted_at IS NULL`,
           args: [rev, JSON.stringify(result.doc), audio.audioKind, audio.audioSetBy, audio.audioMediaId, input.now, ...guard],
         },
+        // Pruning (task 3.7) runs only when this write moved the event to the new rev.
+        ...(input.keepRevisions === undefined
+          ? []
+          : [{
+              sql: `DELETE FROM revisions WHERE event_id = ? AND rev <= ?
+                    AND EXISTS (SELECT 1 FROM events WHERE id = ? AND rev = ? AND deleted_at IS NULL)`,
+              args: [input.eventId, rev - input.keepRevisions, input.eventId, rev],
+            }]),
       ]);
       if (updated === 1) {
         const event: EventRecord = { ...current, ...audio, rev, doc: result.doc, updatedAt: input.now };
@@ -252,6 +260,15 @@ export class SqlStore implements Store {
       [eventId, query.before ?? Number.MAX_SAFE_INTEGER, query.limit],
     );
     return rows.map(toRevision);
+  }
+
+  async displayNames(ids: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.#db.query<{ id: string; display_name: string }>(
+      'SELECT id, display_name FROM accounts WHERE id IN (SELECT value FROM json_each(?))',
+      [JSON.stringify([...new Set(ids)])],
+    );
+    return new Map(rows.map((r) => [r.id, r.display_name]));
   }
 
   // ---- Accounts ----

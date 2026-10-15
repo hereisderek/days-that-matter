@@ -6,8 +6,8 @@
 // The foundation set (tasks 3.2 to 3.4): accounts, event documents, patches with their revisions,
 // tombstones and history pages. Task 3.5 added identities, email codes, sessions, the account usage
 // counts and account deletion; task 3.6 the manifest, reads by role, the owned-event limit, memos with
-// their child sequence and tombstones, and the members a reader sees. Later tasks add restore and
-// pruning (3.7), links and invites with join (3.8, building on the members operations here), media
+// their child sequence and tombstones, and the members a reader sees; task 3.7 restore markers,
+// pruning and display names. Later tasks add links and invites with join (3.8, building on the members operations here), media
 // (3.10), purchases (3.11), rate counters and the rest of the purge (3.13), grants, exports and
 // devices (3.16 to 3.18). Times are Unix seconds.
 import type { Plan, Role, SignInMethod } from '../contract/index.ts';
@@ -90,6 +90,13 @@ export interface PatchInput {
   readonly now: number;
   /** Refuse (`too_large`) when the merged document is larger than this in UTF-8 JSON bytes. */
   readonly maxDocBytes?: number;
+  /** A restore (task 3.7): the rev whose values the patch brings back, recorded as the revision's `restoredFrom`. */
+  readonly restoredFrom?: number;
+  /**
+   * Keep only this many newest revisions of the event: older ones are deleted in the same write as the
+   * new revision (BACKEND.md section 11.2, "Revisions kept"). Absent = keep all.
+   */
+  readonly keepRevisions?: number;
 }
 
 export type PatchOutcome =
@@ -331,6 +338,8 @@ export interface Store {
   deleteEvent(eventId: string, now: number): Promise<boolean>;
   /** Revisions of an event, newest first. */
   listRevisions(eventId: string, query: RevisionQuery): Promise<RevisionRecord[]>;
+  /** Display names of the accounts of `ids` that exist (history authors, sharing lists). */
+  displayNames(ids: readonly string[]): Promise<ReadonlyMap<string, string>>;
 
   // Accounts (task 3.5)
 

@@ -1,6 +1,6 @@
-// Every scenario of the accounts and event-sync specs is either a core test named after it, or
-// listed here with the task that covers it (an app task, or a later backend task). A new scenario in
-// either spec fails this test until it gets one or the other.
+// Every scenario of the specs in CAPABILITIES is either a core test named after it, or listed here
+// with the task that covers it (an app task, or a later backend task). A new scenario in one of those
+// specs fails this test until it gets one or the other.
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -22,7 +22,13 @@ function testNames(...files: string[]): Set<string> {
   return names;
 }
 
-const CORE_TESTS = testNames('./accounts/accounts-scenarios.test.ts', './sync/event-sync-scenarios.test.ts');
+const CAPABILITIES = ['accounts', 'event-sync', 'event-history'];
+
+const CORE_TESTS = testNames(
+  './accounts/accounts-scenarios.test.ts',
+  './sync/event-sync-scenarios.test.ts',
+  './history/event-history-scenarios.test.ts',
+);
 
 /** Scenarios the backend core does not serve yet or at all, with the task that covers them. */
 const ELSEWHERE: Readonly<Record<string, string>> = {
@@ -42,10 +48,10 @@ const ELSEWHERE: Readonly<Record<string, string>> = {
 };
 
 describe('spec coverage', () => {
-  for (const capability of ['accounts', 'event-sync']) {
+  for (const capability of CAPABILITIES) {
     it(`every ${capability} scenario is a core test or assigned to its task`, () => {
       const list = scenarios(capability);
-      expect(list.length).toBeGreaterThan(5);
+      expect(list.length).toBeGreaterThan(2);
       const missing = list.filter((s) => !CORE_TESTS.has(s) && !(s in ELSEWHERE));
       expect(missing).toEqual([]);
       const both = list.filter((s) => CORE_TESTS.has(s) && s in ELSEWHERE);
@@ -54,7 +60,7 @@ describe('spec coverage', () => {
   }
 
   it('lists no scenario that the specs do not have', () => {
-    const all = new Set([...scenarios('accounts'), ...scenarios('event-sync'), ...scenarios('premium')]);
+    const all = new Set([...CAPABILITIES, 'premium'].flatMap(scenarios));
     expect(Object.keys(ELSEWHERE).filter((s) => !all.has(s))).toEqual([]);
     expect([...CORE_TESTS].filter((s) => !all.has(s))).toEqual([]);
   });
