@@ -23,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
@@ -35,6 +36,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -65,6 +67,8 @@ import dev.derek.daysthatmatter.feature.events.presentation.common.DayCardWithMe
 import dev.derek.daysthatmatter.feature.events.presentation.common.EventsTestTags
 import dev.derek.daysthatmatter.feature.events.presentation.common.gridRows
 import org.koin.compose.viewmodel.koinViewModel
+import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 /** A debug-only button for the top bar (the design gallery entry). */
 data class DebugAction(val label: String, val onClick: () -> Unit)
@@ -127,17 +131,66 @@ fun HomeScreen(
         mutableStateOf(state.activePinIndex.coerceIn(0, (state.pinnedDays.size - 1).coerceAtLeast(0)))
     }
     var isCompact by remember { mutableStateOf(false) }
-    var isAutoScrolling by remember { mutableStateOf(false) }
 
     val density = LocalDensity.current
     val px32 = remember(density) { with(density) { 32.dp.toPx() } }
     val px8 = remember(density) { with(density) { 8.dp.toPx() } }
 
-    LaunchedEffect(lazyListState) {
+    val pagerState = rememberPagerState(
+        initialPage = activePinIndex.coerceIn(0, (state.pinnedDays.size - 1).coerceAtLeast(0)),
+        pageCount = { state.pinnedDays.size },
+    )
+
+    val continuousPosition by remember {
+        derivedStateOf {
+            if (state.pinnedDays.isEmpty()) 0f
+            else (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                .coerceIn(0f, (state.pinnedDays.size - 1).coerceAtLeast(0).toFloat())
+        }
+    }
+
+    // Direct 1:1 scroll synchronization: carousel gesture/fling directly drives list scroll position
+    LaunchedEffect(pagerState, lazyListState, state.pinnedDays, state.layout) {
+        var cardHeightPx = with(density) { 92.dp.roundToPx() }
         snapshotFlow {
-            Pair(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
-        }.collect { (index, offset) ->
-            if (!isAutoScrolling) {
+            Triple(
+                pagerState.currentPage,
+                pagerState.currentPageOffsetFraction,
+                pagerState.isScrollInProgress
+            )
+        }.collect { (page, fraction, isPagerScrolling) ->
+            if (isPagerScrolling && !lazyListState.isScrollInProgress && state.pinnedDays.isNotEmpty()) {
+                val totalPos = (page + fraction).coerceIn(0f, (state.pinnedDays.size - 1).toFloat())
+                val baseIndex = totalPos.toInt().coerceIn(0, state.pinnedDays.lastIndex)
+                val baseFraction = (totalPos - baseIndex).coerceIn(0f, 1f)
+
+                val day = state.pinnedDays.getOrNull(baseIndex)
+                if (day != null) {
+                    val listIndex = findListIndexForDay(state, day.id)
+                    if (listIndex >= 0) {
+                        val observedHeight = lazyListState.layoutInfo.visibleItemsInfo
+                            .firstOrNull { it.index == listIndex }?.size
+                        if (observedHeight != null && observedHeight > 0) {
+                            cardHeightPx = observedHeight
+                        }
+                        val offsetPx = (baseFraction * cardHeightPx).roundToInt()
+                        lazyListState.scrollToItem(listIndex, offsetPx)
+                    }
+                }
+            }
+        }
+    }
+
+    // Collapse hysteresis: only collapse when user directly scrolls the list itself, NOT during carousel follow
+    LaunchedEffect(lazyListState, pagerState) {
+        snapshotFlow {
+            Triple(
+                lazyListState.firstVisibleItemIndex,
+                lazyListState.firstVisibleItemScrollOffset,
+                lazyListState.isScrollInProgress
+            )
+        }.collect { (index, offset, isListScrolling) ->
+            if (isListScrolling && !pagerState.isScrollInProgress) {
                 if (!isCompact) {
                     if (index > 0 || offset > px32) {
                         isCompact = true
@@ -152,31 +205,6 @@ fun HomeScreen(
     }
 
     val centeredDay = state.pinnedDays.getOrNull(activePinIndex)
-    var lastScrolledPinIndex by remember { mutableStateOf<Int?>(null) }
-    LaunchedEffect(activePinIndex, state.showCarousel) {
-        if (lastScrolledPinIndex == null) {
-            lastScrolledPinIndex = activePinIndex
-            return@LaunchedEffect
-        }
-        if (lastScrolledPinIndex != activePinIndex && state.showCarousel) {
-            lastScrolledPinIndex = activePinIndex
-            if (centeredDay != null) {
-                val targetIndex = findListIndexForDay(state, centeredDay.id)
-                if (targetIndex >= 0) {
-                    isAutoScrolling = true
-                    try {
-                        if (reduceMotion) {
-                            lazyListState.scrollToItem(targetIndex)
-                        } else {
-                            lazyListState.animateScrollToItem(targetIndex)
-                        }
-                    } finally {
-                        isAutoScrolling = false
-                    }
-                }
-            }
-        }
-    }
 
     Box(modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
@@ -215,6 +243,7 @@ fun HomeScreen(
                     onOpenDay = { id -> onIntent(HomeIntent.OpenDay(id)) },
                     compact = forceCompact ?: isCompact,
                     reduceMotion = reduceMotion,
+                    pagerState = pagerState,
                     modifier = Modifier
                         .windowInsetsPadding(insets.only(WindowInsetsSides.Horizontal))
                         .padding(bottom = 6.dp),
@@ -227,6 +256,7 @@ fun HomeScreen(
                 fabSpace = onNewDay != null,
                 lazyListState = lazyListState,
                 focusedDayId = if (state.showCarousel) centeredDay?.id else null,
+                continuousPosition = if (state.showCarousel) continuousPosition else null,
             )
         }
         if (onNewDay != null) {
@@ -276,6 +306,7 @@ private fun HomeList(
     fabSpace: Boolean = false,
     lazyListState: LazyListState = rememberLazyListState(),
     focusedDayId: String? = null,
+    continuousPosition: Float? = null,
 ) {
     val insets = WindowInsets.safeDrawing
     val bottom = insets.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
@@ -305,6 +336,14 @@ private fun HomeList(
             }
             if (state.layout == HomeLayout.List) {
                 items(section.items, key = { "${section.kind}-${it.id}" }) { item ->
+                    val focusProgress = if (continuousPosition != null && state.showCarousel) {
+                        val pinIdx = state.pinnedDays.indexOfFirst { it.id == item.id }
+                        if (pinIdx >= 0) {
+                            val dist = (continuousPosition - pinIdx).absoluteValue
+                            if (dist < 1f) 1f - dist else 0f
+                        } else 0f
+                    } else if (item.id == focusedDayId) 1f else 0f
+
                     DayCardWithMenu(
                         id = item.id,
                         card = item.card,
@@ -312,7 +351,8 @@ private fun HomeList(
                         onOpen = { onIntent(HomeIntent.OpenDay(item.id)) },
                         actions = actions(item, onIntent),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
-                        isFocused = item.id == focusedDayId,
+                        isFocused = focusProgress >= 0.5f,
+                        focusProgress = focusProgress,
                     )
                 }
             } else {
@@ -323,6 +363,14 @@ private fun HomeList(
                         horizontalArrangement = Arrangement.spacedBy(DtmTheme.spacing.gap),
                     ) {
                         row.forEach { item ->
+                            val focusProgress = if (continuousPosition != null && state.showCarousel) {
+                                val pinIdx = state.pinnedDays.indexOfFirst { it.id == item.id }
+                                if (pinIdx >= 0) {
+                                    val dist = (continuousPosition - pinIdx).absoluteValue
+                                    if (dist < 1f) 1f - dist else 0f
+                                } else 0f
+                            } else if (item.id == focusedDayId) 1f else 0f
+
                             DayCardWithMenu(
                                 id = item.id,
                                 card = item.card,
@@ -330,7 +378,8 @@ private fun HomeList(
                                 onOpen = { onIntent(HomeIntent.OpenDay(item.id)) },
                                 actions = actions(item, onIntent),
                                 modifier = Modifier.weight(1f),
-                                isFocused = item.id == focusedDayId,
+                                isFocused = focusProgress >= 0.5f,
+                                focusProgress = focusProgress,
                             )
                         }
                         if (row.size == 1 && row[0].card.size != CardSize.Large) Spacer(Modifier.weight(1f))

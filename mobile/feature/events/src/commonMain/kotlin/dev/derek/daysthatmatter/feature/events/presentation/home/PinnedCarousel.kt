@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -34,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.selected
@@ -62,17 +64,18 @@ fun PinnedCarousel(
     compact: Boolean,
     modifier: Modifier = Modifier,
     reduceMotion: Boolean = DtmTheme.reducedMotion,
+    pagerState: PagerState = rememberPagerState(
+        initialPage = activeIndex.coerceIn(0, (pinnedDays.size - 1).coerceAtLeast(0)),
+        pageCount = { pinnedDays.size },
+    ),
 ) {
     if (pinnedDays.isEmpty()) return
 
     val coroutineScope = rememberCoroutineScope()
-    val pagerState = rememberPagerState(
-        initialPage = activeIndex.coerceIn(0, pinnedDays.lastIndex),
-        pageCount = { pinnedDays.size },
-    )
 
     LaunchedEffect(activeIndex) {
-        if (pagerState.currentPage != activeIndex && activeIndex in pinnedDays.indices) {
+        // Only trigger programmatic scroll when not already scrolling or being dragged by the user
+        if (!pagerState.isScrollInProgress && pagerState.currentPage != activeIndex && activeIndex in pinnedDays.indices) {
             if (reduceMotion) {
                 pagerState.scrollToPage(activeIndex)
             } else {
@@ -135,7 +138,12 @@ fun PinnedCarousel(
                 .coerceIn(0f, 1f)
             val scale = 1f - pageOffset * 0.08f // 92% scale at distance 1
             val alpha = 1f - pageOffset * 0.40f // 60% opacity at distance 1
-            val transformOrigin = if (page < pagerState.currentPage) TransformOrigin(1f, 0.5f) else TransformOrigin(0f, 0.5f)
+            val pageDiff = (page - pagerState.currentPage) - pagerState.currentPageOffsetFraction
+            val transformOrigin = when {
+                pageDiff < -0.05f -> TransformOrigin(1f, 0.5f)
+                pageDiff > 0.05f -> TransformOrigin(0f, 0.5f)
+                else -> TransformOrigin.Center
+            }
 
             Box(
                 Modifier
@@ -169,9 +177,11 @@ fun PinnedCarousel(
         }
 
         if (multi) {
+            val continuousPos = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
+                .coerceIn(0f, (pinnedDays.size - 1).toFloat())
             CarouselDots(
                 count = pinnedDays.size,
-                activeIndex = pagerState.currentPage,
+                continuousPosition = continuousPos,
                 onSelect = { index ->
                     onSelectPin(index)
                     coroutineScope.launch {
@@ -193,7 +203,7 @@ fun PinnedCarousel(
 @Composable
 fun CarouselDots(
     count: Int,
-    activeIndex: Int,
+    continuousPosition: Float,
     onSelect: (Int) -> Unit,
     reduceMotion: Boolean,
     pinnedDays: List<HomeDayItem>,
@@ -205,17 +215,24 @@ fun CarouselDots(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         for (i in 0 until count) {
-            val isSelected = i == activeIndex
-            val dotWidth by animateDpAsState(
-                targetValue = if (isSelected) 18.dp else 6.dp,
-                animationSpec = if (reduceMotion) snap() else tween(300),
-            )
+            val progress = (1f - (continuousPosition - i).absoluteValue).coerceIn(0f, 1f)
+            val isSelected = progress >= 0.5f
+            val dotWidth = if (reduceMotion) {
+                if (isSelected) 18.dp else 6.dp
+            } else {
+                (6f + 12f * progress).dp
+            }
+            val dotColor = if (reduceMotion) {
+                if (isSelected) DtmTheme.colors.ink else DtmTheme.colors.line2
+            } else {
+                lerp(DtmTheme.colors.line2, DtmTheme.colors.ink, progress)
+            }
             val title = pinnedDays.getOrNull(i)?.card?.title.orEmpty()
             Box(
                 modifier = Modifier
                     .size(width = dotWidth, height = 6.dp)
                     .clip(RoundedCornerShape(99.dp))
-                    .background(if (isSelected) DtmTheme.colors.ink else DtmTheme.colors.line2)
+                    .background(dotColor)
                     .clickable(
                         role = Role.Tab,
                         onClickLabel = "Show $title",
@@ -229,3 +246,21 @@ fun CarouselDots(
         }
     }
 }
+
+/** Backward compatible overload with discrete activeIndex. */
+@Composable
+fun CarouselDots(
+    count: Int,
+    activeIndex: Int,
+    onSelect: (Int) -> Unit,
+    reduceMotion: Boolean,
+    pinnedDays: List<HomeDayItem>,
+    modifier: Modifier = Modifier,
+) = CarouselDots(
+    count = count,
+    continuousPosition = activeIndex.toFloat(),
+    onSelect = onSelect,
+    reduceMotion = reduceMotion,
+    pinnedDays = pinnedDays,
+    modifier = modifier,
+)

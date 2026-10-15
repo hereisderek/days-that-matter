@@ -67,13 +67,14 @@ fun DayCardWithMenu(
     actions: List<CardAction>,
     modifier: Modifier = Modifier,
     isFocused: Boolean = false,
+    focusProgress: Float = if (isFocused) 1f else 0f,
 ) {
     var menu by remember { mutableStateOf(false) }
     val shape = RoundedCornerShape(cardRadius(card.size, tile))
-    val focusModifier = if (isFocused) {
-        Modifier
-            .testTag(EventsTestTags.focusedCard(id))
-            .border(2.5.dp, DtmTheme.colors.accent, shape)
+    val effectiveFocus = if (isFocused && focusProgress == 0f) 1f else focusProgress.coerceIn(0f, 1f)
+    val focusModifier = if (effectiveFocus > 0.01f) {
+        val mod = Modifier.border(2.5.dp, DtmTheme.colors.accent.copy(alpha = effectiveFocus), shape)
+        if (effectiveFocus >= 0.5f) mod.testTag(EventsTestTags.focusedCard(id)) else mod
     } else Modifier
 
     Box(modifier.then(focusModifier)) {
@@ -88,7 +89,7 @@ fun DayCardWithMenu(
                 onClick = onOpen,
             )
         if (tile) DayCardTile(card, clickable) else DayCardRow(card, clickable)
-        if (isFocused) {
+        if (effectiveFocus >= 0.5f) {
             Box(Modifier.matchParentSize().testTag(EventsTestTags.FocusOutline))
         }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
