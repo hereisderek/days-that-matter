@@ -10,7 +10,7 @@ import type { SqlDriver } from '../../src/ports/sql.ts';
 const dirs: string[] = [];
 afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
-describe('migrations 0001_init.sql, 0002_accounts.sql and 0003_sharing.sql', () => {
+describe('migrations 0001_init.sql to 0004_import.sql', () => {
   it('creates the tables of this wave and leaves later ones to their tasks', async () => {
     const { driver } = await openSqliteStore();
     const tables = (await driver.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).map((r) => r.name);
@@ -30,7 +30,7 @@ describe('migrations 0001_init.sql, 0002_accounts.sql and 0003_sharing.sql', () 
     ]);
     expect(await columns('events')).toEqual([
       'id', 'owner_id', 'rev', 'doc', 'audio_kind', 'audio_set_by', 'audio_media_id', 'child_seq', 'child_purged_seq', 'updated_at', 'deleted_at',
-      'first_upload_at',
+      'imported_at',
     ]);
     expect(await columns('identities')).toEqual(['provider', 'subject', 'account_id', 'email', 'email_verified', 'created_at']);
     expect(await columns('email_codes')).toEqual(['email_hash', 'code_mac', 'expires_at', 'attempts']);
@@ -62,10 +62,10 @@ describe('migrations 0001_init.sql, 0002_accounts.sql and 0003_sharing.sql', () 
 
   it('applies once, in name order', async () => {
     const driver = new NodeSqliteDriver();
-    expect(await applyMigrations(driver, readMigrations())).toEqual(['0001_init.sql', '0002_accounts.sql', '0003_sharing.sql']);
+    expect(await applyMigrations(driver, readMigrations())).toEqual(['0001_init.sql', '0002_accounts.sql', '0003_sharing.sql', '0004_import.sql']);
     expect(await applyMigrations(driver, readMigrations())).toEqual([]);
-    const later = [{ name: '0004_c.sql', sql: 'CREATE TABLE c (x INTEGER);' }, { name: '0003_b.sql', sql: 'CREATE TABLE b (x INTEGER);' }];
-    expect(await applyMigrations(driver, later)).toEqual(['0003_b.sql', '0004_c.sql']);
+    const later = [{ name: '0005_c.sql', sql: 'CREATE TABLE c (x INTEGER);' }, { name: '0003_b.sql', sql: 'CREATE TABLE b (x INTEGER);' }];
+    expect(await applyMigrations(driver, later)).toEqual(['0003_b.sql', '0005_c.sql']);
   });
 
   it('rolls back a failing migration whole', async () => {

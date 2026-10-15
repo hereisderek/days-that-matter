@@ -143,7 +143,7 @@ export const storeConformanceCases: readonly ConformanceCase[] = [
       const created = await withEvent(store);
       const expected = {
         id: EVENT, ownerId: OWNER, rev: 1, doc: DOC, audioKind: null, audioSetBy: null, audioMediaId: null, childSeq: 0,
-        childPurgedSeq: 0, updatedAt: T0, deletedAt: null,
+        childPurgedSeq: 0, updatedAt: T0, deletedAt: null, importedAt: null,
       };
       same(created, expected, 'returned event');
       same(await store.getEvent(EVENT), expected, 'stored event');
@@ -543,16 +543,65 @@ export const storeConformanceCases: readonly ConformanceCase[] = [
     },
   },
   {
-    name: 'event: a first sign-in upload passes the limit up to its own cap',
+    name: 'import: atomic import stores events with imported_at, creates memos, and skips owned count limit',
     async run(store) {
-      const create = (id: string, firstUpload?: { since: number; max: number }) =>
-        store.createEvent({ id, ownerId: OWNER, doc: DOC, now: T0 + 10, maxOwned: 1, ...(firstUpload ? { firstUpload } : {}) });
-      same((await create('e0')).status, 'created', 'within the limit');
-      same((await create('e1')).status, 'limit', 'over the limit');
-      same((await create('e1', { since: T0, max: 2 })).status, 'created', 'first upload 1');
-      same((await create('e2', { since: T0, max: 2 })).status, 'created', 'first upload 2');
-      same((await create('e3', { since: T0, max: 2 })).status, 'limit', 'cap reached');
-      same((await create('e3', { since: T0 + 11, max: 2 })).status, 'created', 'a later session has its own cap');
+      await store.createEvent({ id: 'e0', ownerId: OWNER, doc: DOC, now: T0, maxOwned: 1 });
+      const r = await store.importEvents({
+        ownerId: OWNER,
+        now: T0 + 10,
+        events: [
+          {
+            id: 'e1',
+            doc: { ...DOC, title: 'Imported Event 1' },
+            memos: [{ id: 'm1', doc: { content: 'Memo 1', createdAt: '2026-01-01T00:00:00Z' } }],
+          },
+          {
+            id: 'e2',
+            doc: { ...DOC, title: 'Imported Event 2' },
+          },
+        ],
+      });
+      same(r, {
+        status: 'ok',
+        imported: [
+          { id: 'e1', unstoredFields: [] },
+          { id: 'e2', unstoredFields: [] },
+        ],
+      }, 'import result');
+      const e1 = await store.getEvent('e1');
+      same(e1?.importedAt, T0 + 10, 'importedAt set');
+      same(e1?.childSeq, 1, 'childSeq bumped for memo');
+      const m1 = await store.getMemo('m1');
+      same(m1?.eventId, 'e1', 'memo eventId');
+      same(m1?.seq, 1, 'memo seq');
+      same(m1?.authorId, OWNER, 'memo authorId');
+
+      // Idempotent retry succeeds
+      const retry = await store.importEvents({
+        ownerId: OWNER,
+        now: T0 + 20,
+        events: [
+          {
+            id: 'e1',
+            doc: { ...DOC, title: 'Imported Event 1' },
+            memos: [{ id: 'm1', doc: { content: 'Memo 1', createdAt: '2026-01-01T00:00:00Z' } }],
+          },
+        ],
+      });
+      same(retry.status, 'ok', 'idempotent retry ok');
+
+      // Conflict fails
+      const conflict = await store.importEvents({
+        ownerId: OWNER,
+        now: T0 + 30,
+        events: [
+          {
+            id: 'e1',
+            doc: { ...DOC, title: 'Conflicting Title' },
+          },
+        ],
+      });
+      same(conflict.status, 'conflict', 'conflicting title fails');
     },
   },
   {

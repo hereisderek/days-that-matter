@@ -54,6 +54,8 @@ export interface EventRecord {
   readonly childPurgedSeq: number;
   readonly updatedAt: number;
   readonly deletedAt: number | null;
+  /** Set when written by an import (design D20, task 12.1); null for normal creates. */
+  readonly importedAt: number | null;
 }
 
 /** A new event, validated by the caller. It starts at rev 1 without a revision row. */
@@ -64,13 +66,33 @@ export interface NewEvent {
   readonly now: number;
   /** The owner's owned-event limit (not deleted events); absent or null = no limit. */
   readonly maxOwned?: number | null;
-  /**
-   * A first sign-in upload (BACKEND.md section 8): while fewer than `max` of the owner's events were
-   * uploaded this way since `since` (the session start), the event passes `maxOwned` and is marked
-   * with `first_upload_at`. Past that, `maxOwned` applies.
-   */
-  readonly firstUpload?: { readonly since: number; readonly max: number };
 }
+
+export interface ImportMemoItem {
+  readonly id: string;
+  readonly doc: JsonObject;
+}
+
+export interface ImportEventItem {
+  readonly id: string;
+  readonly doc: JsonObject;
+  readonly memos?: readonly ImportMemoItem[];
+}
+
+export interface ImportInput {
+  readonly ownerId: string;
+  readonly events: readonly ImportEventItem[];
+  readonly now: number;
+}
+
+export interface ImportedEventSummary {
+  readonly id: string;
+  readonly unstoredFields: readonly string[];
+}
+
+export type ImportOutcome =
+  | { readonly status: 'ok'; readonly imported: readonly ImportedEventSummary[] }
+  | { readonly status: 'conflict' };
 
 export type CreateEventResult =
   | { readonly status: 'created'; readonly event: EventRecord }
@@ -432,6 +454,12 @@ export interface Store {
   getAccount(id: string): Promise<AccountRecord | null>;
 
   createEvent(input: NewEvent): Promise<CreateEventResult>;
+  /**
+   * Imports local events and their memos atomically (design D20, task 12.1): skips the owned-event limit,
+   * marks written events with `imported_at`, and is idempotent by event id (identical content succeeds,
+   * conflicting content fails the whole import with `conflict`).
+   */
+  importEvents(input: ImportInput): Promise<ImportOutcome>;
   /** The event, tombstoned ones included; null when the id is unknown. */
   getEvent(id: string): Promise<EventRecord | null>;
   /**

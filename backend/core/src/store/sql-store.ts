@@ -4,9 +4,9 @@
 // one batch whose statements only apply while the row is still at the rev it read. When another
 // write got there first, the batch changes nothing and the write starts again.
 import type { Plan, SignInMethod } from '../contract/index.ts';
-import { applyEventPatch, applyPatch, overwrittenFields } from '../rules/merge.ts';
+import { applyEventPatch, applyPatch, jsonEquals, overwrittenFields } from '../rules/merge.ts';
 import type { JsonObject } from '../rules/merge.ts';
-import type { SqlDriver, SqlValue } from '../ports/sql.ts';
+import type { SqlDriver, SqlStatement, SqlValue } from '../ports/sql.ts';
 import { StoreBusyError } from '../ports/store.ts';
 import type {
   AccountDeletion,
@@ -24,6 +24,8 @@ import type {
   EventRecord,
   IdentityInput,
   IdentityRecord,
+  ImportInput,
+  ImportOutcome,
   InviteChanges,
   InviteRecord,
   JoinInput,
@@ -57,7 +59,7 @@ import type {
   SignInOutcome,
   Store,
 } from '../ports/store.ts';
-import { WRITE_ATTEMPTS, audioColumns, docBytes, inviteAccess } from './records.ts';
+import { WRITE_ATTEMPTS, audioColumns, docBytes, inviteAccess, withoutNulls } from './records.ts';
 
 interface AccountRow {
   [key: string]: SqlValue;
@@ -87,6 +89,7 @@ interface EventRow {
   child_purged_seq: number;
   updated_at: number;
   deleted_at: number | null;
+  imported_at: number | null;
 }
 
 interface RevisionRow {
@@ -167,7 +170,7 @@ interface InviteRow {
 }
 
 const EVENT_COLUMNS =
-  'id, owner_id, rev, doc, audio_kind, audio_set_by, audio_media_id, child_seq, child_purged_seq, updated_at, deleted_at';
+  'id, owner_id, rev, doc, audio_kind, audio_set_by, audio_media_id, child_seq, child_purged_seq, updated_at, deleted_at, imported_at';
 const E_EVENT_COLUMNS = EVENT_COLUMNS.split(', ').map((c) => `e.${c}`).join(', ');
 const OWNED = 'SELECT id FROM events WHERE owner_id = ?';
 /** Rows of `links` or `invites` that are usable at the second `?`, for the event of the first. */
@@ -202,18 +205,14 @@ export class SqlStore implements Store {
   async createEvent(input: NewEvent): Promise<CreateEventResult> {
     const audio = audioColumns(input.doc, input.ownerId);
     const max = input.maxOwned ?? null;
-    const since = input.firstUpload?.since ?? null;
     const [changed] = await this.#db.batch([
       {
-        sql: `INSERT INTO events (id, owner_id, rev, doc, audio_kind, audio_set_by, audio_media_id, updated_at, first_upload_at)
-              SELECT ?, ?, 1, ?, ?, ?, ?, ?, CASE WHEN first THEN ? END
-              FROM (SELECT ? IS NOT NULL AND (SELECT COUNT(*) FROM events WHERE owner_id = ? AND first_upload_at >= ?) < ? AS first,
-                           ? IS NULL OR (SELECT COUNT(*) FROM events WHERE owner_id = ? AND deleted_at IS NULL) < ? AS within)
-              WHERE first OR within
+        sql: `INSERT INTO events (id, owner_id, rev, doc, audio_kind, audio_set_by, audio_media_id, updated_at)
+              SELECT ?, ?, 1, ?, ?, ?, ?, ?
+              WHERE ? IS NULL OR (SELECT COUNT(*) FROM events WHERE owner_id = ? AND deleted_at IS NULL) < ?
               ON CONFLICT (id) DO NOTHING`,
         args: [
-          input.id, input.ownerId, JSON.stringify(input.doc), audio.audioKind, audio.audioSetBy, audio.audioMediaId, input.now, input.now,
-          since, input.ownerId, since, input.firstUpload?.max ?? 0,
+          input.id, input.ownerId, JSON.stringify(input.doc), audio.audioKind, audio.audioSetBy, audio.audioMediaId, input.now,
           max, input.ownerId, max,
         ],
       },
@@ -222,6 +221,109 @@ export class SqlStore implements Store {
     if (!event) return { status: 'limit' };
     if (event.ownerId !== input.ownerId) return { status: 'conflict' };
     return { status: changed === 1 ? 'created' : 'exists', event };
+  }
+
+  async importEvents(input: ImportInput): Promise<ImportOutcome> {
+    if (input.events.length === 0) return { status: 'ok', imported: [] };
+
+    const seenEventDocs = new Map<string, JsonObject>();
+    for (const e of input.events) {
+      const prev = seenEventDocs.get(e.id);
+      if (prev && !jsonEquals(withoutNulls(prev), withoutNulls(e.doc))) return { status: 'conflict' };
+      seenEventDocs.set(e.id, e.doc);
+    }
+
+    const uniqueEventIds = [...new Set(input.events.map((e) => e.id))];
+    const placeholders = uniqueEventIds.map(() => '?').join(', ');
+    const existingRows = await this.#db.query<EventRow>(
+      `SELECT ${EVENT_COLUMNS} FROM events WHERE id IN (${placeholders})`,
+      uniqueEventIds,
+    );
+    const existingById = new Map<string, EventRecord>();
+    for (const r of existingRows) {
+      const rec = toEvent(r);
+      existingById.set(rec.id, rec);
+      if (rec.ownerId !== input.ownerId || rec.deletedAt !== null) {
+        return { status: 'conflict' };
+      }
+    }
+
+    const allMemoIds = [...new Set(input.events.flatMap((e) => (e.memos ?? []).map((m) => m.id)))];
+    const existingMemosById = new Map<string, MemoRecord>();
+    if (allMemoIds.length > 0) {
+      const memoPlaceholders = allMemoIds.map(() => '?').join(', ');
+      const memoRows = await this.#db.query<MemoRow>(
+        `SELECT id, event_id, author_id, seq, doc, updated_at, deleted_at FROM memos WHERE id IN (${memoPlaceholders})`,
+        allMemoIds,
+      );
+      for (const mr of memoRows) {
+        const memoRec = toMemo(mr);
+        existingMemosById.set(memoRec.id, memoRec);
+      }
+    }
+
+    for (const item of input.events) {
+      const existing = existingById.get(item.id);
+      if (existing) {
+        if (!jsonEquals(withoutNulls(existing.doc), withoutNulls(item.doc))) {
+          return { status: 'conflict' };
+        }
+        for (const m of item.memos ?? []) {
+          const em = existingMemosById.get(m.id);
+          if (em) {
+            if (em.eventId !== item.id || em.deletedAt !== null || !jsonEquals(withoutNulls(em.doc), withoutNulls(m.doc))) {
+              return { status: 'conflict' };
+            }
+          }
+        }
+      } else {
+        for (const m of item.memos ?? []) {
+          const em = existingMemosById.get(m.id);
+          if (em) return { status: 'conflict' };
+        }
+      }
+    }
+
+    const statements: SqlStatement[] = [];
+    const insertedEvents = new Set<string>();
+    for (const item of input.events) {
+      if (insertedEvents.has(item.id)) continue;
+      insertedEvents.add(item.id);
+      const existing = existingById.get(item.id);
+      if (!existing) {
+        const audio = audioColumns(item.doc, input.ownerId);
+        const memoCount = item.memos?.length ?? 0;
+        statements.push({
+          sql: `INSERT INTO events (id, owner_id, rev, doc, audio_kind, audio_set_by, audio_media_id, child_seq, child_purged_seq, updated_at, imported_at)
+                VALUES (?, ?, 1, ?, ?, ?, ?, ?, 0, ?, ?)
+                ON CONFLICT (id) DO NOTHING`,
+          args: [
+            item.id, input.ownerId, JSON.stringify(item.doc), audio.audioKind, audio.audioSetBy, audio.audioMediaId,
+            memoCount, input.now, input.now,
+          ],
+        });
+        if (item.memos && item.memos.length > 0) {
+          let seq = 1;
+          for (const m of item.memos) {
+            statements.push({
+              sql: `INSERT INTO memos (id, event_id, author_id, seq, doc, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (id) DO NOTHING`,
+              args: [m.id, item.id, input.ownerId, seq++, JSON.stringify(m.doc), input.now],
+            });
+          }
+        }
+      }
+    }
+
+    if (statements.length > 0) {
+      await this.#db.batch(statements);
+    }
+
+    return {
+      status: 'ok',
+      imported: input.events.map((e) => ({ id: e.id, unstoredFields: [] })),
+    };
   }
 
   async getEvent(id: string): Promise<EventRecord | null> {
@@ -961,6 +1063,7 @@ function toEvent(r: EventRow): EventRecord {
     childPurgedSeq: r.child_purged_seq,
     updatedAt: r.updated_at,
     deletedAt: r.deleted_at,
+    importedAt: r.imported_at,
   };
 }
 
