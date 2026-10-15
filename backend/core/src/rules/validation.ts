@@ -35,7 +35,7 @@ export const SHARED_FIELDS: ReadonlySet<string> = new Set([
   'title', 'emoji', 'targetDate', 'targetTime', 'timeZone', 'unitMode', 'recurrence', 'theme', 'backdrop', 'audio',
 ]);
 export const OWNER_ONLY_FIELDS: ReadonlySet<string> = new Set(['notes', 'pinnedAt', 'categoryId', 'archivedAt', 'reminders']);
-const WRITABLE: ReadonlySet<string> = new Set([...SHARED_FIELDS, ...OWNER_ONLY_FIELDS]);
+export const WRITABLE: ReadonlySet<string> = new Set([...SHARED_FIELDS, ...OWNER_ONLY_FIELDS]);
 const REQUIRED = ['title', 'targetDate', 'theme'] as const;
 const NOT_NULL: ReadonlySet<string> = new Set([...REQUIRED, 'unitMode', 'recurrence']);
 
@@ -46,7 +46,7 @@ const BACKDROP_KINDS = new Set(['still', 'animated']);
 const AUDIO_KINDS = new Set(['library', 'custom', 'spotify']);
 const ROLES = new Set(['viewer', 'editor']);
 
-const MEMO_WRITABLE: ReadonlySet<string> = new Set(['content', 'milestoneTag', 'createdAt']);
+export const MEMO_WRITABLE: ReadonlySet<string> = new Set(['content', 'milestoneTag', 'createdAt']);
 const MEMO_REQUIRED = ['content', 'createdAt'] as const;
 
 const ID = /^[a-z0-9_-]{1,32}$/;
