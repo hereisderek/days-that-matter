@@ -2,7 +2,8 @@
 // backend core serves, one test per scenario, named after it, against MemoryStore and SqlStore. The
 // first sign-in upload scenarios of the accounts and premium specs live here too, since they are
 // sync writes. App-only scenarios are listed in test/spec-coverage.test.ts.
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { resetImportRateLimitsForTesting } from '../../src/http/sync.ts';
 import { MemoryStore } from '../../src/fakes/memory-store.ts';
 import { openSqliteStore } from '../../src/node/node-sqlite-driver.ts';
 import { pollHub } from '../../src/ports/live.ts';
@@ -36,6 +37,10 @@ async function shared(api: Api) {
 
 for (const [storeName, newStore] of Object.entries(stores)) {
   describe(`event-sync scenarios (${storeName})`, () => {
+    beforeEach(() => {
+      resetImportRateLimitsForTesting();
+    });
+
     const api = async (): Promise<Api> => testApi({ store: await newStore() });
 
     it('Second device', async () => {
@@ -203,41 +208,186 @@ for (const [storeName, newStore] of Object.entries(stores)) {
       expect((await polled.call<{ title: string }>('GET', `events/${uuid(1)}`, { token: p.owner.token })).body.title).toBe('Polled');
     });
 
-    it('Guest with events signs in', async () => {
-      const a = await api();
-      const other = await a.google('owner-sub');
-      for (const n of [1, 2]) await a.call('PUT', `events/${uuid(n)}`, { token: other.token, body: DOC });
-      a.ports.clock.advance(60_000);
-      const phone = await a.google('owner-sub');
-      for (const n of [3, 4, 5, 6]) {
-        const r = await a.call('PUT', `events/${uuid(n)}?firstUpload=1&createdAt=2026-10-01T10:00:00Z`, { token: phone.token, body: DOC });
-        expect(r.status).toBe(201);
-      }
-      for (const device of [other, phone]) expect((await a.call<Manifest>('GET', 'sync', { token: device.token })).body.events).toHaveLength(6);
-    });
-
-    it('Guest data above the free limit', async () => {
-      const a = await api();
-      const account = await a.google('owner-sub');
-      for (let n = 1; n <= 4; n++) await a.call('PUT', `events/${uuid(n)}`, { token: account.token, body: DOC });
-      a.ports.clock.advance(60_000);
-      const device = await a.google('owner-sub');
-      for (let n = 5; n <= 14; n++) {
-        const r = await a.call('PUT', `events/${uuid(n)}?firstUpload=1&createdAt=2026-10-01T10:00:00Z`, { token: device.token, body: DOC });
-        expect(r.status, `event ${n}`).toBe(201);
-      }
-      expect((await a.call<Manifest>('GET', 'sync', { token: device.token })).body.events).toHaveLength(14);
-      const next = await a.call<ErrorBody>('PUT', `events/${uuid(15)}`, { token: device.token, body: DOC });
-      expect([next.status, next.body.error]).toEqual([402, { code: 'premium_required', message: 'Your plan does not include this', details: { feature: 'events' } }]);
-    });
-
-    it('Eleventh event', async () => {
+    it('Offline events in one request', async () => {
       const a = await api();
       const { token } = await a.google('owner-sub');
-      for (let n = 1; n <= 10; n++) expect((await a.call('PUT', `events/${uuid(n)}`, { token, body: DOC })).status).toBe(201);
-      const r = await a.call<ErrorBody>('PUT', `events/${uuid(11)}`, { token, body: DOC });
-      expect([r.status, r.body.error.code, r.body.error.details]).toEqual([402, 'premium_required', { feature: 'events' }]);
-      expect(await a.ports.store.getEvent(uuid(11))).toBeNull();
+      const events = Array.from({ length: 12 }, (_, i) => ({
+        id: uuid(i + 1),
+        title: `Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+      }));
+      const r = await a.call<{ results: { id: string; status: string; error?: { code: string } }[] }>('POST', 'events/batch', {
+        token,
+        body: { events },
+      });
+      expect(r.status).toBe(200);
+      expect(r.body.results).toHaveLength(12);
+      expect(r.body.results.slice(0, 10).every((res, i) => res.id === uuid(i + 1) && res.status === 'created')).toBe(true);
+      expect(r.body.results.slice(10).every((res, i) => res.id === uuid(i + 11) && res.status === 'error' && res.error?.code === 'premium_required')).toBe(true);
+      for (let i = 1; i <= 10; i++) {
+        expect(await a.ports.store.getEvent(uuid(i))).not.toBeNull();
+      }
+      for (let i = 11; i <= 12; i++) {
+        expect(await a.ports.store.getEvent(uuid(i))).toBeNull();
+      }
+    });
+
+    it('Response lost', async () => {
+      const a = await api();
+      const { token } = await a.google('owner-sub');
+      const events = Array.from({ length: 5 }, (_, i) => ({
+        id: uuid(i + 1),
+        title: `Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+      }));
+      const first = await a.call<{ results: { id: string; status: string }[] }>('POST', 'events/batch', {
+        token,
+        body: { events },
+      });
+      expect(first.status).toBe(200);
+      expect(first.body.results.every((res) => res.status === 'created')).toBe(true);
+
+      // Repeat request
+      const repeat = await a.call<{ results: { id: string; status: string }[] }>('POST', 'events/batch', {
+        token,
+        body: { events },
+      });
+      expect(repeat.status).toBe(200);
+      expect(repeat.body.results).toHaveLength(5);
+      expect(repeat.body.results.every((res) => res.status === 'exists')).toBe(true);
+      const manifest = await a.call<Manifest>('GET', 'sync', { token });
+      expect(manifest.body.events).toHaveLength(5);
+    });
+
+    it('Import above the limit', async () => {
+      const a = await api();
+      const { token } = await a.google('owner-sub');
+      const initialEvents = Array.from({ length: 20 }, (_, i) => ({
+        id: uuid(i + 1),
+        title: `Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+      }));
+      const r1 = await a.call<{ imported: { id: string; unstoredFields: string[] }[] }>('POST', 'events/import', {
+        token,
+        body: { events: initialEvents },
+      });
+      expect(r1.status).toBe(200);
+      expect(r1.body.imported).toHaveLength(20);
+
+      // Import 5 more local events
+      const localEvents = Array.from({ length: 5 }, (_, i) => ({
+        id: uuid(i + 21),
+        title: `Local Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+      }));
+      const r2 = await a.call<{ imported: { id: string; unstoredFields: string[] }[] }>('POST', 'events/import', {
+        token,
+        body: { events: localEvents },
+      });
+      expect(r2.status).toBe(200);
+      expect(r2.body.imported.map((item) => item.id)).toEqual(localEvents.map((e) => e.id));
+      expect(r2.body.imported.every((item) => item.unstoredFields.length === 0)).toBe(true);
+
+      const manifest = await a.call<Manifest>('GET', 'sync', { token });
+      expect(manifest.body.events).toHaveLength(25);
+    });
+
+    it('Import with an unknown field', async () => {
+      const a = await api();
+      const { token } = await a.google('owner-sub');
+      const events = [
+        {
+          id: uuid(1),
+          title: 'Valid Event',
+          targetDate: '2027-06-12',
+          theme: THEME,
+          unknownField: 'unexpected',
+        },
+      ];
+      const r = await a.call<ErrorBody>('POST', 'events/import', {
+        token,
+        body: { events },
+      });
+      expect(r.status).toBe(400);
+      expect(r.body.error.code).toBe('invalid_payload');
+      expect((r.body.error.details as Record<string, unknown>)?.['field']).toBe('unknownField');
+      expect(await a.ports.store.getEvent(uuid(1))).toBeNull();
+    });
+
+    it('One invalid event fails the import', async () => {
+      const a = await api();
+      const { token } = await a.google('owner-sub');
+      const events = Array.from({ length: 10 }, (_, i) => ({
+        id: uuid(i + 1),
+        title: i === 4 ? '' : `Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+      }));
+      const r = await a.call<ErrorBody>('POST', 'events/import', {
+        token,
+        body: { events },
+      });
+      expect(r.status).toBe(400);
+      expect(r.body.error.code).toBe('invalid_payload');
+      expect((r.body.error.details as Record<string, unknown>)?.['field']).toBe('title');
+      expect((r.body.error.details as Record<string, unknown>)?.['eventId']).toBe(uuid(5));
+      for (let i = 1; i <= 10; i++) {
+        expect(await a.ports.store.getEvent(uuid(i))).toBeNull();
+      }
+    });
+
+    it('Repeat an import', async () => {
+      const a = await api();
+      const { token } = await a.google('owner-sub');
+      const events = Array.from({ length: 3 }, (_, i) => ({
+        id: uuid(i + 1),
+        title: `Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+        memos: [
+          { id: memoUuid(i + 1), content: `Memo ${i + 1}`, createdAt: '2026-10-15T12:00:00Z' },
+        ],
+      }));
+      const first = await a.call<{ imported: { id: string }[] }>('POST', 'events/import', {
+        token,
+        body: { events },
+      });
+      expect(first.status).toBe(200);
+      expect(first.body.imported.map((e) => e.id)).toEqual(events.map((e) => e.id));
+
+      const repeat = await a.call<{ imported: { id: string }[] }>('POST', 'events/import', {
+        token,
+        body: { events },
+      });
+      expect(repeat.status).toBe(200);
+      expect(repeat.body.imported.map((e) => e.id)).toEqual(events.map((e) => e.id));
+      const manifest = await a.call<Manifest>('GET', 'sync', { token });
+      expect(manifest.body.events).toHaveLength(3);
+    });
+
+    it('Create above the limit without an import', async () => {
+      const a = await api();
+      const { token } = await a.google('owner-sub');
+      const events = Array.from({ length: 20 }, (_, i) => ({
+        id: uuid(i + 1),
+        title: `Event ${i + 1}`,
+        targetDate: '2027-06-12',
+        theme: THEME,
+      }));
+      expect((await a.call('POST', 'events/import', { token, body: { events } })).status).toBe(200);
+
+      const r = await a.call<ErrorBody>('PUT', `events/${uuid(21)}`, {
+        token,
+        body: DOC,
+      });
+      expect(r.status).toBe(402);
+      expect(r.body.error.code).toBe('premium_required');
+      expect((r.body.error.details as Record<string, unknown>)?.['feature']).toBe('events');
+      expect(await a.ports.store.getEvent(uuid(21))).toBeNull();
     });
   });
 }

@@ -1,7 +1,7 @@
 // In-memory Store for core tests. It passes the same conformance suite as SqlStore. Every method works
 // on its maps without awaiting in between, so each call is atomic. It has no media, grants, exports or
 // devices yet: those counts read as zero.
-import { applyEventPatch, applyPatch, overwrittenFields } from '../rules/merge.ts';
+import { applyEventPatch, applyPatch, jsonEquals, overwrittenFields } from '../rules/merge.ts';
 import type { JsonObject } from '../rules/merge.ts';
 import type {
   AccountDeletion,
@@ -17,6 +17,8 @@ import type {
   EmailCodeInput,
   EventRecord,
   IdentityRecord,
+  ImportInput,
+  ImportOutcome,
   InviteChanges,
   InviteRecord,
   JoinInput,
@@ -48,7 +50,7 @@ import type {
   SignInOutcome,
   Store,
 } from '../ports/store.ts';
-import { audioColumns, copyJson, docBytes, inviteAccess, isActive } from '../store/records.ts';
+import { audioColumns, copyJson, docBytes, inviteAccess, isActive, withoutNulls } from '../store/records.ts';
 
 interface EmailCode {
   codeMac: string;
@@ -67,8 +69,6 @@ export class MemoryStore implements Store {
   readonly #memos = new Map<string, MemoRecord>();
   readonly #links = new Map<string, LinkRecord>();
   readonly #invites = new Map<string, InviteRecord>();
-  /** `events.first_upload_at`, which EventRecord does not carry. */
-  readonly #firstUploads = new Map<string, number>();
 
   async createAccount(input: NewAccount): Promise<CreateAccountResult> {
     const existing = this.#accounts.get(input.id);
@@ -87,10 +87,8 @@ export class MemoryStore implements Store {
     if (existing) {
       return existing.ownerId === input.ownerId ? { status: 'exists', event: copyEvent(existing) } : { status: 'conflict' };
     }
-    const first = input.firstUpload !== undefined && this.#firstUploadCount(input.ownerId, input.firstUpload.since) < input.firstUpload.max;
     const within = input.maxOwned === undefined || input.maxOwned === null || this.#ownedCount(input.ownerId) < input.maxOwned;
-    if (!first && !within) return { status: 'limit' };
-    if (first) this.#firstUploads.set(input.id, input.now);
+    if (!within) return { status: 'limit' };
     const event: EventRecord = {
       id: input.id,
       ownerId: input.ownerId,
@@ -101,9 +99,86 @@ export class MemoryStore implements Store {
       childPurgedSeq: 0,
       updatedAt: input.now,
       deletedAt: null,
+      importedAt: null,
     };
     this.#events.set(event.id, event);
     return { status: 'created', event: copyEvent(event) };
+  }
+
+  async importEvents(input: ImportInput): Promise<ImportOutcome> {
+    if (input.events.length === 0) return { status: 'ok', imported: [] };
+
+    const seenEventDocs = new Map<string, JsonObject>();
+    for (const e of input.events) {
+      const prev = seenEventDocs.get(e.id);
+      if (prev && !jsonEquals(withoutNulls(prev), withoutNulls(e.doc))) return { status: 'conflict' };
+      seenEventDocs.set(e.id, e.doc);
+    }
+
+    for (const item of input.events) {
+      const existing = this.#events.get(item.id);
+      if (existing) {
+        if (existing.ownerId !== input.ownerId || existing.deletedAt !== null) return { status: 'conflict' };
+        if (!jsonEquals(withoutNulls(existing.doc), withoutNulls(item.doc))) return { status: 'conflict' };
+        for (const m of item.memos ?? []) {
+          const em = this.#memos.get(m.id);
+          if (em) {
+            if (em.eventId !== item.id || em.deletedAt !== null || !jsonEquals(withoutNulls(em.doc), withoutNulls(m.doc))) {
+              return { status: 'conflict' };
+            }
+          }
+        }
+      } else {
+        for (const m of item.memos ?? []) {
+          const em = this.#memos.get(m.id);
+          if (em) return { status: 'conflict' };
+        }
+      }
+    }
+
+    const insertedEvents = new Set<string>();
+    for (const item of input.events) {
+      if (insertedEvents.has(item.id)) continue;
+      insertedEvents.add(item.id);
+      const existing = this.#events.get(item.id);
+      if (!existing) {
+        const audio = audioColumns(item.doc, input.ownerId);
+        const memoCount = item.memos?.length ?? 0;
+        const event: EventRecord = {
+          id: item.id,
+          ownerId: input.ownerId,
+          rev: 1,
+          doc: copyJson(item.doc),
+          ...audio,
+          childSeq: memoCount,
+          childPurgedSeq: 0,
+          updatedAt: input.now,
+          deletedAt: null,
+          importedAt: input.now,
+        };
+        this.#events.set(item.id, event);
+        if (item.memos && item.memos.length > 0) {
+          let seq = 1;
+          for (const m of item.memos) {
+            const memoRec: MemoRecord = {
+              id: m.id,
+              eventId: item.id,
+              authorId: input.ownerId,
+              seq: seq++,
+              doc: copyJson(m.doc),
+              updatedAt: input.now,
+              deletedAt: null,
+            };
+            this.#memos.set(m.id, memoRec);
+          }
+        }
+      }
+    }
+
+    return {
+      status: 'ok',
+      imported: input.events.map((e) => ({ id: e.id, unstoredFields: [] })),
+    };
   }
 
   async getEvent(id: string): Promise<EventRecord | null> {
@@ -556,12 +631,6 @@ export class MemoryStore implements Store {
       .filter((i) => i.emailVerified && i.email === email)
       .sort((a, b) => a.createdAt - b.createdAt || compare(a.provider, b.provider) || compare(a.subject, b.subject))[0];
     return match ? (this.#accounts.get(match.accountId) ?? null) : null;
-  }
-
-  #firstUploadCount(ownerId: string, since: number): number {
-    let n = 0;
-    for (const [id, at] of this.#firstUploads) if (at >= since && this.#events.get(id)?.ownerId === ownerId) n++;
-    return n;
   }
 
   #ownedCount(ownerId: string): number {

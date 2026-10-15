@@ -36,8 +36,8 @@ export function errorResponse(e: ApiError): HttpResponse {
 /** One constructor, so unknown, malformed and purged ids and tokens give byte-identical 404s. */
 export const notFound = (): ApiError => new ApiError('not_found', 'Not found');
 
-export const invalidPayload = (field: string, reason: string): ApiError =>
-  new ApiError('invalid_payload', `${field === '' ? '(body)' : field}: ${reason}`, { field });
+export const invalidPayload = (field: string, reason: string, details?: ErrorDetails): ApiError =>
+  new ApiError('invalid_payload', `${field === '' ? '(body)' : field}: ${reason}`, { field, ...details });
 
 export const payloadTooLarge = (): ApiError => new ApiError('payload_too_large', 'Body too large');
 
