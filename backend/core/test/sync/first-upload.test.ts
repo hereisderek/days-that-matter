@@ -1,59 +1,104 @@
-// Guards of the first sign-in upload allowance (BACKEND.md section 8, coordinator decision): only with
-// the flag, on a session younger than 24 hours, for events created before the session, at most 500
-// per session, and marked in events.first_upload_at.
+// Guards of POST /events/batch and POST /events/import (Task 12.1, BACKEND.md sections 7.3 and 8):
+// batch: max 100 events, per-event errors (one invalid does not stop the others), plan limits enforced.
+// import: max 500 events, 4 MB payload limit, atomic failure on invalid event or conflict, rate limiting (10 per hour).
 import { describe, expect, it } from 'vitest';
 import { openSqliteStore } from '../../src/node/node-sqlite-driver.ts';
+import { resetImportRateLimitsForTesting } from '../../src/http/sync.ts';
 import { testApi } from '../support/api.ts';
-import type { Api } from '../support/api.ts';
 
 const DOC = { title: 'Our wedding', targetDate: '2027-06-12', theme: { paletteId: 'violet', cardStyle: 'glass', typography: 'modern' } };
 const uuid = (n: number): string => `0b8f3c1e-6d0a-4a51-9f61-${String(n).padStart(12, '0')}`;
-const DAY_MS = 86_400_000;
 type ErrorBody = { error: { code: string; message: string; details: unknown } };
 
-describe('first sign-in upload guards', () => {
-  async function full(a: Api) {
+describe('batch and import guards', () => {
+  it('batch rejects more than 100 events', async () => {
+    const a = await testApi();
     const account = await a.google('owner-sub');
-    for (let n = 1; n <= 10; n++) await a.call('PUT', `events/${uuid(n)}`, { token: account.token, body: DOC });
-    a.ports.clock.advance(60_000);
-    return a.google('owner-sub');
-  }
-
-  it('the flag is ignored on a session older than 24 hours', async () => {
-    const a = await testApi();
-    const device = await full(a);
-    a.ports.clock.advance(DAY_MS);
-    const r = await a.call('PUT', `events/${uuid(20)}?firstUpload=1&createdAt=2026-10-01T10:00:00Z`, { token: device.token, body: DOC });
-    expect(r.status).toBe(402);
+    const events = Array.from({ length: 101 }, (_, i) => ({
+      id: uuid(i + 1),
+      ...DOC,
+    }));
+    const r = await a.call<ErrorBody>('POST', 'events/batch', { token: account.token, body: { events } });
+    expect(r.status).toBe(400);
+    expect(r.body.error.code).toBe('invalid_payload');
+    expect((r.body.error.details as Record<string, unknown>)?.['field']).toBe('events');
   });
 
-  it('the flag is ignored for an event created after the session started', async () => {
+  it('batch: invalid event does not block valid events in the batch', async () => {
     const a = await testApi();
-    const device = await full(a);
-    const r = await a.call('PUT', `events/${uuid(20)}?firstUpload=1&createdAt=2026-10-12T16:00:00Z`, { token: device.token, body: DOC });
-    expect(r.status).toBe(402);
-    const bad = await a.call<ErrorBody>('PUT', `events/${uuid(20)}?firstUpload=1&createdAt=yesterday`, { token: device.token, body: DOC });
-    expect([bad.status, bad.body.error.details]).toEqual([400, { field: 'createdAt' }]);
-    expect((await a.call('PUT', `events/${uuid(20)}?firstUpload=0`, { token: device.token, body: DOC })).status).toBe(402);
+    const account = await a.google('owner-sub');
+    const events = [
+      { id: uuid(1), ...DOC, title: 'Valid 1' },
+      { id: uuid(2), ...DOC, title: '' }, // invalid
+      { id: uuid(3), ...DOC, title: 'Valid 3' },
+    ];
+    const r = await a.call<{ results: { id: string; status: string; error?: unknown }[] }>('POST', 'events/batch', {
+      token: account.token,
+      body: { events },
+    });
+    expect(r.status).toBe(200);
+    expect(r.body.results).toEqual([
+      { id: uuid(1), status: 'created' },
+      { id: uuid(2), status: 'error', error: expect.objectContaining({ code: 'invalid_payload' }) },
+      { id: uuid(3), status: 'created' },
+    ]);
+    expect(await a.ports.store.getEvent(uuid(1))).not.toBeNull();
+    expect(await a.ports.store.getEvent(uuid(2))).toBeNull();
+    expect(await a.ports.store.getEvent(uuid(3))).not.toBeNull();
   });
 
-  it('the 501st first upload of a session is refused', async () => {
+  it('import rejects more than 500 events', async () => {
     const a = await testApi();
-    const device = await full(a);
-    for (let n = 101; n <= 600; n++) {
-      const r = await a.call('PUT', `events/${uuid(n)}?firstUpload=1&createdAt=2026-10-01T10:00:00Z`, { token: device.token, body: DOC });
-      if (r.status !== 201) throw new Error(`upload ${n - 100} refused: ${r.status}`);
+    const account = await a.google('owner-sub');
+    const events = Array.from({ length: 501 }, (_, i) => ({
+      id: uuid(i + 1),
+      ...DOC,
+    }));
+    const r = await a.call<ErrorBody>('POST', 'events/import', { token: account.token, body: { events } });
+    expect(r.status).toBe(400);
+    expect(r.body.error.code).toBe('invalid_payload');
+    expect((r.body.error.details as Record<string, unknown>)?.['field']).toBe('events');
+  });
+
+  it('import is rate limited to 10 requests per hour per account', async () => {
+    resetImportRateLimitsForTesting();
+    const a = await testApi();
+    const account = await a.google('owner-sub');
+    for (let n = 1; n <= 10; n++) {
+      const r = await a.call('POST', 'events/import', {
+        token: account.token,
+        body: { events: [{ id: uuid(n), ...DOC }] },
+      });
+      expect(r.status, `request ${n}`).toBe(200);
     }
-    const r = await a.call<ErrorBody>('PUT', `events/${uuid(601)}?firstUpload=1&createdAt=2026-10-01T10:00:00Z`, { token: device.token, body: DOC });
-    expect([r.status, r.body.error.code]).toEqual([402, 'premium_required']);
-  }, 60_000);
+    const r11 = await a.call<ErrorBody>('POST', 'events/import', {
+      token: account.token,
+      body: { events: [{ id: uuid(11), ...DOC }] },
+    });
+    expect(r11.status).toBe(429);
+    expect(r11.body.error.code).toBe('rate_limited');
+    expect(r11.headers.get('Retry-After')).toBeTruthy();
 
-  it('first uploads are marked in events.first_upload_at', async () => {
+    a.ports.clock.advance(3_601_000);
+    const rAfter = await a.call('POST', 'events/import', {
+      token: account.token,
+      body: { events: [{ id: uuid(11), ...DOC }] },
+    });
+    expect(rAfter.status).toBe(200);
+  });
+
+  it('imported events are marked with imported_at in SQLite', async () => {
     const { driver, store } = await openSqliteStore();
     const a = await testApi({ store });
-    const device = await full(a);
-    await a.call('PUT', `events/${uuid(20)}?firstUpload=1&createdAt=2026-10-01T10:00:00Z`, { token: device.token, body: DOC });
-    const rows = await driver.query<{ id: string; first_upload_at: number | null }>('SELECT id, first_upload_at FROM events WHERE first_upload_at IS NOT NULL');
-    expect(rows).toEqual([{ id: uuid(20), first_upload_at: 1_791_817_505 }]);
+    const account = await a.google('owner-sub');
+    const r = await a.call('POST', 'events/import', {
+      token: account.token,
+      body: { events: [{ id: uuid(1), ...DOC }] },
+    });
+    expect(r.status).toBe(200);
+    const rows = await driver.query<{ id: string; imported_at: number | null }>(
+      'SELECT id, imported_at FROM events WHERE imported_at IS NOT NULL',
+    );
+    expect(rows).toEqual([{ id: uuid(1), imported_at: Math.floor(a.ports.clock.nowMs() / 1000) }]);
   });
 });

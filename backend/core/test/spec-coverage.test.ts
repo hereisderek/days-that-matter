@@ -33,13 +33,6 @@ const CORE_TESTS = testNames(
 
 /** Scenarios the backend core does not serve yet or at all, with the task that covers them. */
 const ELSEWHERE: Readonly<Record<string, string>> = {
-  'Offline events in one request': 'backend task 12.1',
-  'Response lost': 'backend task 12.1',
-  'Import above the limit': 'backend task 12.1',
-  'Import with an unknown field': 'backend task 12.1',
-  'One invalid event fails the import': 'backend task 12.1',
-  'Repeat an import': 'backend task 12.1',
-  'Create above the limit without an import': 'backend task 12.1',
   'Sign-up': 'app, task 7.2 (sign-in screen text and links)',
   'Upload without a prompt': 'app, tasks 7.2 and 7.7 (no rights question)',
   'Subscriber deletes the account': 'app, task 7.2 (store cancellation hint before DELETE /me)',

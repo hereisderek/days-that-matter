@@ -6,19 +6,21 @@ import { authenticate } from '../auth/session.ts';
 import type { Session } from '../auth/session.ts';
 import { sha256Hex } from '../auth/crypto.ts';
 import { LIMITS, PLANS, planLimit } from '../contract/index.ts';
-import type { ChildrenResponse, EventDoc, Feature, ManifestEntry, Memo, MemoChange, PatchResponse, Plan, SyncManifest } from '../contract/index.ts';
+import type { ApiErrorBody, ChildrenResponse, EventDoc, Feature, ManifestEntry, Memo, MemoChange, PatchResponse, Plan, SyncManifest } from '../contract/index.ts';
 import { nowSeconds } from '../ports/clock.ts';
 import type { Ports } from '../ports/index.ts';
 import type { MemoRecord, ReaderEvent } from '../ports/store.ts';
 import { isJsonObject } from '../rules/merge.ts';
 import type { JsonObject } from '../rules/merge.ts';
 import { effectivePlan } from '../rules/plan.ts';
+import type { FieldError } from '../rules/validation.ts';
 import {
+  MEMO_WRITABLE,
   OWNER_ONLY_FIELDS,
   SHARED_FIELDS,
+  WRITABLE,
   checkDocumentSize,
   isoSeconds,
-  parseInstant,
   validateEventPatch,
   validateMemoPatch,
   validateNewEvent,
@@ -35,9 +37,6 @@ import { emptyResponse, jsonResponse } from './types.ts';
 import type { HttpResponse } from './types.ts';
 
 export const NO_STORE = { 'Cache-Control': 'no-store' };
-/** First sign-in uploads: the session must be younger than this, and at most this many per session. */
-export const FIRST_UPLOAD_WINDOW_SECONDS = 86_400;
-export const FIRST_UPLOADS_PER_SESSION = 500;
 const MAX_FETCH_IDS = 100;
 
 export const forbidden = (): ApiError => new ApiError('forbidden', 'Not allowed for your role');
@@ -134,17 +133,251 @@ async function writerPlan(ports: Ports, accountId: string): Promise<Plan> {
   return effectivePlan(account, nowSeconds(ports.clock));
 }
 
-/**
- * The first sign-in upload allowance (BACKEND.md section 8): `?firstUpload=1&createdAt=<ISO>` on a
- * session younger than 24 hours, for an event created before the session started. Null otherwise.
- */
-function firstUpload(ctx: RequestContext, session: Session, now: number): { since: number; max: number } | null {
-  if (ctx.req.query.get('firstUpload') !== '1') return null;
-  const createdAt = ctx.req.query.get('createdAt');
-  const parsed = createdAt === null ? null : parseInstant(createdAt);
-  if (parsed === null) throw invalidPayload('createdAt', 'invalid timestamp');
-  if (now - session.createdAt >= FIRST_UPLOAD_WINDOW_SECONDS || parsed.ms / 1000 >= session.createdAt) return null;
-  return { since: session.createdAt, max: FIRST_UPLOADS_PER_SESSION };
+// ---- Bulk Batch and Import (Task 12.1, design D20 and D22, BACKEND.md 7.3 and 8) ----
+
+export interface BulkPolicy {
+  readonly route: 'batch' | 'import';
+  readonly maxEvents: number;
+  readonly maxBytes: number;
+  readonly atomic: boolean;
+  readonly enforceOwnedLimit: boolean;
+  readonly rateLimited: boolean;
+}
+
+export const BATCH_POLICY: BulkPolicy = {
+  route: 'batch',
+  maxEvents: 100,
+  maxBytes: 4_194_304,
+  atomic: false,
+  enforceOwnedLimit: true,
+  rateLimited: false,
+};
+
+export const IMPORT_POLICY: BulkPolicy = {
+  route: 'import',
+  maxEvents: 500,
+  maxBytes: 4_194_304,
+  atomic: true,
+  enforceOwnedLimit: false,
+  rateLimited: true,
+};
+
+const IMPORT_RATE_LIMIT_WINDOW_SECONDS = 3600;
+const IMPORT_RATE_LIMIT_MAX_REQUESTS = 10;
+const importRequestsByAccount = new Map<string, number[]>();
+
+export function resetImportRateLimitsForTesting(): void {
+  importRequestsByAccount.clear();
+}
+
+function checkImportRateLimit(ctx: RequestContext, accountId: string, now: number): void {
+  const timestamps = importRequestsByAccount.get(accountId) ?? [];
+  const cutoff = now - IMPORT_RATE_LIMIT_WINDOW_SECONDS;
+  const active = timestamps.filter((t) => t > cutoff);
+  if (active.length >= IMPORT_RATE_LIMIT_MAX_REQUESTS) {
+    ctx.rateLimited = true;
+    const oldest = active[0] ?? now;
+    const retryAfter = Math.max(1, oldest + IMPORT_RATE_LIMIT_WINDOW_SECONDS - now);
+    throw new ApiError('rate_limited', 'Rate limit exceeded', null, { 'Retry-After': String(retryAfter) });
+  }
+  active.push(now);
+  importRequestsByAccount.set(accountId, active);
+}
+
+interface ValidatedEventItem {
+  readonly id: string;
+  readonly doc: JsonObject;
+  readonly memos?: readonly { readonly id: string; readonly doc: JsonObject }[];
+}
+
+function validateEventItem(
+  item: unknown,
+): { valid: true; item: ValidatedEventItem } | { valid: false; error: ApiError } {
+  if (!isJsonObject(item)) {
+    return { valid: false, error: invalidPayload('', 'must be an object') };
+  }
+  const id = item['id'];
+  if (typeof id !== 'string' || !isUuid(id)) {
+    return {
+      valid: false,
+      error: invalidPayload('id', 'must be a lower-case UUID', typeof id === 'string' ? { eventId: id } : undefined),
+    };
+  }
+
+  for (const key of Object.keys(item)) {
+    if (key !== 'id' && key !== 'memos' && !WRITABLE.has(key)) {
+      return { valid: false, error: invalidPayload(key, 'unknown field', { eventId: id }) };
+    }
+  }
+
+  let validatedMemos: { id: string; doc: JsonObject }[] | undefined;
+  if ('memos' in item && item['memos'] !== undefined && item['memos'] !== null) {
+    const rawMemos = item['memos'];
+    if (!Array.isArray(rawMemos)) {
+      return { valid: false, error: invalidPayload('memos', 'must be an array', { eventId: id }) };
+    }
+    if (rawMemos.length > LIMITS.MEMOS_PER_EVENT) {
+      return { valid: false, error: invalidPayload('memos', `must have at most ${LIMITS.MEMOS_PER_EVENT} memos`, { eventId: id }) };
+    }
+    validatedMemos = [];
+    for (const rawMemo of rawMemos) {
+      if (!isJsonObject(rawMemo)) {
+        return { valid: false, error: invalidPayload('memos', 'must be an object', { eventId: id }) };
+      }
+      const memoId = rawMemo['id'];
+      if (typeof memoId !== 'string' || !isUuid(memoId)) {
+        return { valid: false, error: invalidPayload('id', 'must be a lower-case UUID', { eventId: id }) };
+      }
+      for (const k of Object.keys(rawMemo)) {
+        if (k !== 'id' && !MEMO_WRITABLE.has(k)) {
+          return { valid: false, error: invalidPayload(k, 'unknown field', { eventId: id }) };
+        }
+      }
+      const memoDoc: JsonObject = {};
+      for (const [k, v] of Object.entries(rawMemo)) {
+        if (k !== 'id' && v !== undefined) memoDoc[k] = v;
+      }
+      const valMemo = validateNewMemo(memoDoc);
+      if (!valMemo.valid) {
+        const firstErr = valMemo.errors[0] as FieldError;
+        return { valid: false, error: invalidPayload(firstErr.field, firstErr.reason, { eventId: id }) };
+      }
+      validatedMemos.push({ id: memoId, doc: withoutNulls(valMemo.value) });
+    }
+  }
+
+  const eventDoc: JsonObject = {};
+  for (const [k, v] of Object.entries(item)) {
+    if (k !== 'id' && k !== 'memos' && v !== undefined) eventDoc[k] = v;
+  }
+  const valEvent = validateNewEvent(eventDoc);
+  if (!valEvent.valid) {
+    const firstErr = valEvent.errors[0] as FieldError;
+    return { valid: false, error: invalidPayload(firstErr.field, firstErr.reason, { eventId: id }) };
+  }
+  const normalizedDoc = withoutNulls(valEvent.value);
+  const tooLarge = checkDocumentSize(normalizedDoc);
+  if (tooLarge) {
+    return { valid: false, error: invalidPayload(tooLarge.field, tooLarge.reason, { eventId: id }) };
+  }
+
+  return {
+    valid: true,
+    item: {
+      id,
+      doc: normalizedDoc,
+      ...(validatedMemos ? { memos: validatedMemos } : {}),
+    },
+  };
+}
+
+export function bulkEventsHandler(policy: BulkPolicy): Handler {
+  return async (ctx) => {
+    const { ports, req } = ctx;
+    const session = await authenticate(ports, req);
+    const now = nowSeconds(ports.clock);
+
+    if (policy.rateLimited) {
+      checkImportRateLimit(ctx, session.accountId, now);
+    }
+
+    const body = await readJsonObject(req, policy.maxBytes);
+    onlyFields(body, ['events']);
+    const rawEvents = body['events'];
+    if (!Array.isArray(rawEvents)) {
+      throw invalidPayload('events', rawEvents === undefined ? 'required' : 'must be an array');
+    }
+    if (rawEvents.length > policy.maxEvents) {
+      throw invalidPayload('events', `must have at most ${policy.maxEvents} events`);
+    }
+
+    if (policy.atomic) {
+      const validatedEvents: ValidatedEventItem[] = [];
+      for (const rawItem of rawEvents) {
+        const v = validateEventItem(rawItem);
+        if (!v.valid) {
+          throw v.error;
+        }
+        validatedEvents.push(v.item);
+      }
+      const outcome = await ports.store.importEvents({
+        ownerId: session.accountId,
+        now,
+        events: validatedEvents,
+      });
+      if (outcome.status === 'conflict') {
+        throw new ApiError('conflict', 'This id is used by another account or with different content');
+      }
+      return jsonResponse(200, { imported: outcome.imported }, NO_STORE);
+    }
+
+    // Batch: policy.atomic === false
+    const plan = policy.enforceOwnedLimit ? await writerPlan(ports, session.accountId) : null;
+    const maxOwned = plan ? planLimit(plan, 'events') : null;
+    const results: ({ id: string; status: 'created' | 'exists' } | { id: string; status: 'error'; error: ApiErrorBody })[] = [];
+
+    for (const rawItem of rawEvents) {
+      const v = validateEventItem(rawItem);
+      if (!v.valid) {
+        const id = isJsonObject(rawItem) && typeof rawItem['id'] === 'string' ? rawItem['id'] : '';
+        results.push({ id, status: 'error', error: v.error.body().error });
+        continue;
+      }
+
+      const outcome = await ports.store.createEvent({
+        id: v.item.id,
+        ownerId: session.accountId,
+        doc: v.item.doc,
+        now,
+        maxOwned,
+      });
+
+      switch (outcome.status) {
+        case 'conflict':
+          results.push({
+            id: v.item.id,
+            status: 'error',
+            error: { code: 'conflict', message: 'This id is used by another account', details: null },
+          });
+          break;
+        case 'limit':
+          results.push({
+            id: v.item.id,
+            status: 'error',
+            error: limitError('events', plan ?? 'free').body().error,
+          });
+          break;
+        case 'exists':
+          if (outcome.event.deletedAt !== null) {
+            results.push({
+              id: v.item.id,
+              status: 'error',
+              error: deleted().body().error,
+            });
+          } else {
+            results.push({ id: v.item.id, status: 'exists' });
+          }
+          break;
+        case 'created':
+          if (v.item.memos && v.item.memos.length > 0) {
+            for (const m of v.item.memos) {
+              await ports.store.putMemo({
+                eventId: v.item.id,
+                memoId: m.id,
+                authorId: session.accountId,
+                doc: m.doc,
+                now,
+                maxMemos: LIMITS.MEMOS_PER_EVENT,
+              });
+            }
+          }
+          results.push({ id: v.item.id, status: 'created' });
+          break;
+      }
+    }
+
+    return jsonResponse(200, { results }, NO_STORE);
+  };
 }
 
 // ---- Handlers ----
@@ -185,9 +418,8 @@ const createEvent: Handler = async (ctx) => {
   if (tooLarge) throw invalidPayload(tooLarge.field, tooLarge.reason);
   const now = nowSeconds(ports.clock);
   const plan = await writerPlan(ports, session.accountId);
-  const first = firstUpload(ctx, session, now);
   const outcome = await ports.store.createEvent({
-    id, ownerId: session.accountId, doc, now, maxOwned: planLimit(plan, 'events'), ...(first ? { firstUpload: first } : {}),
+    id, ownerId: session.accountId, doc, now, maxOwned: planLimit(plan, 'events'),
   });
   switch (outcome.status) {
     case 'conflict':
@@ -347,6 +579,8 @@ const deleteMemo: Handler = async (ctx) => {
 export const syncRoutes: readonly Route<Handler>[] = [
   { method: 'GET', pattern: `${API}/sync`, handler: manifest },
   { method: 'POST', pattern: `${API}/events/fetch`, handler: fetchEvents },
+  { method: 'POST', pattern: `${API}/events/batch`, handler: bulkEventsHandler(BATCH_POLICY) },
+  { method: 'POST', pattern: `${API}/events/import`, handler: bulkEventsHandler(IMPORT_POLICY) },
   { method: 'GET', pattern: `${API}/events/:id`, handler: getEvent },
   { method: 'PUT', pattern: `${API}/events/:id`, handler: createEvent },
   { method: 'PATCH', pattern: `${API}/events/:id`, handler: patchEvent },

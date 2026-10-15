@@ -35,11 +35,11 @@ export async function readBody(req: CoreRequest, maxBytes: number): Promise<Uint
   return out;
 }
 
-/** A JSON object body: `application/json`, at most 64 KB, valid UTF-8 and JSON, an object at the top. */
-export async function readJsonObject(req: CoreRequest): Promise<JsonObject> {
+/** A JSON object body: `application/json`, at most `maxBytes` (default 64 KB), valid UTF-8 and JSON, an object at the top. */
+export async function readJsonObject(req: CoreRequest, maxBytes = LIMITS.JSON_BODY_MAX_BYTES): Promise<JsonObject> {
   const type = req.headers.get('Content-Type') ?? '';
   if (!/^application\/json\s*(;|$)/i.test(type)) throw unsupportedMediaType();
-  const bytes = await readBody(req, LIMITS.JSON_BODY_MAX_BYTES);
+  const bytes = await readBody(req, maxBytes);
   let value: unknown;
   try {
     value = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes));
