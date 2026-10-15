@@ -11,6 +11,7 @@ description: Orchestrate end-to-end implementation of the Days That Matter Andro
 - If the AgentMemory daemon (port 3111) is not running and cannot be started, skip AgentMemory steps and say so. Use OpenSpec `tasks.md` as the shared record.
 - Device QA uses the `android-cli` skill (`android run`, `android layout`, `android screen capture`, `android screen capture --annotate`) plus `adb shell input`, always with `--device <serial>`. Read its `references/interact.md` and `references/journeys.md` first and look at every screenshot.
 - Nothing is merged until it is validated on the device: build and install the branch, launch it, exercise the changed screens with the android CLI, check `adb logcat -d *:E` for crashes, then merge.
+- Agent routing (owner, 2026-10-15): the owner has both Claude Code and Antigravity subscriptions. Use Antigravity (`--agent antigravity --model flash|pro`) for simpler, well-specified tasks (Tier 4 and straightforward Tier 2) and keep Claude for architecture and complex work. AGENTS.md rule 11 has the full routing.
 - Model names below are targets. If a model flag is rejected, use the nearest available model of the same tier.
 
 # Master Orchestrator Instructions: `days-that-matter` (Android App + `services/share`)
