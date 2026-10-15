@@ -94,6 +94,7 @@ object EditorTestTags {
     const val Body = "editor-body"
     const val PinRow = "editor-pin"
     const val OtherZone = "editor-zone-other"
+    const val ZonePicker = "editor-zone-picker"
     const val ZoneList = "editor-zone-list"
     const val DiscardConfirm = "editor-discard"
     const val KeepEditing = "editor-keep-editing"
@@ -349,7 +350,7 @@ private fun ZonePicker(onPick: (String) -> Unit, onDismiss: () -> Unit) {
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
         title = { Text("Time zone") },
         text = {
-            Column {
+            Column(Modifier.testTag(EditorTestTags.ZonePicker)) {
                 SearchField(query, { query = it }, placeholder = "Search cities")
                 LazyColumn(Modifier.padding(top = 8.dp).heightIn(max = 360.dp).testTag(EditorTestTags.ZoneList)) {
                     items(EditorText.filterZones(zones, query), key = { it }) { id ->
