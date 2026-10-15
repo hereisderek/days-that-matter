@@ -702,6 +702,10 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .dot[aria-current="true"] { width: 18px; background: var(--ink); }
 /* Collapsed while the list is scrolled: title and number on one line. */
 .ctx-hero { transition: height .35s var(--ease); }
+/* Cross-fade for the compact swap (see setCompact in app.js): out fast, in slower once the layout has switched. */
+.ctx-hero .card-body { transition: opacity .22s ease .04s; }
+.home.swap .ctx-hero .card-body { opacity: 0; transition-duration: .09s; transition-delay: 0s; }
+@media (prefers-reduced-motion: reduce) { .ctx-hero .card-body, .home.swap .ctx-hero .card-body { transition: none; } }
 .home.compact .ctx-hero { height: 96px; }
 .home.compact .ctx-hero .top, .home.compact .ctx-hero .m, .home.compact .ctx-hero .tick { display: none; }
 .home.compact .ctx-hero .card-body { justify-content: center; padding: 10px 18px; }

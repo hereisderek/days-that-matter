@@ -252,6 +252,7 @@ This matches the "Pinned Hero Carousel" in `docs/features/events/SPEC.md` §4.1 
 - **Pinned days stay in the list.** They keep their place in Upcoming or Since, with a pin icon.
 - **The list follows the carousel.** When the carousel settles on a card, the list scrolls (smooth, 14 pt below its top edge) to that day's row and draws a 2.5 pt accent ring around it, with a short settle animation. The ring stays while that card is centred. If the row cannot reach the top (end of the list), the list stops at its end with the row visible. Under reduce motion the list jumps instead of scrolling.
 - **Layout.** Header and carousel are fixed at the top of Home; only the list scrolls, so the carousel stays in view while the list moves. When the user scrolls the list down, the carousel collapses to a 96 pt strip (title and number) and expands again at the top of the list. The scroll that follows a swipe does not collapse it.
+- **Collapse behavior (no flash).** The collapse swaps the card's whole layout (title row and big number become one strip), so it must not happen in a single frame while the height is still animating, which reads as a flash. Fade the card's contents out (about 90 ms), switch the layout while they are invisible, and fade them back in (about 220 ms) as the 350 ms height change settles. Use hysteresis so it cannot chatter: collapse when the list has scrolled past 32, expand only when it is back below 8. Commit to the decision when the fade starts, and look again once it ends, so a thumb wobbling around the threshold never causes a fade that changes nothing. With reduced motion, switch without the fade. The Compose build of the carousel (design-v2-features task 2.8) should do the same.
 - Hidden while searching or filtering. Settings › **Pinned carousel** turns it off; pins then show only as icons in the list.
 - Pin state is an owner-only field (event-sync spec), so members cannot pin a day shared with them. See gap 10.
 - Order comes from the owner-only field `pinnedAt`, newest first.
@@ -501,6 +502,8 @@ Each name below exists as `-light.png` and `-dark.png`.
 **No new colors, fonts or component styles, how it was checked:** the change to `styles.css` is one appended block of 37 lines (`git diff 37f7839 -- styles.css`), no existing rule is edited, and a search of the added lines for hex, `rgb` and `hsl` values finds none: every color is an existing token. No font or font size outside the existing scale is added (28 px is used for the greeting).
 
 ## 10. Revision history
+
+**Revision 7:** the Home carousel no longer flashes when it collapses. The card contents now cross-fade through the layout swap and the collapse has hysteresis (section 5, Collapse behavior). The capture script also disables the browser cache so a stale `app.js` cannot be captured.
 
 **Revision 6:** feedback revisions to offline accounts.
 - Settings local profile card: removed separate "Your name" section; the card now displays the name as its title (or "Add your name" when empty) with subtitle "Local", and tapping the title area opens a compact centered popup dialog ("What should we call you?") to edit the name with helper text and Save/Cancel buttons. The same popup works for the signed-in account card.

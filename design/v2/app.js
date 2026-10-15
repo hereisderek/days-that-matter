@@ -1107,6 +1107,23 @@ function focusRow(scroll) {
   const top = list.scrollTop + row.getBoundingClientRect().top - list.getBoundingClientRect().top - 14;
   list.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
+// Collapsing the pinned carousel swaps its whole layout (title row and big number become one strip). Doing that in one frame while the
+// card's height still animates reads as a flash, so the card's contents fade out first, the layout switches while they are invisible,
+// and they fade back in as the frame settles. Hysteresis (collapse past 32, expand below 8) stops it chattering near the threshold.
+const COMPACT_ON = 32, COMPACT_OFF = 8, SWAP_MS = 90;
+let compactTimer;
+function wantCompact(home, list) { const on = home.classList.contains('compact'); return on ? list.scrollTop >= COMPACT_OFF : list.scrollTop > COMPACT_ON; }
+function setCompact(home, list) {
+  if (!home || home.classList.contains('swap')) return;
+  const target = wantCompact(home, list);
+  if (target === home.classList.contains('compact')) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { home.classList.toggle('compact', target); return; }
+  // Commit to the decision made now (re-reading the scroll position at the end would sometimes cancel it after the fade-out had
+  // already started, which is a blink with no change), then look again once the swap is done in case the user moved on.
+  home.classList.add('swap');
+  clearTimeout(compactTimer);
+  compactTimer = setTimeout(() => { home.classList.toggle('compact', target); requestAnimationFrame(() => { home.classList.remove('swap'); setCompact(home, list); }); }, SWAP_MS);
+}
 function homeSync() {
   const list = app.querySelector('.home-list'), track = app.querySelector('.pins');
   app.querySelector('.home').classList.toggle('compact', list.scrollTop > 24);
@@ -1517,7 +1534,7 @@ app.addEventListener('scroll', e => {
   } else if (t.classList?.contains('home-list')) {
     // A scroll we started (carousel follow) must not collapse the carousel; it ends 150 ms after the list stops.
     if (autoScroll) { clearTimeout(autoTimer); autoTimer = setTimeout(() => { autoScroll = false; }, 150); return; }
-    t.closest('.home').classList.toggle('compact', t.scrollTop > 24);
+    setCompact(t.closest('.home'), t);
   }
 }, true);
 app.addEventListener('contextmenu', e => {

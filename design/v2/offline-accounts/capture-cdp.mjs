@@ -75,6 +75,9 @@ window.__cap = {
 };`;
 
 await send('Page.enable');
+// A stale cached app.js or styles.css would silently capture the previous design, so never use the cache.
+await send('Network.enable');
+await send('Network.setCacheDisabled', { cacheDisabled: true });
 // The phone frame is 876 px tall and starts about 384 px down the page, so the viewport must be taller than that.
 await send('Emulation.setDeviceMetricsOverride', { width: 1000, height: 1300, deviceScaleFactor: 2, mobile: false });
 const failures = [];
