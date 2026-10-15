@@ -1,0 +1,1814 @@
+{
+  "generatedBy": "./gradlew :core:model:generateContract (do not edit by hand)",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daysthatmatter.app/contract/api.schema.json",
+  "$defs": {
+    "ApiErrorBody": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ApiErrorCode"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "anyOf": [
+            {
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ]
+    },
+    "ApiErrorCode": {
+      "type": "string",
+      "enum": [
+        "invalid_payload",
+        "invalid_code",
+        "unauthorized",
+        "premium_required",
+        "forbidden",
+        "field_not_allowed",
+        "not_found",
+        "conflict",
+        "revoked",
+        "expired",
+        "deleted",
+        "invite_full",
+        "invite_expired",
+        "invite_revoked",
+        "payload_too_large",
+        "unsupported_media_type",
+        "rate_limited",
+        "quota_exceeded",
+        "internal_error",
+        "service_unavailable"
+      ]
+    },
+    "ApiErrorResponse": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "$ref": "#/$defs/ApiErrorBody"
+        }
+      },
+      "required": [
+        "error"
+      ]
+    },
+    "ApplePurchaseRequest": {
+      "type": "object",
+      "properties": {
+        "signedTransactions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "signedTransactions"
+      ]
+    },
+    "Audio": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AudioCustom"
+        },
+        {
+          "$ref": "#/$defs/AudioLibrary"
+        },
+        {
+          "$ref": "#/$defs/AudioSpotify"
+        }
+      ]
+    },
+    "AudioCatalog": {
+      "type": "object",
+      "properties": {
+        "tracks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CatalogTrack"
+          }
+        }
+      },
+      "required": [
+        "tracks"
+      ]
+    },
+    "AudioCustom": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "custom"
+        },
+        "mediaId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "mediaId",
+        "title"
+      ]
+    },
+    "AudioLibrary": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "library"
+        },
+        "trackId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "trackId"
+      ]
+    },
+    "AudioSpotify": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "spotify"
+        },
+        "url": {
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "artist": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "url"
+      ]
+    },
+    "Backdrop": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/BackdropKind"
+        },
+        "stillId": {
+          "type": "string"
+        },
+        "motionId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dim": {
+          "type": "number"
+        },
+        "blur": {
+          "type": "number"
+        },
+        "stillUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "motionUrl": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "stillId",
+        "dim"
+      ]
+    },
+    "BackdropKind": {
+      "type": "string",
+      "enum": [
+        "still",
+        "animated"
+      ]
+    },
+    "CardSize": {
+      "type": "string",
+      "enum": [
+        "small",
+        "medium",
+        "large"
+      ]
+    },
+    "CatalogTrack": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "artist": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "durationSec": {
+          "type": "integer"
+        },
+        "tier": {
+          "$ref": "#/$defs/TrackTier"
+        },
+        "bytes": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "durationSec",
+        "tier",
+        "bytes"
+      ]
+    },
+    "ChildrenResponse": {
+      "type": "object",
+      "properties": {
+        "memos": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MemoChange"
+          }
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "reset": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "memos",
+        "seq"
+      ]
+    },
+    "ConfigFeatures": {
+      "type": "object",
+      "properties": {
+        "spotify": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ConfigResponse": {
+      "type": "object",
+      "properties": {
+        "region": {
+          "type": "string"
+        },
+        "live": {
+          "$ref": "#/$defs/LiveMode"
+        },
+        "signIn": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/SignInMethod"
+          }
+        },
+        "stores": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PurchaseStore"
+          }
+        },
+        "features": {
+          "$ref": "#/$defs/ConfigFeatures"
+        },
+        "ui": {
+          "$ref": "#/$defs/ConfigUi"
+        }
+      },
+      "required": [
+        "region",
+        "live"
+      ]
+    },
+    "ConfigUi": {
+      "type": "object",
+      "properties": {
+        "memoBadge": {
+          "$ref": "#/$defs/MemoBadgePosition"
+        }
+      }
+    },
+    "CreateInviteRequest": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/MemberRole"
+        },
+        "maxUses": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "role"
+      ]
+    },
+    "CreateInviteResponse": {
+      "type": "object",
+      "properties": {
+        "inviteId": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "inviteId",
+        "url"
+      ]
+    },
+    "CreateLinkRequest": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DevicePlatform": {
+      "type": "string",
+      "enum": [
+        "ios",
+        "android"
+      ]
+    },
+    "DeviceRegistration": {
+      "type": "object",
+      "properties": {
+        "platform": {
+          "$ref": "#/$defs/DevicePlatform"
+        },
+        "pushToken": {
+          "type": "string"
+        },
+        "locale": {
+          "type": "string"
+        },
+        "timeZone": {
+          "type": "string"
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/PushKind"
+          }
+        }
+      },
+      "required": [
+        "platform",
+        "pushToken",
+        "locale",
+        "timeZone",
+        "kinds"
+      ]
+    },
+    "EmailStartRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email"
+      ]
+    },
+    "EmailVerifyRequest": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "email",
+        "code"
+      ]
+    },
+    "EventDoc": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rev": {
+          "type": "integer"
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Role"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "emoji": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "targetTime": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timeZone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unitMode": {
+          "$ref": "#/$defs/UnitMode"
+        },
+        "recurrence": {
+          "$ref": "#/$defs/Recurrence"
+        },
+        "theme": {
+          "$ref": "#/$defs/Theme"
+        },
+        "backdrop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Backdrop"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "audio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Audio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pinnedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "categoryId": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archivedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reminders": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reminders"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "members": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/MemberName"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "archived": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "targetDate",
+        "theme"
+      ]
+    },
+    "Feature": {
+      "type": "string",
+      "enum": [
+        "events",
+        "photos",
+        "animated_backdrop",
+        "premium_audio",
+        "custom_audio",
+        "spotify_events"
+      ]
+    },
+    "FetchEventsRequest": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "ids"
+      ]
+    },
+    "FieldChange": {
+      "type": "object",
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "from": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "to": {
+          "anyOf": [
+            {},
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "field"
+      ]
+    },
+    "GooglePurchaseRequest": {
+      "type": "object",
+      "properties": {
+        "productId": {
+          "type": "string"
+        },
+        "purchaseToken": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "productId",
+        "purchaseToken"
+      ]
+    },
+    "HealthResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "version"
+      ]
+    },
+    "InviteInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/MemberRole"
+        },
+        "maxUses": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "useCount": {
+          "type": "integer"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "url",
+        "role"
+      ]
+    },
+    "InviteState": {
+      "type": "string",
+      "enum": [
+        "open",
+        "full",
+        "expired",
+        "revoked",
+        "member",
+        "owner",
+        "removed"
+      ]
+    },
+    "InviteStatusResponse": {
+      "type": "object",
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/InviteState"
+        },
+        "eventTitle": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ownerName": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "role": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MemberRole"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "state"
+      ]
+    },
+    "JoinResponse": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "eventId",
+        "url"
+      ]
+    },
+    "LibraryItem": {
+      "type": "object",
+      "properties": {
+        "mediaId": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "durationSec": {
+          "type": "integer"
+        },
+        "bytes": {
+          "type": "integer"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "usedBy": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mediaId",
+        "title",
+        "durationSec",
+        "bytes",
+        "createdAt"
+      ]
+    },
+    "LibraryResponse": {
+      "type": "object",
+      "properties": {
+        "audio": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LibraryItem"
+          }
+        }
+      },
+      "required": [
+        "audio"
+      ]
+    },
+    "LibraryUploadResponse": {
+      "type": "object",
+      "properties": {
+        "mediaId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "mediaId"
+      ]
+    },
+    "LinkInfo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "url": {
+          "type": "string"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "url"
+      ]
+    },
+    "LinkViewResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/PublicEvent"
+        },
+        "serverTime": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "live": {
+          "$ref": "#/$defs/LiveInfo"
+        }
+      },
+      "required": [
+        "event",
+        "serverTime",
+        "live"
+      ]
+    },
+    "LiveInfo": {
+      "type": "object",
+      "properties": {
+        "mode": {
+          "$ref": "#/$defs/LiveMode"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "mode"
+      ]
+    },
+    "LiveMessage": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/LiveMessageType"
+        },
+        "rev": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "seq": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "LiveMessageType": {
+      "type": "string",
+      "enum": [
+        "rev",
+        "children",
+        "access"
+      ]
+    },
+    "LiveMode": {
+      "type": "string",
+      "enum": [
+        "ws",
+        "poll"
+      ]
+    },
+    "ManifestEntry": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "rev": {
+          "type": "integer"
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        },
+        "childSeq": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "rev",
+        "role",
+        "childSeq"
+      ]
+    },
+    "MediaKind": {
+      "type": "string",
+      "enum": [
+        "still",
+        "motion",
+        "audio"
+      ]
+    },
+    "MediaUploadResponse": {
+      "type": "object",
+      "properties": {
+        "mediaId": {
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "mediaId"
+      ]
+    },
+    "MemberInfo": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/MemberRole"
+        },
+        "joinedVia": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "accountId",
+        "name",
+        "role"
+      ]
+    },
+    "MemberName": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "role": {
+          "$ref": "#/$defs/Role"
+        }
+      },
+      "required": [
+        "name",
+        "role"
+      ]
+    },
+    "MemberRole": {
+      "type": "string",
+      "enum": [
+        "editor",
+        "viewer"
+      ]
+    },
+    "Membership": {
+      "type": "object",
+      "properties": {
+        "archivedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reminders": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reminders"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Memo": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "eventId": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "content": {
+          "type": "string"
+        },
+        "milestoneTag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "eventId",
+        "content",
+        "createdAt"
+      ]
+    },
+    "MemoBadgePosition": {
+      "type": "string",
+      "enum": [
+        "top-left",
+        "top-right"
+      ]
+    },
+    "MemoChange": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "seq": {
+          "type": "integer"
+        },
+        "deleted": {
+          "type": "boolean"
+        },
+        "content": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "milestoneTag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "updatedAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "seq"
+      ]
+    },
+    "PatchRequest": {
+      "type": "object",
+      "properties": {
+        "baseRev": {
+          "type": "integer"
+        },
+        "patch": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "baseRev",
+        "patch"
+      ]
+    },
+    "PatchResponse": {
+      "type": "object",
+      "properties": {
+        "event": {
+          "$ref": "#/$defs/EventDoc"
+        },
+        "overwritten": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "event"
+      ]
+    },
+    "Plan": {
+      "type": "string",
+      "enum": [
+        "free",
+        "premium",
+        "premium_plus"
+      ]
+    },
+    "PublicEvent": {
+      "type": "object",
+      "properties": {
+        "rev": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "emoji": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "targetDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "targetTime": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d):([0-5]\\d)$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "timeZone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "unitMode": {
+          "$ref": "#/$defs/UnitMode"
+        },
+        "recurrence": {
+          "$ref": "#/$defs/Recurrence"
+        },
+        "theme": {
+          "$ref": "#/$defs/Theme"
+        },
+        "backdrop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Backdrop"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "audio": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Audio"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "rev",
+        "title",
+        "targetDate",
+        "theme"
+      ]
+    },
+    "PurchaseResponse": {
+      "type": "object",
+      "properties": {
+        "plan": {
+          "$ref": "#/$defs/Plan"
+        },
+        "expiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "plan"
+      ]
+    },
+    "PurchaseStore": {
+      "type": "string",
+      "enum": [
+        "apple",
+        "google"
+      ]
+    },
+    "PushKind": {
+      "type": "string",
+      "enum": [
+        "changes",
+        "added",
+        "offers"
+      ]
+    },
+    "Recurrence": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "$ref": "#/$defs/RecurrenceType"
+        },
+        "originalYear": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "days": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "type"
+      ]
+    },
+    "RecurrenceType": {
+      "type": "string",
+      "enum": [
+        "none",
+        "yearly",
+        "monthly",
+        "weekly",
+        "customDays"
+      ]
+    },
+    "Reminders": {
+      "type": "object",
+      "properties": {
+        "daysBefore": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "time": {
+          "type": "string",
+          "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+        }
+      },
+      "required": [
+        "daysBefore"
+      ]
+    },
+    "RemovedMember": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "accountId",
+        "name"
+      ]
+    },
+    "RestoreRequest": {
+      "type": "object",
+      "properties": {
+        "rev": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "rev"
+      ]
+    },
+    "Revision": {
+      "type": "object",
+      "properties": {
+        "rev": {
+          "type": "integer"
+        },
+        "author": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RevisionAuthor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/FieldChange"
+          }
+        },
+        "overwrote": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restoredFrom": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "rev",
+        "at",
+        "changes"
+      ]
+    },
+    "RevisionAuthor": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ]
+    },
+    "Role": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "editor",
+        "viewer"
+      ]
+    },
+    "SetMemberRoleRequest": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "$ref": "#/$defs/MemberRole"
+        }
+      },
+      "required": [
+        "role"
+      ]
+    },
+    "SharingResponse": {
+      "type": "object",
+      "properties": {
+        "links": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/LinkInfo"
+          }
+        },
+        "invites": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/InviteInfo"
+          }
+        },
+        "members": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/MemberInfo"
+          }
+        },
+        "removed": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RemovedMember"
+          }
+        }
+      }
+    },
+    "SignInMethod": {
+      "type": "string",
+      "enum": [
+        "apple",
+        "google",
+        "email"
+      ]
+    },
+    "StorageBytes": {
+      "type": "object",
+      "properties": {
+        "media": {
+          "type": "integer"
+        },
+        "documents": {
+          "type": "integer"
+        }
+      }
+    },
+    "StorageFiles": {
+      "type": "object",
+      "properties": {
+        "still": {
+          "type": "integer"
+        },
+        "motion": {
+          "type": "integer"
+        },
+        "audio": {
+          "type": "integer"
+        }
+      }
+    },
+    "StorageReport": {
+      "type": "object",
+      "properties": {
+        "rows": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StorageRow"
+          }
+        },
+        "next": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "rows"
+      ]
+    },
+    "StorageRow": {
+      "type": "object",
+      "properties": {
+        "accountId": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/Plan"
+        },
+        "files": {
+          "$ref": "#/$defs/StorageFiles"
+        },
+        "bytes": {
+          "$ref": "#/$defs/StorageBytes"
+        },
+        "totalBytes": {
+          "type": "integer"
+        },
+        "lastActiveAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "accountId",
+        "displayName",
+        "plan",
+        "files",
+        "bytes",
+        "totalBytes",
+        "lastActiveAt"
+      ]
+    },
+    "SyncManifest": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ManifestEntry"
+          }
+        }
+      },
+      "required": [
+        "events"
+      ]
+    },
+    "Theme": {
+      "type": "object",
+      "properties": {
+        "paletteId": {
+          "type": "string"
+        },
+        "cardStyle": {
+          "type": "string"
+        },
+        "typography": {
+          "type": "string"
+        },
+        "gradient": {
+          "anyOf": [
+            {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "size": {
+          "$ref": "#/$defs/CardSize"
+        }
+      },
+      "required": [
+        "paletteId",
+        "cardStyle",
+        "typography"
+      ]
+    },
+    "TokenSignInRequest": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/SignInMethod"
+        },
+        "idToken": {
+          "type": "string"
+        },
+        "nonce": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "provider",
+        "idToken",
+        "nonce"
+      ]
+    },
+    "TrackTier": {
+      "type": "string",
+      "enum": [
+        "free",
+        "premium"
+      ]
+    },
+    "UnitMode": {
+      "type": "string",
+      "enum": [
+        "auto",
+        "days",
+        "weeks",
+        "hours",
+        "calendar",
+        "workdays"
+      ]
+    }
+  }
+}

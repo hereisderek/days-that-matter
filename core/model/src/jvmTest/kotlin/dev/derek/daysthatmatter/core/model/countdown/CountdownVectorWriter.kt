@@ -33,7 +33,7 @@ private val unitKeys = listOf(
 )
 
 /**
- * Writes the countdown parity vectors to the path in `args[0]`. Run by the Gradle task
+ * Writes the countdown parity vectors ([CountdownVectors], then [SubSecondCountdownVectors]) to the path in `args[0]`. Run by the Gradle task
  * `:core:model:generateCountdownVectors`. Inputs come from [CountdownVectors]; every output is
  * computed by [CountdownEngine], so the file changes only when cases or the engine change.
  */
@@ -54,7 +54,7 @@ fun vectorFile(): JsonObject = buildJsonObject {
             "the earlier instant. A date-only event counts to 00:00:00. timeZone null means viewerZone (UTC when " +
             "viewerZone is null). Workdays count Monday to Friday by date. Auto shows hours and minutes below 48 hours.",
     )
-    put("vectors", buildJsonArray { CountdownVectors.cases.forEach { add(vector(it)) } })
+    put("vectors", buildJsonArray { (CountdownVectors.cases + SubSecondCountdownVectors.cases).forEach { add(vector(it)) } })
 }
 
 private fun vector(case: CountdownCase): JsonObject {

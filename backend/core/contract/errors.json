@@ -1,0 +1,25 @@
+{
+  "generatedBy": "./gradlew :core:model:generateContract (do not edit by hand)",
+  "codes": {
+    "invalid_payload": 400,
+    "invalid_code": 400,
+    "unauthorized": 401,
+    "premium_required": 402,
+    "forbidden": 403,
+    "field_not_allowed": 403,
+    "not_found": 404,
+    "conflict": 409,
+    "revoked": 410,
+    "expired": 410,
+    "deleted": 410,
+    "invite_full": 410,
+    "invite_expired": 410,
+    "invite_revoked": 410,
+    "payload_too_large": 413,
+    "unsupported_media_type": 415,
+    "rate_limited": 429,
+    "quota_exceeded": 429,
+    "internal_error": 500,
+    "service_unavailable": 503
+  }
+}

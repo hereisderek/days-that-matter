@@ -42,6 +42,11 @@ jobs:
       - name: Test and lint
         run: ./gradlew allTests testDebugUnitTest lintDebug
 
+      # backend/core/contract/ and the countdown vectors are generated from :core:model; fail when the
+      # committed files differ from a fresh generation (design D1, task 2.8 of pluggable-backend-live-sharing).
+      - name: Check generated backend contract and countdown vectors
+        run: ./gradlew :core:model:checkContract :core:model:checkCountdownVectors
+
       - name: Build debug APK
         run: ./gradlew :androidApp:assembleDebug
 

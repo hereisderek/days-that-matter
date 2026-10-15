@@ -61,7 +61,8 @@ backend/
     web/                    share page assets: share.css, countdown.js, live.js, admin.js (operator page), fonts, og/, .well-known/, test vectors
     audio/catalog.json      built-in track list
     smart/catalog.json      seasonal smart day templates (draft, change design-v2-features)
-    contract/               generated from :core:model (task 2.8)
+    contract/               generated from :core:model (task 2.8): api.schema.json, errors.json, plans.json,
+                            limits.json, validation-vectors.json, merge-vectors.json
     conformance/            black-box HTTP suite every variant must pass
   cloudflare/               Worker entry, D1 driver, R2 store, EventRoom Durable Object, wrangler.jsonc
   selfhost/                 Node entry, node:sqlite driver, disk store, WebSocket hub, SMTP mailer, Dockerfile, compose.yaml
@@ -120,6 +121,12 @@ interface PurchaseVerifier {            // apple, google; later Chinese Android 
 
 `Clock`, `Random` and `Config` (region, origin, media origin, enabled identity providers and stores, keys and secrets, maintenance flag) are injected. Every `Store` must pass the store conformance suite.
 
+Implementation notes (`backend/core/src/ports/`, wave 1):
+- `SqlDriver.batch` returns the rows each statement changed. D1 and libSQL over HTTP have no interactive transactions, so `SqlStore` writes optimistically: it reads, computes the merge, then commits one batch whose statements apply only while the event is still at the rev it read, and retries otherwise. After 20 lost attempts the store throws `StoreBusyError` and the core answers `503 service_unavailable`.
+- A new event starts at rev 1 without a revision row; every accepted patch that changes something appends one revision. A patch that changes nothing keeps the rev.
+- `Config` comes from environment variables: `ORIGIN`, `MEDIA_ORIGIN`, `REGION`, `VERSION`, `LIVE_MODE` (`ws` or `poll`), `SIGN_IN` and `STORES` (comma lists), `FEATURE_SPOTIFY`, `UI_MEMO_BADGE`, `MAINTENANCE`, `INACTIVE_JOB`, and the secrets `RATE_SALT`, `EMAIL_CODE_KEY`, `INVITE_KEY` (required) and `ADMIN_TOKEN` (optional, at least 32 characters).
+- The store conformance suite (`src/store/conformance.ts`) has no test framework dependency; it runs against `SqlStore` on `node:sqlite` and the in-memory `MemoryStore`, and a test checks that it fails for a store with a lost-update bug.
+
 ---
 
 ## 5. Provider variants
@@ -146,9 +153,11 @@ Notes:
 
 ## 6. Data model
 
-### 6.1 SQL (SQLite dialect), `backend/core/migrations/0001_init.sql`
+### 6.1 SQL (SQLite dialect), `backend/core/migrations/`
 
 Times are unix seconds UTC. No foreign key constraints; the core keeps references consistent.
+
+`0001_init.sql` holds `accounts`, `events`, `revisions`, `memos`, `links`, `members`, `media`, `grants`, `exports` and `devices`. The other tables come as their own migrations with their tasks: `identities`, `email_codes` and `sessions` (task 3.5), `invites` (3.8), `purchases` (3.11), `rate_counters` (3.13). Drivers without a migration tool apply the files with `applyMigrations` (table `_migrations`); D1 can use `wrangler d1 migrations apply` on the same files.
 
 ```sql
 CREATE TABLE accounts (

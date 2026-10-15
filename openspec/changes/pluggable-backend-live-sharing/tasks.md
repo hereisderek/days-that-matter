@@ -18,16 +18,20 @@ Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 
 - [x] 2.6 Implement the plan table (`Plan`, `Feature`, limits for free, premium and premium_plus) and the gate check for a change given the writer's plan and the writer's counts; verify tests for each row of `docs/features/premium/SPEC.md`, including lapsed plans and counts above the limit keeping existing content.
 - [x] 2.7 Implement the countdown engine per `docs/features/events/SPEC.md` and a JVM task that writes `backend/core/web/test/countdown-vectors.json`; verify `countdown.js` passes every generated vector and CI fails when the committed file differs from a fresh generation.
   - Note: engine tests pass on JVM, JS and Android host with 100% line and branch coverage (`koverVerify`), and the vector file is deterministic; the `countdown.js` check is pending until the backend core exists. `:core:model:checkCountdownVectors` is ready for the CI step.
-- [ ] 2.8 Generate `backend/core/contract/` from `:core:model` (JSON Schema of the API types, plan table JSON, validation and merge vectors); verify a CI step regenerates it and fails on any difference.
+  - Note (wave 1 backend): `backend/core/web/countdown.js` passes all 59 vectors (units and workdays included, 9 with a sub-second `nowInstant` from `SubSecondCountdownVectors` in jvmTest); `pr-check.yml` runs `checkCountdownVectors`, verified locally to fail on a changed file.
+- [x] 2.8 Generate `backend/core/contract/` from `:core:model` (JSON Schema of the API types, plan table JSON, validation and merge vectors); verify a CI step regenerates it and fails on any difference.
+  - Note: `./gradlew :core:model:generateContract` writes `api.schema.json`, `errors.json`, `plans.json`, `limits.json`, `validation-vectors.json` and `merge-vectors.json`; `checkContract` runs in `pr-check.yml` (verified locally: two generations give no diff, a changed or extra file fails). `src/contract/api.ts` is generated from the schema and a test fails when stale. Merge vectors are consumed by `src/rules/merge.ts`; validation vectors wait for the TypeScript validation (task 3.6).
 - [x] 2.9 Update `docs/features/events/SPEC.md` and `docs/features/premium/SPEC.md` with any change made while implementing; verify they match the code.
   - Note: events SPEC gained the calculation rules (section 2.5) and the shared types; the premium SPEC already matched the plan table, so it is unchanged.
 
 ## 3. Backend core `backend/core/`
 
-- [ ] 3.1 Add HTTP types, router, error envelope, security headers, request id and JSON log lines; verify a test that logs contain no titles, memo text, emails, codes, tokens, cookies, `Authorization` values, IPs or Spotify URLs.
-- [ ] 3.2 Define the ports (`Store`, `SqlDriver`, `BlobStore`, `LiveHub`, `Mailer`, `Clock`, `Random`, `Config`) and in-memory fakes; verify the core test suite runs against the fakes.
-- [ ] 3.3 Implement `SqlStore` and migration `backend/core/migrations/0001_init.sql`; verify the store conformance suite (3.4) passes on local SQLite.
-- [ ] 3.4 Write the store conformance suite, runnable against any `Store`; verify it passes for `SqlStore` and fails with a deliberately broken store.
+- [x] 3.1 Add HTTP types, router, error envelope, security headers, request id and JSON log lines; verify a test that logs contain no titles, memo text, emails, codes, tokens, cookies, `Authorization` values, IPs or Spotify URLs.
+- [x] 3.2 Define the ports (`Store`, `SqlDriver`, `BlobStore`, `LiveHub`, `Mailer`, `Clock`, `Random`, `Config`) and in-memory fakes; verify the core test suite runs against the fakes.
+  - Note: `Store` holds the foundation operations (accounts, events, patches with revisions, tombstones, history pages); later tasks add theirs.
+- [x] 3.3 Implement `SqlStore` and migration `backend/core/migrations/0001_init.sql`; verify the store conformance suite (3.4) passes on local SQLite.
+  - Note: `0001_init.sql` holds accounts, events, revisions, memos, links, members, media, grants, exports and devices; identities, email_codes, sessions (3.5), invites (3.8), purchases (3.11) and rate_counters (3.13) come with their tasks.
+- [x] 3.4 Write the store conformance suite, runnable against any `Store`; verify it passes for `SqlStore` and fails with a deliberately broken store.
 - [ ] 3.5 Implement accounts: identity provider plug-ins for Google, Apple and email codes (with the HTTP `Mailer`), identity linking by verified email, bearer sessions, `POST /auth/apple/callback` handing Sign in with Apple results to the Android app (no cookie, design D17), sign-out, `GET/PATCH/DELETE /me`, and `GET /config`; verify the accounts scenarios as core tests, including wrong `aud`, expired token, wrong `iss`, code expiry and the 5-attempt limit.
 - [ ] 3.6 Implement sync: manifest with `childSeq`, batch fetch, create (with the owned-event limit), patch, delete, memo children with tombstones and `reset`; verify the event-sync scenarios as core tests.
 - [ ] 3.7 Implement history (list, restore, pruning past 200 revisions); verify the event-history scenarios as core tests.

@@ -1,0 +1,42 @@
+{
+  "generatedBy": "./gradlew :core:model:generateContract (do not edit by hand)",
+  "plans": [
+    "free",
+    "premium",
+    "premium_plus"
+  ],
+  "features": [
+    "events",
+    "photos",
+    "animated_backdrop",
+    "premium_audio",
+    "custom_audio",
+    "spotify_events"
+  ],
+  "limits": {
+    "free": {
+      "events": 10,
+      "photos": 5,
+      "animated_backdrop": 0,
+      "premium_audio": 0,
+      "custom_audio": 0,
+      "spotify_events": 3
+    },
+    "premium": {
+      "events": 500,
+      "photos": 300,
+      "animated_backdrop": 30,
+      "premium_audio": null,
+      "custom_audio": 20,
+      "spotify_events": null
+    },
+    "premium_plus": {
+      "events": 500,
+      "photos": 300,
+      "animated_backdrop": 30,
+      "premium_audio": null,
+      "custom_audio": 20,
+      "spotify_events": null
+    }
+  }
+}

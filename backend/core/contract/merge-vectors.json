@@ -1,0 +1,933 @@
+{
+  "generatedBy": "./gradlew :core:model:generateContract (do not edit by hand)",
+  "rules": "apply: patch values replace top-level fields, null clears, equal values are skipped, nested objects are replaced whole; applied holds the changed fields, inverse their old values (null = was absent). applyToEvent: as apply, and setting archivedAt also clears pinnedAt. overwritten: changed fields that a revision after baseRev by another or deleted account also changed, sorted. revertTo: current with the inverses of every revision after targetRev applied, newest first.",
+  "vectors": [
+    {
+      "name": "apply-one-field",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "title": "Our wedding day"
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding day",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {
+          "title": "Our wedding day"
+        },
+        "inverse": {
+          "title": "Our wedding"
+        }
+      }
+    },
+    {
+      "name": "apply-same-value-skipped",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "title": "Our wedding",
+          "unitMode": "days"
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "days",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {
+          "unitMode": "days"
+        },
+        "inverse": {
+          "unitMode": "auto"
+        }
+      }
+    },
+    {
+      "name": "apply-null-clears",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "backdrop": null
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {
+          "backdrop": null
+        },
+        "inverse": {
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          }
+        }
+      }
+    },
+    {
+      "name": "apply-null-on-absent-skipped",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "emoji": null
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {},
+        "inverse": {}
+      }
+    },
+    {
+      "name": "apply-new-field",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "emoji": "💍"
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n",
+          "emoji": "💍"
+        },
+        "applied": {
+          "emoji": "💍"
+        },
+        "inverse": {
+          "emoji": null
+        }
+      }
+    },
+    {
+      "name": "apply-nested-replaced-whole",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "theme": {
+            "paletteId": "blue",
+            "cardStyle": "solid",
+            "typography": "modern"
+          }
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "blue",
+            "cardStyle": "solid",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {
+          "theme": {
+            "paletteId": "blue",
+            "cardStyle": "solid",
+            "typography": "modern"
+          }
+        },
+        "inverse": {
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      }
+    },
+    {
+      "name": "apply-nested-equal-skipped",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {},
+        "inverse": {}
+      }
+    },
+    {
+      "name": "apply-empty-patch",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {}
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {},
+        "inverse": {}
+      }
+    },
+    {
+      "name": "apply-many-fields",
+      "kind": "apply",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "title": "T",
+          "notes": null,
+          "targetTime": "09:00:00",
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Hq3bbbbbbbbbbbbbbbbbbb",
+            "dim": 0
+          }
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "T",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Hq3bbbbbbbbbbbbbbbbbbb",
+            "dim": 0
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "targetTime": "09:00:00"
+        },
+        "applied": {
+          "title": "T",
+          "notes": null,
+          "targetTime": "09:00:00",
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Hq3bbbbbbbbbbbbbbbbbbb",
+            "dim": 0
+          }
+        },
+        "inverse": {
+          "title": "Our wedding",
+          "notes": "n",
+          "targetTime": null,
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          }
+        }
+      }
+    },
+    {
+      "name": "event-archive-clears-pin",
+      "kind": "applyToEvent",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "archivedAt": "2026-10-12T15:04:05Z"
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "notes": "n",
+          "archivedAt": "2026-10-12T15:04:05Z"
+        },
+        "applied": {
+          "archivedAt": "2026-10-12T15:04:05Z",
+          "pinnedAt": null
+        },
+        "inverse": {
+          "archivedAt": null,
+          "pinnedAt": "2026-10-01T08:00:00Z"
+        }
+      }
+    },
+    {
+      "name": "event-unarchive-keeps-pin-cleared",
+      "kind": "applyToEvent",
+      "input": {
+        "doc": {
+          "title": "T",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "archivedAt": "2026-10-12T15:04:05Z"
+        },
+        "patch": {
+          "archivedAt": null
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "T",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        },
+        "applied": {
+          "archivedAt": null
+        },
+        "inverse": {
+          "archivedAt": "2026-10-12T15:04:05Z"
+        }
+      }
+    },
+    {
+      "name": "event-archive-without-pin",
+      "kind": "applyToEvent",
+      "input": {
+        "doc": {
+          "title": "T",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        },
+        "patch": {
+          "archivedAt": "2026-10-12T15:04:05Z",
+          "title": "U"
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "U",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "archivedAt": "2026-10-12T15:04:05Z"
+        },
+        "applied": {
+          "archivedAt": "2026-10-12T15:04:05Z",
+          "title": "U"
+        },
+        "inverse": {
+          "archivedAt": null,
+          "title": "T"
+        }
+      }
+    },
+    {
+      "name": "event-plain-patch",
+      "kind": "applyToEvent",
+      "input": {
+        "doc": {
+          "title": "Our wedding",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "patch": {
+          "title": "X"
+        }
+      },
+      "expected": {
+        "doc": {
+          "title": "X",
+          "targetDate": "2027-06-12",
+          "unitMode": "auto",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "backdrop": {
+            "kind": "still",
+            "stillId": "Pz8aaaaaaaaaaaaaaaaaaa",
+            "dim": 0.3
+          },
+          "pinnedAt": "2026-10-01T08:00:00Z",
+          "notes": "n"
+        },
+        "applied": {
+          "title": "X"
+        },
+        "inverse": {
+          "title": "Our wedding"
+        }
+      }
+    },
+    {
+      "name": "overwritten-other-author",
+      "kind": "overwritten",
+      "input": {
+        "changedFields": [
+          "title",
+          "targetTime"
+        ],
+        "baseRev": 9,
+        "writerId": "a",
+        "revisions": [
+          {
+            "rev": 10,
+            "authorId": "b",
+            "fields": [
+              "targetTime"
+            ]
+          },
+          {
+            "rev": 11,
+            "authorId": "a",
+            "fields": [
+              "title"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "targetTime"
+      ]
+    },
+    {
+      "name": "overwritten-own-changes-ignored",
+      "kind": "overwritten",
+      "input": {
+        "changedFields": [
+          "title"
+        ],
+        "baseRev": 9,
+        "writerId": "a",
+        "revisions": [
+          {
+            "rev": 10,
+            "authorId": "a",
+            "fields": [
+              "title"
+            ]
+          }
+        ]
+      },
+      "expected": []
+    },
+    {
+      "name": "overwritten-deleted-author-counts",
+      "kind": "overwritten",
+      "input": {
+        "changedFields": [
+          "title",
+          "emoji"
+        ],
+        "baseRev": 3,
+        "writerId": "a",
+        "revisions": [
+          {
+            "rev": 4,
+            "authorId": null,
+            "fields": [
+              "emoji"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "emoji"
+      ]
+    },
+    {
+      "name": "overwritten-at-or-before-base-ignored",
+      "kind": "overwritten",
+      "input": {
+        "changedFields": [
+          "title"
+        ],
+        "baseRev": 10,
+        "writerId": "a",
+        "revisions": [
+          {
+            "rev": 9,
+            "authorId": "b",
+            "fields": [
+              "title"
+            ]
+          },
+          {
+            "rev": 10,
+            "authorId": "b",
+            "fields": [
+              "title"
+            ]
+          }
+        ]
+      },
+      "expected": []
+    },
+    {
+      "name": "overwritten-sorted",
+      "kind": "overwritten",
+      "input": {
+        "changedFields": [
+          "title",
+          "emoji",
+          "audio"
+        ],
+        "baseRev": 1,
+        "writerId": "a",
+        "revisions": [
+          {
+            "rev": 2,
+            "authorId": "b",
+            "fields": [
+              "title",
+              "audio"
+            ]
+          },
+          {
+            "rev": 3,
+            "authorId": "c",
+            "fields": [
+              "emoji"
+            ]
+          }
+        ]
+      },
+      "expected": [
+        "audio",
+        "emoji",
+        "title"
+      ]
+    },
+    {
+      "name": "revert-two-revisions",
+      "kind": "revertTo",
+      "input": {
+        "current": {
+          "title": "C",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          },
+          "emoji": "💍"
+        },
+        "targetRev": 1,
+        "later": [
+          {
+            "rev": 2,
+            "inverse": {
+              "title": "A"
+            }
+          },
+          {
+            "rev": 3,
+            "inverse": {
+              "title": "B",
+              "emoji": null
+            }
+          }
+        ]
+      },
+      "expected": {
+        "title": "A",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      }
+    },
+    {
+      "name": "revert-ignores-older",
+      "kind": "revertTo",
+      "input": {
+        "current": {
+          "title": "C",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        },
+        "targetRev": 2,
+        "later": [
+          {
+            "rev": 2,
+            "inverse": {
+              "title": "A"
+            }
+          },
+          {
+            "rev": 3,
+            "inverse": {
+              "title": "B"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "title": "B",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      }
+    },
+    {
+      "name": "revert-order-independent",
+      "kind": "revertTo",
+      "input": {
+        "current": {
+          "title": "C",
+          "targetDate": "2027-06-12",
+          "theme": {
+            "paletteId": "violet",
+            "cardStyle": "glass",
+            "typography": "modern"
+          }
+        },
+        "targetRev": 0,
+        "later": [
+          {
+            "rev": 3,
+            "inverse": {
+              "title": "B"
+            }
+          },
+          {
+            "rev": 1,
+            "inverse": {
+              "notes": null
+            }
+          },
+          {
+            "rev": 2,
+            "inverse": {
+              "title": "A",
+              "notes": "old"
+            }
+          }
+        ]
+      },
+      "expected": {
+        "title": "A",
+        "targetDate": "2027-06-12",
+        "theme": {
+          "paletteId": "violet",
+          "cardStyle": "glass",
+          "typography": "modern"
+        }
+      }
+    }
+  ]
+}
