@@ -56,7 +56,7 @@ kotlin {
 // the engine writes backend/core/web/test/countdown-vectors.json, which the share page's countdown.js
 // must pass. The cases live in commonTest, the writer in jvmTest. Output is deterministic.
 val countdownVectorsFile: RegularFile =
-    rootProject.layout.projectDirectory.file("backend/core/web/test/countdown-vectors.json")
+    rootProject.layout.projectDirectory.file("../backend/core/web/test/countdown-vectors.json")
 val jvmTestCompilation = kotlin.jvm().compilations.getByName("test")
 
 fun JavaExec.runVectorWriter(output: File) {
@@ -97,7 +97,7 @@ tasks.register("checkCountdownVectors") {
 // Backend contract (task 2.8): the JVM build writes backend/core/contract/ (JSON Schema of the API
 // types, plan table, fixed limits, error codes, validation and merge vectors) for the TypeScript
 // backend core. The writer and its cases live in jvmTest. Output is deterministic.
-val contractDir: Directory = rootProject.layout.projectDirectory.dir("backend/core/contract")
+val contractDir: Directory = rootProject.layout.projectDirectory.dir("../backend/core/contract")
 
 fun JavaExec.runContractWriter(output: File) {
     classpath(jvmTestCompilation.output.allOutputs, jvmTestCompilation.runtimeDependencyFiles)

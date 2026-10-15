@@ -7,6 +7,11 @@ name: Android PR Check
 on:
   pull_request:
     branches: [master, main]
+    paths:
+      - 'mobile/**'
+      - 'backend/**'
+      - 'design/**'
+      - '.github/workflows/pr-check.yml'
   workflow_dispatch:
 
 permissions:
@@ -15,6 +20,10 @@ permissions:
 concurrency:
   group: pr-check-${{ github.ref }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: mobile
 
 jobs:
   verify:
@@ -36,6 +45,8 @@ jobs:
           packages: 'platform-tools platforms;android-37.2 build-tools;37.0.0'
 
       - uses: gradle/actions/setup-gradle@v6
+        with:
+          build-root-directory: mobile
 
       # allTests runs the multiplatform modules (Android host, JVM and JS tests; Apple targets are skipped
       # on Linux). testDebugUnitTest covers :androidApp. lintDebug lints the app and its modules.
@@ -54,7 +65,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: days-that-matter-debug-${{ github.sha }}
-          path: androidApp/build/outputs/apk/debug/*.apk
+          path: mobile/androidApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
 
       - name: Upload reports on failure
@@ -62,4 +73,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: reports-${{ github.sha }}
-          path: '**/build/reports/'
+          path: 'mobile/**/build/reports/'
