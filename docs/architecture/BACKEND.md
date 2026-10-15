@@ -514,7 +514,9 @@ Public link view (`GET /links/{token}`):
 }
 ```
 - Anyone, no session. `live.url` is null in `poll` mode. ETag over `event` and `live` (not `serverTime`), `Cache-Control: no-cache`; a matching `If-None-Match` answers `304`.
-- A deleted event answers `410 deleted`, a revoked link `410 revoked`, an expired link `410 expired` (checked in that order), with no event details. An unknown, malformed or purged token answers `404 not_found`; the format (`[A-Za-z0-9_-]{22}`) is checked before any store access.
+- A deleted event answers `410 deleted`, a revoked link `410 revoked`, an expired link `410 expired` (checked in that order), with no event details; every token in one of these states gets the same bytes apart from `X-Request-Id`. An unknown, malformed or purged token answers `404 not_found`; the format (`[A-Za-z0-9_-]{22}`) is checked before any store access.
+
+Not found looks the same (task 3.9): `GET /links/{token}`, `GET /invites/{token}` and `POST /invites/{token}/join` answer an unknown, malformed or purged token with byte-identical responses (status, headers and body `{"error":{"code":"not_found","message":"Not found","details":null}}`) apart from `X-Request-Id`, and so does `GET /events/{id}` for an unknown, malformed or purged id. The invite routes check the token format before the session, so a malformed token answers `404` even without one; a well-formed token without a session answers `401`. Member links (`/s/{eventId}`) resolve in the app with `GET /events/{id}`: a member gets the member view with its ETag, a signed-in non-member `403 forbidden` with no event details.
 Member view (`GET /events/{id}` for a member) adds `role`, `members: [{"name","role"}]`, and from the membership `archived` (true or false) and `reminders`.
 
 Sharing (`GET /events/{id}/sharing`):
