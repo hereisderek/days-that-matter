@@ -2,7 +2,7 @@
 // the same columns and outcomes.
 import type { Json, JsonObject } from '../rules/merge.ts';
 import { isJsonObject } from '../rules/merge.ts';
-import type { AudioKind } from '../ports/store.ts';
+import type { AudioKind, InviteAccess, InviteRecord } from '../ports/store.ts';
 
 export interface AudioColumns {
   readonly audioKind: AudioKind | null;
@@ -40,3 +40,33 @@ export function withoutNulls(doc: JsonObject): JsonObject {
 
 /** Seconds in a day: activity and session use are written at most once per day. */
 export const DAY_SECONDS = 86_400;
+
+/** True while a link or invite is usable at `now`: not revoked and not past its expiry. */
+export function isActive(x: { readonly revokedAt: number | null; readonly expiresAt: number | null }, now: number): boolean {
+  return x.revokedAt === null && (x.expiresAt === null || x.expiresAt > now);
+}
+
+/**
+ * What an invite means for `accountId` at `now` (event-sharing spec, design D11), the same in every
+ * store and in the core. The event comes first (deleted), then who the account is (owner, member,
+ * removed: owners and members open the event whatever the invite's state), then the invite itself
+ * (revoked, expired, full) and the event's member limit.
+ */
+export function inviteAccess(
+  invite: InviteRecord,
+  event: { readonly ownerId: string; readonly deletedAt: number | null },
+  member: { readonly role: string } | null,
+  accountId: string,
+  now: number,
+  activeMembers: number,
+  maxMembers: number,
+): InviteAccess {
+  if (event.deletedAt !== null) return 'deleted';
+  if (event.ownerId === accountId) return 'owner';
+  if (member !== null) return member.role === 'removed' ? 'removed' : 'member';
+  if (invite.revokedAt !== null) return 'revoked';
+  if (invite.expiresAt !== null && invite.expiresAt <= now) return 'expired';
+  if (invite.maxUses !== null && invite.useCount >= invite.maxUses) return 'full';
+  if (activeMembers >= maxMembers) return 'members_limit';
+  return 'open';
+}

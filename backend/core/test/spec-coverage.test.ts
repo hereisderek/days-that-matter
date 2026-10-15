@@ -22,12 +22,13 @@ function testNames(...files: string[]): Set<string> {
   return names;
 }
 
-const CAPABILITIES = ['accounts', 'event-sync', 'event-history'];
+const CAPABILITIES = ['accounts', 'event-sync', 'event-history', 'event-sharing'];
 
 const CORE_TESTS = testNames(
   './accounts/accounts-scenarios.test.ts',
   './sync/event-sync-scenarios.test.ts',
   './history/event-history-scenarios.test.ts',
+  './sharing/event-sharing-scenarios.test.ts',
 );
 
 /** Scenarios the backend core does not serve yet or at all, with the task that covers them. */
@@ -45,6 +46,7 @@ const ELSEWHERE: Readonly<Record<string, string>> = {
   'Sign in after the first notice': 'backend task 3.18 (markActive already clears the notices)',
   'Edit offline': 'app, task 7.3 (pending patches survive restarts)',
   'Sync while offline': 'app, task 7.3',
+  'App installed': 'app, tasks 7.5 and 11.5 (App Links and Universal Links on devices)',
 };
 
 describe('spec coverage', () => {

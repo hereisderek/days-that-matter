@@ -129,6 +129,7 @@ Implementation notes (`backend/core/src/ports/`, wave 1):
 - Identity providers live in `src/auth/`: `googleProvider` and `appleProvider` (`TokenProvider`, built from `Config` and `keys`) and the email code functions over the `Store` and `Mailer`.
 - The store conformance suite (`src/store/conformance.ts`) has no test framework dependency; it runs against `SqlStore` on `node:sqlite` and the in-memory `MemoryStore`, and a test checks that it fails for a store with a lost-update bug.
 - History (wave 3): each write that adds a revision deletes the event's revisions older than the newest 200 (`LIMITS.REVISIONS_KEPT`) in the same batch, guarded like the write itself; a write that changes nothing prunes nothing. Revisions of a deleted event go with the purge job (3.13) or account deletion.
+- Sharing (wave 3): a link or invite is active while not revoked and not past `expires_at`. The 10 links and 20 invites per event count active ones (a full invite counts: the owner can raise its use count); creating checks the count in the same statement as the insert. `joinInvite` reads the invite, decides with `inviteAccess` (store/records.ts, shared by every store), then commits one batch: the member row is inserted only while the invite still has the use count, role and state it read and the event has fewer than 100 members, and the use is taken only when that row is this join's; a join that lost a race reads again. Removal sets `members.role = 'removed'`; leaving and "allow again" delete the row.
 - Reads by role (wave 2): `GET /events/{id}` answers `404 not_found` for an unknown or malformed id, `403 forbidden` for an event the caller is not owner, viewer or editor of (removed members included), and `410 deleted` for a deleted event the caller could read. `POST /events/fetch` leaves those out instead. Members see `childSeq` 0 in the manifest. Memo writes past 500 per event answer `429 quota_exceeded` with `details.limit` = `memos_per_event`. Repeating `DELETE /events/{id}` or a memo `DELETE` answers `204`. Lists of ids go to SQL as one JSON parameter (`json_each`), which stays under D1's 100 bound parameters.
 
 ---
@@ -161,7 +162,7 @@ Notes:
 
 Times are unix seconds UTC. No foreign key constraints; the core keeps references consistent.
 
-`0001_init.sql` holds `accounts`, `events`, `revisions`, `memos`, `links`, `members`, `media`, `grants`, `exports` and `devices`. `0002_accounts.sql` adds `identities`, `email_codes` and `sessions` (task 3.5) and the column `events.first_upload_at` (section 8, first sign-in upload). The other tables come as their own migrations with their tasks: `invites` (3.8), `purchases` (3.11), `rate_counters` (3.13). Drivers without a migration tool apply the files with `applyMigrations` (table `_migrations`); D1 can use `wrangler d1 migrations apply` on the same files.
+`0001_init.sql` holds `accounts`, `events`, `revisions`, `memos`, `links`, `members`, `media`, `grants`, `exports` and `devices`. `0002_accounts.sql` adds `identities`, `email_codes` and `sessions` (task 3.5) and the column `events.first_upload_at` (section 8, first sign-in upload). `0003_sharing.sql` adds `invites` (task 3.8). The other tables come as their own migrations with their tasks: `purchases` (3.11), `rate_counters` (3.13). Drivers without a migration tool apply the files with `applyMigrations` (table `_migrations`); D1 can use `wrangler d1 migrations apply` on the same files.
 
 ```sql
 CREATE TABLE accounts (
@@ -512,6 +513,8 @@ Public link view (`GET /links/{token}`):
   "live": {"mode": "ws", "url": "wss://<domain>/api/v1/live?link=…"}
 }
 ```
+- Anyone, no session. `live.url` is null in `poll` mode. ETag over `event` and `live` (not `serverTime`), `Cache-Control: no-cache`; a matching `If-None-Match` answers `304`.
+- A deleted event answers `410 deleted`, a revoked link `410 revoked`, an expired link `410 expired` (checked in that order), with no event details. An unknown, malformed or purged token answers `404 not_found`; the format (`[A-Za-z0-9_-]{22}`) is checked before any store access.
 Member view (`GET /events/{id}` for a member) adds `role`, `members: [{"name","role"}]`, and from the membership `archived` (true or false) and `reminders`.
 
 Sharing (`GET /events/{id}/sharing`):
@@ -523,6 +526,23 @@ Sharing (`GET /events/{id}/sharing`):
   "removed": [{"accountId": "…", "name": "Ex"}]
 }
 ```
+- Lists the active links and invites (not revoked, not past their expiry; full invites included), oldest first, and the members and removed members by joining time. `joinedVia` is the invite id, or null. An invite whose token cannot be opened under the current `INVITE_KEY` (section 14) is left out. Owner only: others get `403 forbidden`. `Cache-Control: no-store`.
+
+Links and invites (owner only; others `403 forbidden`, a deleted event `410 deleted`; ids are UUIDs, unknown or malformed ones `404 not_found`). Expiry is an ISO-8601 time after now and at most 5 years ahead, or null for never (the app offers 5 days, 30 days, never and a custom date):
+- `POST /events/{id}/links` `{"label": "Instagram", "expiresAt": null}` (both optional; label 1 to 100 characters or null; expiry default never) → `201` with the link `{"id", "label", "url", "expiresAt"}`. An eleventh active link answers `429 quota_exceeded` with `details.limit` = `links_per_event`.
+- `PATCH /links/{linkId}` `{"label"?, "expiresAt"?}` → `200` with the link. A revoked link answers `410 revoked`, an expired one `410 expired` (it cannot be revived). `DELETE /links/{linkId}` revokes for good → `204`, also when repeated.
+- `POST /events/{id}/invites` `{"role": "editor", "maxUses": 5, "expiresAt": "…"}` (`role` required; `maxUses` 1 to 100 or null for unlimited, default 1; expiry default 30 days) → `201` `{"inviteId", "url"}`. A twenty-first active invite answers `429 quota_exceeded`, `details.limit` = `invites_per_event`.
+- `PATCH /invites/{inviteId}` `{"role"?, "maxUses"?, "expiresAt"?}` → `200` with the invite as listed. A use count at or below the uses taken makes the invite full. Revoked: `410 invite_revoked`; expired: `410 invite_expired`. `DELETE /invites/{inviteId}` → `204`, also when repeated.
+
+Invite state (`GET /invites/{token}`, session): `{"state": "open", "eventTitle": "Our wedding", "ownerName": "Mum", "role": "editor"}`, with an ETag (`private, no-cache`); it takes no use.
+- `state`: `owner` and `member` (the caller has the event, whatever the invite's state), `removed` (blocked until "allow again"), then `revoked`, `expired`, `full` (no uses left, or the event has 100 members), else `open`.
+- `eventTitle` and `ownerName` are set only for `open`, `owner` and `member`; `role` is the invite's role for `open`, the caller's role for `member`, else null. A deleted event answers `410 deleted`. Without a session `401`.
+
+Join (`POST /invites/{token}/join`, session) → `200` `{"eventId": "…", "url": "https://<domain>/s/{eventId}"}`: a new member takes one use; owners and members take none. Refusals: removed `403 forbidden` ("Ask the owner to invite you again"), `410 invite_revoked`, `410 invite_expired`, `410 invite_full`, `410 deleted`, `429 quota_exceeded` with `details.limit` = `members_per_event`.
+
+Members (owner only): `PUT /events/{id}/members/{accountId}` `{"role": "viewer"}` → `200` `{"accountId", "name", "role", "joinedVia"}`; `404` when the account is not a viewer or editor. `DELETE /events/{id}/members/{accountId}` removes and blocks rejoining → `204` (also when already removed; `404` for an account that is not on the event). `DELETE /events/{id}/members/me` is a viewer or editor leaving → `204` (the owner gets `403`). `DELETE /events/{id}/removed/{accountId}` ("allow again") → `204`; the account can then join through an invite.
+
+Every change above (link or invite created, changed or revoked, a join, a role change, a removal, leaving, "allow again") publishes `{"type": "access"}` to the event (section 9). Removed members and leavers lose the event from their manifest, and their reads and writes answer `403 forbidden` from the next request.
 
 Revision:
 ```json
@@ -572,7 +592,7 @@ Restore (`POST /events/{id}/restore`, owner or editor): `{"rev": 4}` → `200` w
 - It goes through the same write path as `PATCH /events/{id}`: validation (a value the rules no longer accept answers `400 invalid_payload` naming the field), role checks, plan gates (tasks 3.10 and 3.12) and the live `rev` notice.
 - A `rev` above the current rev, or one whose later revisions were pruned (all revisions after `rev` are needed), answers `400 invalid_payload` with `details.field` = `rev`. Viewers get `403 forbidden`.
 
-Status codes without a body of their own: `PUT /events/{id}` `201` when created, `200` with the current document when it exists; `DELETE /events/{id}` `204`; `POST /auth/signout` `204`; `DELETE /me` `204`; `POST /auth/email/start` `202` with no body.
+Status codes without a body of their own: `PUT /events/{id}` `201` when created, `200` with the current document when it exists; `DELETE /events/{id}` `204`; `POST /auth/signout` `204`; `DELETE /me` `204`; `POST /auth/email/start` `202` with no body; `DELETE /links/{linkId}`, `DELETE /invites/{inviteId}`, `DELETE /events/{id}/members/{accountId}` and `DELETE /events/{id}/removed/{accountId}` `204`.
 
 Membership (`PATCH /events/{id}/membership`):
 ```json
@@ -605,7 +625,7 @@ Storage report (`GET /admin/storage`):
 | 413 | `payload_too_large` | Body or file over its limit |
 | 415 | `unsupported_media_type` | Wrong content type, or file content does not match |
 | 429 | `rate_limited` | Too many requests (including a second data export on the same day), `Retry-After` set |
-| 429 | `quota_exceeded` | A count limit that no plan raises (paid limits, links per event, members per event) |
+| 429 | `quota_exceeded` | A count limit that no plan raises (paid limits, links per event, members per event). `details.limit` names fixed limits: `memos_per_event`, `links_per_event`, `invites_per_event`, `members_per_event`; `details.feature` names plan limits |
 | 500 | `internal_error` | `details.requestId` set |
 | 503 | `service_unavailable` | Maintenance mode or provider limit reached |
 
@@ -777,6 +797,7 @@ If Kotlin/JS is adopted later, the backend must also load the `@js-joda/timezone
 
 Security:
 - Tokens: public link `[A-Za-z0-9_-]{22}` (128 bits, clear text); invite same format, stored as SHA-256 plus AES-GCM ciphertext under `INVITE_KEY`; data export same format, stored as SHA-256; session `st_` + 43 chars, stored hashed; email codes as HMAC. Token format is checked before any store access.
+- Invite ciphertext (`invites.token_enc`): `v1.` + base64url(12-byte random IV ‖ AES-256-GCM ciphertext with its tag), the key derived with HKDF-SHA-256 from the `INVITE_KEY` text (empty salt, info `days-that-matter invite token v1`), the invite id as additional data, so a ciphertext only opens for its own row. Changing `INVITE_KEY` keeps every invite joinable (lookup is by hash), but their URLs can no longer be shown: the sharing list leaves them out until they expire or the owner makes new ones.
 - Operator token: `ADMIN_TOKEN`, at least 32 random bytes, a deployment secret. Sent only as `Authorization: Bearer`, compared in constant time, never in URLs, logs or the apps. Unset means the operator routes answer `401` to everyone. The `/admin/storage` page keeps the token in memory only (no storage, no cookie). 60 requests per hour per IP. Rotate by changing the secret.
 - The share web sets no cookies and has no forms (design D17).
 - Page headers: `Content-Security-Policy: default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: https://media.<domain>; media-src 'self' https://media.<domain>; font-src 'self'; connect-src 'self' wss://<domain>; form-action 'none'; base-uri 'none'; frame-ancestors 'none'; frame-src 'none'; object-src 'none'; upgrade-insecure-requests`, plus `Cache-Control: no-store`, `X-Robots-Tag: noindex, nofollow`, `Strict-Transport-Security: max-age=31536000`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`.

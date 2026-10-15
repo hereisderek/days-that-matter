@@ -12,15 +12,27 @@ import type {
   ChildrenPage,
   CreateAccountResult,
   CreateEventResult,
+  CreateInviteOutcome,
+  CreateLinkOutcome,
   EmailCodeInput,
   EventRecord,
   IdentityRecord,
+  InviteChanges,
+  InviteRecord,
+  JoinInput,
+  JoinOutcome,
+  LinkChanges,
+  LinkRecord,
   ManifestRow,
+  MemberListing,
   MemberRecord,
+  MemberRoleValue,
   MemoRecord,
   MemoWriteOutcome,
   NewAccount,
   NewEvent,
+  NewInvite,
+  NewLink,
   PatchInput,
   PatchMemoInput,
   PatchOutcome,
@@ -36,7 +48,7 @@ import type {
   SignInOutcome,
   Store,
 } from '../ports/store.ts';
-import { audioColumns, copyJson, docBytes } from '../store/records.ts';
+import { audioColumns, copyJson, docBytes, inviteAccess, isActive } from '../store/records.ts';
 
 interface EmailCode {
   codeMac: string;
@@ -53,6 +65,8 @@ export class MemoryStore implements Store {
   readonly #sessions = new Map<string, SessionRecord>();
   readonly #members = new Map<string, MemberRecord>();
   readonly #memos = new Map<string, MemoRecord>();
+  readonly #links = new Map<string, LinkRecord>();
+  readonly #invites = new Map<string, InviteRecord>();
   /** `events.first_upload_at`, which EventRecord does not carry. */
   readonly #firstUploads = new Map<string, number>();
 
@@ -217,6 +231,7 @@ export class MemoryStore implements Store {
       this.#revisions.delete(e.id);
       for (const [id, m] of this.#memos) if (m.eventId === e.id) this.#memos.delete(id);
       for (const [key, m] of this.#members) if (m.eventId === e.id) this.#members.delete(key);
+      for (const [id, i] of this.#invites) if (i.eventId === e.id) this.#invites.delete(id);
     }
     const memberEventIds: string[] = [];
     for (const [key, m] of this.#members) {
@@ -318,6 +333,131 @@ export class MemoryStore implements Store {
   async getMember(eventId: string, accountId: string): Promise<MemberRecord | null> {
     const m = this.#members.get(memberKey(eventId, accountId));
     return m ? copyMember(m) : null;
+  }
+
+  // ---- Sharing ----
+
+  async createLink(input: NewLink): Promise<CreateLinkOutcome> {
+    if (this.#links.has(input.id) || [...this.#links.values()].some((l) => l.token === input.token)) return { status: 'taken' };
+    if (this.#activeCount(this.#links, input.eventId, input.now) >= input.maxActive) return { status: 'limit' };
+    const link: LinkRecord = {
+      id: input.id, token: input.token, eventId: input.eventId, label: input.label, createdAt: input.now, expiresAt: input.expiresAt, revokedAt: null,
+    };
+    this.#links.set(link.id, link);
+    return { status: 'created', link: { ...link } };
+  }
+
+  async getLink(id: string): Promise<LinkRecord | null> {
+    const link = this.#links.get(id);
+    return link ? { ...link } : null;
+  }
+
+  async getLinkByToken(token: string): Promise<LinkRecord | null> {
+    const link = [...this.#links.values()].find((l) => l.token === token);
+    return link ? { ...link } : null;
+  }
+
+  async listLinks(eventId: string, now: number): Promise<LinkRecord[]> {
+    return this.#active(this.#links, eventId, now).map((l) => ({ ...l }));
+  }
+
+  async updateLink(id: string, changes: LinkChanges, now: number): Promise<LinkRecord | null> {
+    const link = this.#links.get(id);
+    if (!link) return null;
+    if (isActive(link, now)) this.#links.set(id, { ...link, ...definedOnly(changes) });
+    return { ...(this.#links.get(id) as LinkRecord) };
+  }
+
+  async revokeLink(id: string, now: number): Promise<boolean> {
+    const link = this.#links.get(id);
+    if (!link || link.revokedAt !== null) return false;
+    this.#links.set(id, { ...link, revokedAt: now });
+    return true;
+  }
+
+  async createInvite(input: NewInvite): Promise<CreateInviteOutcome> {
+    if (this.#invites.has(input.id) || [...this.#invites.values()].some((i) => i.tokenHash === input.tokenHash)) return { status: 'taken' };
+    if (this.#activeCount(this.#invites, input.eventId, input.now) >= input.maxActive) return { status: 'limit' };
+    const invite: InviteRecord = {
+      id: input.id, tokenHash: input.tokenHash, tokenEnc: input.tokenEnc, eventId: input.eventId, role: input.role, maxUses: input.maxUses,
+      useCount: 0, createdAt: input.now, expiresAt: input.expiresAt, revokedAt: null,
+    };
+    this.#invites.set(invite.id, invite);
+    return { status: 'created', invite: { ...invite } };
+  }
+
+  async getInvite(id: string): Promise<InviteRecord | null> {
+    const invite = this.#invites.get(id);
+    return invite ? { ...invite } : null;
+  }
+
+  async getInviteByHash(tokenHash: string): Promise<InviteRecord | null> {
+    const invite = [...this.#invites.values()].find((i) => i.tokenHash === tokenHash);
+    return invite ? { ...invite } : null;
+  }
+
+  async listInvites(eventId: string, now: number): Promise<InviteRecord[]> {
+    return this.#active(this.#invites, eventId, now).map((i) => ({ ...i }));
+  }
+
+  async updateInvite(id: string, changes: InviteChanges, now: number): Promise<InviteRecord | null> {
+    const invite = this.#invites.get(id);
+    if (!invite) return null;
+    if (isActive(invite, now)) this.#invites.set(id, { ...invite, ...definedOnly(changes) });
+    return { ...(this.#invites.get(id) as InviteRecord) };
+  }
+
+  async revokeInvite(id: string, now: number): Promise<boolean> {
+    const invite = this.#invites.get(id);
+    if (!invite || invite.revokedAt !== null) return false;
+    this.#invites.set(id, { ...invite, revokedAt: now });
+    return true;
+  }
+
+  async joinInvite(input: JoinInput): Promise<JoinOutcome> {
+    const invite = [...this.#invites.values()].find((i) => i.tokenHash === input.tokenHash);
+    const event = invite ? this.#events.get(invite.eventId) : undefined;
+    if (!invite || !event) return { status: 'not_found' };
+    const member = this.#members.get(memberKey(event.id, input.accountId)) ?? null;
+    const active = [...this.#members.values()].filter((m) => m.eventId === event.id && m.role !== 'removed').length;
+    const access = inviteAccess(invite, event, member, input.accountId, input.now, active, input.maxMembers);
+    if (access !== 'open') return { status: access, invite: { ...invite } };
+    const used: InviteRecord = { ...invite, useCount: invite.useCount + 1 };
+    const joined: MemberRecord = {
+      eventId: event.id, accountId: input.accountId, role: invite.role, inviteId: invite.id, archivedAt: null, reminders: null, createdAt: input.now,
+    };
+    this.#invites.set(invite.id, used);
+    this.#members.set(memberKey(event.id, input.accountId), joined);
+    return { status: 'joined', invite: { ...used }, member: copyMember(joined) };
+  }
+
+  async listMembers(eventId: string): Promise<MemberListing[]> {
+    return [...this.#members.values()]
+      .filter((m) => m.eventId === eventId && this.#accounts.has(m.accountId))
+      .sort((a, b) => a.createdAt - b.createdAt || compare(a.accountId, b.accountId))
+      .map((m) => ({
+        accountId: m.accountId, name: (this.#accounts.get(m.accountId) as AccountRecord).displayName, role: m.role, inviteId: m.inviteId, createdAt: m.createdAt,
+      }));
+  }
+
+  async setMemberRole(eventId: string, accountId: string, role: MemberRoleValue): Promise<boolean> {
+    const m = this.#members.get(memberKey(eventId, accountId));
+    if (!m || m.role === 'removed') return false;
+    this.#members.set(memberKey(eventId, accountId), { ...m, role });
+    return true;
+  }
+
+  async removeMember(eventId: string, accountId: string): Promise<boolean> {
+    const m = this.#members.get(memberKey(eventId, accountId));
+    if (!m || m.role === 'removed') return false;
+    this.#members.set(memberKey(eventId, accountId), { ...m, role: 'removed' });
+    return true;
+  }
+
+  async deleteMember(eventId: string, accountId: string, which: 'active' | 'removed'): Promise<boolean> {
+    const m = this.#members.get(memberKey(eventId, accountId));
+    if (!m || (m.role === 'removed') !== (which === 'removed')) return false;
+    return this.#members.delete(memberKey(eventId, accountId));
   }
 
   // ---- Memos ----
@@ -443,6 +583,18 @@ export class MemoryStore implements Store {
     return people;
   }
 
+  #active<T extends { readonly eventId: string; readonly createdAt: number; readonly id: string; readonly revokedAt: number | null; readonly expiresAt: number | null }>(
+    rows: ReadonlyMap<string, T>,
+    eventId: string,
+    now: number,
+  ): T[] {
+    return [...rows.values()].filter((r) => r.eventId === eventId && isActive(r, now)).sort((a, b) => a.createdAt - b.createdAt || compare(a.id, b.id));
+  }
+
+  #activeCount(rows: ReadonlyMap<string, LinkRecord | InviteRecord>, eventId: string, now: number): number {
+    return this.#active(rows, eventId, now).length;
+  }
+
   #liveMemo(eventId: string, memoId: string): MemoRecord | null {
     const memo = this.#memos.get(memoId);
     const event = this.#events.get(eventId);
@@ -463,6 +615,11 @@ function identityKey(provider: string, subject: string): string {
 
 function memberKey(eventId: string, accountId: string): string {
   return `${eventId}\u0000${accountId}`;
+}
+
+/** The members of `changes` that are set; undefined means "leave as it is". */
+function definedOnly<T extends object>(changes: T): Partial<T> {
+  return Object.fromEntries(Object.entries(changes).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
 
 function compare(a: string, b: string): number {
