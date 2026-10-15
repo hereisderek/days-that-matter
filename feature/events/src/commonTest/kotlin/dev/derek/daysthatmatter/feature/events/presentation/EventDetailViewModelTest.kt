@@ -17,6 +17,7 @@ import dev.derek.daysthatmatter.feature.events.presentation.day.DayIntent
 import dev.derek.daysthatmatter.feature.events.presentation.day.DayUiState
 import dev.derek.daysthatmatter.feature.events.presentation.day.DetailRow
 import dev.derek.daysthatmatter.feature.events.presentation.day.EventDetailViewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
@@ -174,6 +175,7 @@ class EventDetailViewModelTest : MainDispatcherTest() {
     @Test
     fun deleteClosesThePageAndAMissingDayIsNotFound() = runTest(dispatcher) {
         val vm = viewModel("edit")
+        backgroundScope.launch { vm.state.collect {} }
 
         vm.effect.test {
             vm.onIntent(DayIntent.Delete)

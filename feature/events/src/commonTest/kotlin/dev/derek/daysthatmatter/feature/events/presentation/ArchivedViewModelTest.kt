@@ -14,6 +14,7 @@ import dev.derek.daysthatmatter.feature.events.event
 import dev.derek.daysthatmatter.feature.events.presentation.archived.ArchivedEffect
 import dev.derek.daysthatmatter.feature.events.presentation.archived.ArchivedIntent
 import dev.derek.daysthatmatter.feature.events.presentation.archived.ArchivedViewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -53,6 +54,7 @@ class ArchivedViewModelTest : MainDispatcherTest() {
     @Test
     fun unarchiveReturnsTheDayToHome() = runTest(dispatcher) {
         val vm = viewModel()
+        backgroundScope.launch { vm.state.collect {} }
 
         vm.effect.test {
             vm.onIntent(ArchivedIntent.Unarchive("older"))

@@ -20,11 +20,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
@@ -48,40 +47,38 @@ class HomeViewModel(
 ) : ViewModel() {
 
     private val homeQuery = MutableStateFlow(HomeQuery())
-    private val _state = MutableStateFlow(HomeUiState(chips = chips()))
-    val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    /** What the user set on screen (search, filter, sort, layout); the days are combined in below. */
+    private val controls = MutableStateFlow(HomeUiState(chips = chips()))
+
+    /** Ticks only while the screen collects it (stops 5 s after it leaves, so nothing ticks in the background). */
+    val state: StateFlow<HomeUiState> =
+        combine(controls, observeEvents(homeQuery), observeArchivedCount()) { ui, days, archived -> ui.withDays(days, archived) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), controls.value)
 
     private val effects = Channel<HomeEffect>(Channel.BUFFERED)
     val effect: Flow<HomeEffect> = effects.receiveAsFlow()
 
-    init {
-        combine(observeEvents(homeQuery), observeArchivedCount()) { days, archived -> days to archived }
-            .onEach { (days, archived) ->
-                _state.update { it.withDays(days, archived) }
-            }
-            .launchIn(viewModelScope)
-    }
-
     fun onIntent(intent: HomeIntent) {
         when (intent) {
             HomeIntent.ToggleSearch -> {
-                val closing = _state.value.searching
-                _state.update { it.copy(searching = !closing, query = if (closing) "" else it.query) }
+                val closing = controls.value.searching
+                controls.update { it.copy(searching = !closing, query = if (closing) "" else it.query) }
                 if (closing) homeQuery.update { it.copy(text = "") }
             }
             is HomeIntent.QueryChanged -> {
-                _state.update { it.copy(query = intent.text) }
+                controls.update { it.copy(query = intent.text) }
                 homeQuery.update { it.copy(text = intent.text) }
             }
             is HomeIntent.SelectFilter -> {
-                _state.update { it.copy(filter = intent.filter) }
+                controls.update { it.copy(filter = intent.filter) }
                 homeQuery.update { it.copy(filter = intent.filter) }
             }
             is HomeIntent.SelectSort -> {
-                _state.update { it.copy(sort = intent.sort) }
+                controls.update { it.copy(sort = intent.sort) }
                 homeQuery.update { it.copy(sort = intent.sort) }
             }
-            HomeIntent.ToggleLayout -> _state.update {
+            HomeIntent.ToggleLayout -> controls.update {
                 it.copy(layout = if (it.layout == HomeLayout.List) HomeLayout.Grid else HomeLayout.List)
             }
             is HomeIntent.OpenDay -> send(HomeEffect.OpenDay(intent.id))
@@ -113,7 +110,7 @@ class HomeViewModel(
             HomeSectionKind.Upcoming to days.upcoming,
             HomeSectionKind.Since to days.since,
         ).filter { it.second.isNotEmpty() }.map { (kind, list) -> HomeSection(kind, list.map(::item)) }
-        val filtered = homeQuery.value.text.isNotBlank() || homeQuery.value.filter != HomeFilter.All
+        val filtered = query.isNotBlank() || filter != HomeFilter.All
         return copy(
             loading = false,
             kicker = CountdownText.todayKicker(clock.now(), zone()),
@@ -136,6 +133,9 @@ class HomeViewModel(
     )
 
     companion object {
+        /** How long the ticking flows keep running after the screen stops collecting (configuration changes). */
+        const val STOP_TIMEOUT_MS = 5_000L
+
         fun chips(): List<FilterChip> = listOf(
             FilterChip(HomeFilter.All, "All"),
             FilterChip(HomeFilter.Upcoming, "Upcoming"),

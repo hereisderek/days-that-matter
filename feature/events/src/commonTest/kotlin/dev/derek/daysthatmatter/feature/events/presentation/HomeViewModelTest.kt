@@ -24,6 +24,7 @@ import dev.derek.daysthatmatter.feature.events.presentation.home.HomeLayout
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeSectionKind
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeUiState
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeViewModel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlin.test.Test
@@ -188,6 +189,7 @@ class HomeViewModelTest : MainDispatcherTest() {
     fun archivingMovesTheDayToTheArchivedRow() = runTest(dispatcher) {
         val repository = repository()
         val vm = viewModel(repository)
+        backgroundScope.launch { vm.state.collect {} }
 
         vm.effect.test {
             vm.onIntent(HomeIntent.Archive("trip"))
@@ -222,6 +224,7 @@ class HomeViewModelTest : MainDispatcherTest() {
     fun pinningFollowsTheOwnerRule() = runTest(dispatcher) {
         val repository = repository()
         val vm = viewModel(repository)
+        backgroundScope.launch { vm.state.collect {} }
 
         vm.effect.test {
             vm.onIntent(HomeIntent.SetPinned("shared", true))
@@ -235,5 +238,18 @@ class HomeViewModelTest : MainDispatcherTest() {
             assertEquals(listOf("party", "trip"), expectMostRecentItem().ids()[HomeSectionKind.Pinned])
             cancelAndIgnoreRemainingEvents()
         }
+    }
+
+    @Test
+    fun tickingStopsWhenTheScreenStopsCollecting() = runTest(dispatcher) {
+        val vm = viewModel(repository())
+        val screen = backgroundScope.launch { vm.state.collect {} }
+        testScheduler.runCurrent()
+        assertEquals(1, ticker.time.subscriptionCount.value)
+
+        screen.cancel()
+        testScheduler.advanceTimeBy(HomeViewModel.STOP_TIMEOUT_MS + 1)
+        testScheduler.runCurrent()
+        assertEquals(0, ticker.time.subscriptionCount.value)
     }
 }

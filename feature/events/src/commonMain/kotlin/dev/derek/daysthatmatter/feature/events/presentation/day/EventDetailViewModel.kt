@@ -15,14 +15,14 @@ import dev.derek.daysthatmatter.feature.events.domain.SetUnitModeUseCase
 import dev.derek.daysthatmatter.feature.events.domain.UnarchiveEventUseCase
 import dev.derek.daysthatmatter.feature.events.presentation.common.CardLook
 import dev.derek.daysthatmatter.feature.events.presentation.common.CountdownText
+import dev.derek.daysthatmatter.feature.events.presentation.home.HomeViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 
@@ -40,21 +40,17 @@ class EventDetailViewModel(
     private val zone: () -> TimeZone,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow<DayUiState>(DayUiState.Loading)
-    val state: StateFlow<DayUiState> = _state.asStateFlow()
+    /** Ticks each second while the screen collects it; stops 5 s after it leaves. */
+    val state: StateFlow<DayUiState> = observeEvent(eventId)
+        .map { day -> day?.let(::content) ?: DayUiState.NotFound }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(HomeViewModel.STOP_TIMEOUT_MS), DayUiState.Loading)
 
     private val effects = Channel<DayEffect>(Channel.BUFFERED)
     val effect: Flow<DayEffect> = effects.receiveAsFlow()
 
-    init {
-        observeEvent(eventId)
-            .onEach { day -> _state.value = day?.let(::content) ?: DayUiState.NotFound }
-            .launchIn(viewModelScope)
-    }
-
     fun onIntent(intent: DayIntent) {
         when (intent) {
-            DayIntent.CycleUnit -> (_state.value as? DayUiState.Content)?.let { changeUnit(SetUnitModeUseCase.next(it.unitMode)) }
+            DayIntent.CycleUnit -> (state.value as? DayUiState.Content)?.let { changeUnit(SetUnitModeUseCase.next(it.unitMode)) }
             is DayIntent.SelectUnit -> changeUnit(intent.mode)
             DayIntent.Unarchive -> viewModelScope.launch {
                 if (unarchiveEvent(eventId) == EventWriteResult.Done) effects.send(DayEffect.Message("Back on Home"))
@@ -67,7 +63,7 @@ class EventDetailViewModel(
     }
 
     private fun changeUnit(mode: UnitMode) {
-        val current = _state.value as? DayUiState.Content ?: return
+        val current = state.value as? DayUiState.Content ?: return
         if (!current.canChangeUnit || mode == current.unitMode) return
         viewModelScope.launch { setUnitMode(eventId, mode) }
     }

@@ -9,14 +9,14 @@ import dev.derek.daysthatmatter.feature.events.domain.ObserveArchivedUseCase
 import dev.derek.daysthatmatter.feature.events.domain.RestoreEventUseCase
 import dev.derek.daysthatmatter.feature.events.domain.UnarchiveEventUseCase
 import dev.derek.daysthatmatter.feature.events.presentation.common.CardLook
+import dev.derek.daysthatmatter.feature.events.presentation.home.HomeViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /** An archived day. Days shared with the reader offer Leave instead of Delete. */
@@ -52,22 +52,13 @@ class ArchivedViewModel(
     private val restoreEvent: RestoreEventUseCase,
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(ArchivedUiState())
-    val state: StateFlow<ArchivedUiState> = _state.asStateFlow()
+    /** Ticks while the screen collects it; stops 5 s after it leaves. */
+    val state: StateFlow<ArchivedUiState> = observeArchived()
+        .map { days -> ArchivedUiState(loading = false, items = days.map { ArchivedItem(it.event.id, CardLook.card(it), it.event.isOwner) }) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(HomeViewModel.STOP_TIMEOUT_MS), ArchivedUiState())
 
     private val effects = Channel<ArchivedEffect>(Channel.BUFFERED)
     val effect: Flow<ArchivedEffect> = effects.receiveAsFlow()
-
-    init {
-        observeArchived()
-            .onEach { days ->
-                _state.value = ArchivedUiState(
-                    loading = false,
-                    items = days.map { ArchivedItem(it.event.id, CardLook.card(it), it.event.isOwner) },
-                )
-            }
-            .launchIn(viewModelScope)
-    }
 
     fun onIntent(intent: ArchivedIntent) {
         viewModelScope.launch {
@@ -76,7 +67,7 @@ class ArchivedViewModel(
                 is ArchivedIntent.Unarchive ->
                     if (unarchiveEvent(intent.id) == EventWriteResult.Done) effects.send(ArchivedEffect.Message("Back on Home"))
                 is ArchivedIntent.Delete -> {
-                    val owner = _state.value.items.firstOrNull { it.id == intent.id }?.isOwner ?: true
+                    val owner = state.value.items.firstOrNull { it.id == intent.id }?.isOwner ?: true
                     if (deleteEvent(intent.id) == EventWriteResult.Done) {
                         effects.send(ArchivedEffect.Message(if (owner) "Deleted" else "Left the day", undoDeleteId = intent.id))
                     }
