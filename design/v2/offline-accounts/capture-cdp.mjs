@@ -70,6 +70,11 @@ window.__cap = {
     if (!el) throw new Error('element not found: ' + sel);
     el.click();
   },
+  row(text) {
+    const el = [...document.querySelectorAll('#app .cell, #app button')].find(c => c.textContent.includes(text));
+    if (!el) throw new Error('row not found: ' + text);
+    el.click();
+  },
   scrollTop() { const v = document.querySelector('#app .view'); if (v) v.scrollTop = 0; },
   rect() { const r = document.querySelector('#device').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }
 };`;
@@ -91,6 +96,7 @@ for (const theme of ['light', 'dark']) {
   const panel = (l, v) => ev(`__cap.panel(${JSON.stringify(l)}, ${JSON.stringify(v)})`);
   const nav = n => ev(`__cap.nav(${JSON.stringify(n)})`);
   const btn = (src, flags) => ev(`__cap.btn(${JSON.stringify(src)}, ${JSON.stringify(flags ?? '')})`);
+  const row = text => ev(`__cap.row(${JSON.stringify(text)})`);
   const click = sel => ev(`__cap.click(${JSON.stringify(sel)})`);
   const reset = async () => { await btn('^Reset demo$'); await sleep(300); };
   const shot = async name => {
@@ -115,15 +121,32 @@ for (const theme of ['light', 'dark']) {
   await step('08', async () => { await reset(); await btn('^Show$'); await shot('08-nudge-sheet'); });
   await step('09', async () => { await reset(); await panel('Import choice', 'Not yet'); await shot('09-import-prompt'); });
   await step('10', async () => { await btn('^Import 4 days'); await shot('10-import-confirm'); });
-  await step('11', async () => { await btn('^Yes, import'); await shot('11-import-success'); });
-  await step('12', async () => {
-    await reset(); await panel('Import result', 'Partial'); await panel('Import choice', 'Not yet');
-    await btn('^Import 4 days'); await btn('^Yes, import'); await shot('12-import-partial');
+  await step('11', async () => { await btn('^Yes, import'); await sleep(1300); await shot('11-import-success'); });
+  await step('12', async () => { await reset(); await shot('12-home-signed-in-after-skip'); });
+  await step('13', async () => { await nav('Settings'); await ev('__cap.scrollTop()'); await shot('13-settings-signed-in-import-row'); });
+  await step('14', async () => { await btn('^Sign out'); await shot('14-signout-confirm'); });
+  await step('15', async () => { await btn('^Sign out$'); await shot('15-home-local-after-signout'); });
+  await step('16', async () => {
+    await reset(); await panel('Import choice', 'Not yet');
+    await btn('^Import 4 days'); await btn('^Yes, import'); await shot('16-import-progress');
   });
-  await step('13', async () => { await reset(); await shot('13-home-signed-in-after-skip'); });
-  await step('14', async () => { await nav('Settings'); await ev('__cap.scrollTop()'); await shot('14-settings-signed-in-import-row'); });
-  await step('15', async () => { await btn('^Sign out'); await shot('15-signout-confirm'); });
-  await step('16', async () => { await btn('^Sign out$'); await shot('16-home-local-after-signout'); });
+  await step('17', async () => {
+    await reset(); await panel('Import result', 'Failed'); await panel('Import choice', 'Not yet');
+    await btn('^Import 4 days'); await btn('^Yes, import'); await sleep(1300);
+    await shot('17-import-failed');
+  });
+  await step('18', async () => {
+    await reset(); await panel('Import result', "Can't import"); await panel('Import choice', 'Not yet');
+    await btn('^Import 4 days'); await btn('^Yes, import'); await sleep(1300);
+    await shot('18-import-cannot');
+  });
+  await step('19', async () => { await reset(); await nav('Settings'); await ev('__cap.scrollTop()'); await shot('19-settings-export-import'); });
+  await step('20', async () => { await row('Export events'); await shot('20-export-saved'); });
+  await step('21', async () => { await reset(); await panel('Widgets', 'Signed out'); await nav('Widgets'); await shot('21-widgets-signed-out'); });
+  await step('22', async () => { await panel('Widgets', 'Signed in, not imported'); await shot('22-widgets-not-imported'); });
+  await step('23', async () => { await reset(); await panel('Unsynced changes', 'Some, offline'); await nav('Settings'); await btn('^Sign out'); await shot('23-signout-offline-unsynced'); });
+  await step('24', async () => { await reset(); await panel('Limits config', 'Spotify limit removed'); await nav('Settings'); await shot('24-settings-limit-removed'); });
+  await step('25', async () => { await btn('^Upgrade to Premium'); await shot('25-paywall-limit-removed'); });
 }
 
 await send('Emulation.clearDeviceMetricsOverride');

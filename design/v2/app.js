@@ -151,17 +151,31 @@ const seedLibrary = () => [
 ];
 
 // Plan table, mirrors docs/features/premium/SPEC.md (source of truth: :core:model).
-const LIMITS = {
-  free: { events: 10, photos: 5, animated: 0, files: 0, spotify: 3 },
-  premium: { events: 500, photos: 300, animated: 30, files: 20, spotify: Infinity },
+// Remote limits configuration can change or omit limits at any time.
+const CONFIG_LIMITS = {
+  default: {
+    free: { events: 20, photos: 5, animated: 0, files: 0, spotify: 5 },
+    premium: { events: 500, photos: 300, animated: 30, files: 20, spotify: Infinity },
+  },
+  'no-spotify': {
+    free: { events: 20, photos: 5, animated: 0, files: 0 },
+    premium: { events: 500, photos: 300, animated: 30, files: 20 },
+  },
 };
+const getLimits = (plan = S.plan) => {
+  const cfg = CONFIG_LIMITS[S.limitsConfig || 'default'] || CONFIG_LIMITS.default;
+  return cfg[plan];
+};
+const LIMITS = new Proxy({}, {
+  get: (_, prop) => getLimits(prop),
+});
 const WALLS = {
-  events: ['Free includes 10 days', 'Premium keeps up to 500. Nothing you have is ever deleted.', 'days'],
+  events: ['Free includes 20 events', 'Premium keeps up to 500. Nothing you have is ever deleted.', 'events'],
   photos: ['Free includes 5 photo backdrops', 'Premium includes 300, and 30 animated photos.', 'photo backdrops'],
   animated: ['Animated photos are part of Premium', 'Preview it as much as you like. Saving it needs Premium.', 'animated photos'],
   premium_audio: ['This track is part of Premium', 'Free includes 5 tracks. Premium unlocks the whole catalog.', 'tracks'],
   files: ['Your own music is part of Premium', 'Add up to 20 songs. They are converted on your phone.', 'music files'],
-  spotify: ['Free includes Spotify on 3 days', 'Premium has no Spotify limit.', 'Spotify days'],
+  spotify: ['Free includes Spotify on 5 events', 'Premium has no Spotify limit.', 'Spotify events'],
 };
 
 const COLORS = [
@@ -291,7 +305,7 @@ const S = {
   screen: 'home', stack: [], anim: '', accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(),
   // account null = local mode (no sign-in). Local days and an account's days live in separate stores; only an explicit import moves days.
   account: { ...ACCOUNT }, localName: 'Sam', plan: 'free', lastSync: Date.now() - 4 * 6e4, pending: 0,
-  importChoice: 'skipped', importFail: false, afterImport: null, nudgeNo: 0, clockHour: null, // importChoice: none (not asked yet), imported, skipped
+  importChoice: 'skipped', importResult: 'ok', limitsConfig: 'default', widgetMode: 'normal', unsyncedChanges: 'none', afterImport: null, nudgeNo: 0, clockHour: null, // importChoice: none (not asked yet), imported, skipped
   filter: 'all', layout: 'list', sort: 'smart', query: '', searching: false,
   detailId: 'norway', playing: false, motion: false, pinIndex: 0,
   draft: null, edTab: 'details', bgTab: 'photo', soundTab: 'builtin', prevCtx: 'hero', trackPreview: null,
@@ -755,24 +769,31 @@ function settingsView() {
       <div class="group">
         <div class="cell"><span class="ci">${icon('cloud')}</span><span class="cl">Sync<small>${S.pending ? `${S.pending} ${S.pending === 1 ? 'change' : 'changes'} waiting` : `Synced ${ago(S.lastSync)}`}</small></span><button class="btn btn-ghost sm" data-act="sync">Sync now</button></div>
       </div>
-      ${lc.days ? `<p class="group-label">On this device<span class="new">New</span></p>
+      <p class="group-label">Your events on this device<span class="new">New</span></p>
       <div class="group">
-        <button class="cell" data-act="import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import days from this device<small>${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this phone, not in your account</small></span><span class="cv">${lc.days}${icon('chev')}</span></button>
-      </div>` : ''}`
+        ${lc.days ? `<button class="cell" data-act="import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import days from this device<small>${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this phone, not in your account</small></span><span class="cv">${lc.days}${icon('chev')}</span></button>` : ''}
+        <button class="cell" data-act="export-events"><span class="ci">${icon('download')}</span><span class="cl">Export events<small>Save to a backup file</small></span><span class="cv">${icon('chev')}</span></button>
+        <button class="cell" data-act="file-import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import events<small>Restore from a backup file</small></span><span class="cv">${icon('chev')}</span></button>
+      </div>`
     : `<div class="profile"><span class="pic">🌤️</span><div><button class="profile-name" data-act="edit-name"><b class="${(S.localName || '').trim() ? '' : 'muted'}">${esc((S.localName || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>Local</small></div><span class="pro free">${premium ? 'Premium' : 'Free'}</span></div>
       <div class="info inset">${icon('info')}<span><b>Local mode.</b> Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them.</span></div>
       <div class="cta-wrap"><button class="btn btn-accent" data-act="signin-prompt" data-arg="settings">Sign in or create an account</button></div>
+      <p class="group-label">Your events on this device<span class="new">New</span></p>
+      <div class="group">
+        <button class="cell" data-act="export-events"><span class="ci">${icon('download')}</span><span class="cl">Export events<small>Save to a backup file</small></span><span class="cv">${icon('chev')}</span></button>
+        <button class="cell" data-act="file-import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import events<small>Restore from a backup file</small></span><span class="cv">${icon('chev')}</span></button>
+      </div>
       <p class="group-label">Needs an account</p>
       <div class="group">
         ${locked('cloud', 'Sync across devices', 'sync')}${locked('share', 'Sharing and invites', 'share')}${locked('history', 'History and restore', 'history')}${locked('download', 'Backup and download my data', 'backup')}
       </div>`}
     <p class="group-label">Plan</p>
     <div class="group">
-      ${meter('Days', u.events, L.events)}
+      ${meter('Events', u.events, L.events)}
       ${meter('Photo backdrops', u.photos, L.photos)}
       ${gated('Live photos', u.animated, L.animated)}
       ${gated('Your music files', u.files, L.files)}
-      ${premium ? `<div class="cell"><span class="cl">Spotify days</span><span class="cv">${u.spotify} · no limit</span></div>` : meter('Spotify days', u.spotify, L.spotify)}
+      ${L.spotify !== undefined ? (premium ? `<div class="cell"><span class="cl">Spotify events</span><span class="cv">${u.spotify} · no limit</span></div>` : meter('Spotify events', u.spotify, L.spotify)) : ''}
       <div class="cell">${premium ? '<span class="cl">Manage in the App Store</span>' : '<button class="btn btn-primary sm" data-act="paywall">Upgrade to Premium</button>'}<button class="txt-btn" data-act="restore">Restore purchases</button></div>
     </div>
     ${a ? '' : '<p class="note pad">Local mode follows the same limits as an account, so signing in later never puts you over them. Premium features stay Premium.</p>'}
@@ -802,7 +823,6 @@ function settingsView() {
       <button class="cell" data-act="go" data-arg="widgets"><span class="ci">${icon('widgets')}</span><span class="cl">Widgets</span><span class="cv">${icon('chev')}</span></button>
       ${link('trash', 'Recently deleted<span class="new">New</span>', 'Deleted days stay here for 30 days.')}
       ${link('lock', 'Privacy lock<span class="new">New</span>', 'Face ID / fingerprint lock, and hiding private days from widgets.', 'Off')}
-      ${a ? '' : link('download', 'Export to a file<span class="new">New</span>', 'Local days stay on this device only. Export a JSON backup.')}
       ${link('globe', 'Language', 'English, 简体中文, 繁體中文 …', 'English')}
       ${link('info', 'Terms of Service', 'Opens daysthatmatter.app/terms')}
       ${link('info', 'Privacy Policy', 'Opens daysthatmatter.app/privacy')}
@@ -826,14 +846,49 @@ function widgetLook(ev) {
   return { ...ev, look: { ...ev.look, bg: { type: 'color', value }, style: 'clean', dim: 0, text: 'auto' } };
 }
 
+function widgetPlaceholder(size = 'ws') {
+  if (size === 'wm') {
+    return `<article class="card ctx-wm w-placeholder">
+      <div class="card-body">
+        <div class="lead">
+          <div class="w-ph-box">
+            <span class="emo">⏳</span>
+            <div class="w-ph-title">This event isn’t available</div>
+            <div class="w-ph-sub">Open the app</div>
+          </div>
+        </div>
+      </div>
+    </article>`;
+  }
+  return `<article class="card ctx-ws w-placeholder">
+    <div class="card-body">
+      <div class="w-ph-box">
+        <span class="emo">⏳</span>
+        <div class="w-ph-title">This event isn’t available</div>
+        <div class="w-ph-sub">Open the app</div>
+      </div>
+    </div>
+  </article>`;
+}
+
 function widgetsView() {
+  const mode = S.widgetMode || 'normal';
   const pin = pins()[0] || active()[0];
   const next = active().filter(e => e !== pin).map(e => ({ e, c: calc(e) })).filter(r => !r.c.past).sort((a, b) => a.c.days - b.c.days).slice(0, 3);
   const second = next[0] ? next[0].e : pin;
   const w = widgetLook(pin), c = calc(pin), v = valueFor(pin, 'days', c);
-  const medium = `<article class="${cardClass(w, 'wm')}" style="${cardVars(w.look)}">${layers(w.look)}<div class="card-body">
+
+  // Widget 1 (Small) and Widget 2 (Medium) represent the account's events.
+  // Widget 3 (Second small) represents a local event kept on this device.
+  const acctUnavailable = mode === 'signed-out';
+  const localUnavailable = mode === 'not-imported';
+
+  const w1Html = acctUnavailable ? widgetPlaceholder('ws') : card(w, 'ws');
+  const w2Html = acctUnavailable ? widgetPlaceholder('wm') : `<article class="${cardClass(w, 'wm')}" style="${cardVars(w.look)}">${layers(w.look)}<div class="card-body">
       <div class="lead"><span class="emo">${pin.emoji}</span><div>${count(v)}<div class="u">${v.u}</div><div class="t">${title(pin)}</div></div></div>
       <div class="next">${next.map(r => `<div><span>${r.e.emoji} ${esc(r.e.title)}</span><b>${r.c.today ? 'Today' : fmt(r.c.days) + 'd'}</b></div>`).join('')}</div></div></article>`;
+  const w3Html = localUnavailable ? widgetPlaceholder('ws') : card(widgetLook(second), 'ws');
+
   const start = parse(pin.created), pct = c.past ? 100 : Math.round(Math.min(1, diffDays(start, today()) / Math.max(1, diffDays(start, c.target))) * 100);
   const lockBg = pin.look.bg.type === 'photo' ? bgCSS(pin.look.bg) : GRADS.dusk.css;
   return `<section class="view" data-key="widgets">
@@ -841,12 +896,13 @@ function widgetsView() {
     <h1 class="page-title">Widgets</h1>
     <p class="lead">Widgets use each day's own look. Live photos show their key photo. Small shows one day, Medium adds what's next.</p>
     <div class="homescreen" style="${esc(`background:${GRADS.glacier.css}`)}">
-      <div class="w-s">${card(w, 'ws')}</div>
+      <div class="w-s">${w1Html}</div>
       <div class="apps"><span class="app-ic"></span><span class="app-ic"></span><span class="app-ic"></span><span class="app-ic"></span></div>
-      <div class="w-m">${medium}</div>
-      <div class="w-s">${card(widgetLook(second), 'ws')}</div>
+      <div class="w-m">${w2Html}</div>
+      <div class="w-s">${w3Html}</div>
       <div class="apps"><span class="app-ic"></span><span class="app-ic"></span><span class="app-ic"></span><span class="app-ic"></span></div>
     </div>
+    <p class="note center pad" style="margin-top:14px">When an event isn’t available on this device, widgets show a placeholder until you open the app.</p>
     <p class="group-label" style="margin-top:18px">Widget look</p>
     <div style="margin:0 16px 22px" class="seg">${[['match', 'Match card'], ['minimal', 'Minimal'], ['tinted', 'Tinted']].map(([k, n]) => `<button data-act="wstyle" data-arg="${k}" ${pressed(S.settings.widgetStyle, k)}>${n}</button>`).join('')}</div>
     <p class="group-label">Lock Screen</p>
@@ -997,16 +1053,28 @@ const SHEETS = {
       welcome: 'Create your account or sign in. Your days sync to all your devices.', nudge: 'Share days, sync across your devices and keep a backup. Your days here stay yours until you choose to import them.' }[reason];
     return `${sheetHead('Sign in or create an account')}<p class="sheet-p">${why}</p>${signInButtons()}${reason === 'share' ? '' : '<button class="btn btn-text" data-act="close-sheet">Not now</button>'}${legal()}`;
   },
-  paywall: ({ g }) => g.limit
-    ? `${sheetHead(g.title)}<p class="sheet-p">${esc(g.text)}</p>${g.alt ? `<button class="btn btn-primary" data-act="paywall-alt">${esc(g.alt.label)}</button>` : ''}<button class="btn btn-text" data-act="close-sheet">OK</button>`
-    : `<div class="pw-hero">${icon('sparkle')}<span>Premium</span><button data-act="close-sheet" aria-label="Close">${icon('close')}</button></div>
+  paywall: ({ g }) => {
+    if (g.limit) {
+      return `${sheetHead(g.title)}<p class="sheet-p">${esc(g.text)}</p>${g.alt ? `<button class="btn btn-primary" data-act="paywall-alt">${esc(g.alt.label)}</button>` : ''}<button class="btn btn-text" data-act="close-sheet">OK</button>`;
+    }
+    const benefits = [
+      '500 events',
+      '300 photo backdrops, 30 Live Photos',
+      'The whole music catalog',
+      'Your own songs, up to 20',
+    ];
+    if (getLimits('premium').spotify !== undefined) {
+      benefits.push('Spotify on any number of events');
+    }
+    return `<div class="pw-hero">${icon('sparkle')}<span>Premium</span><button data-act="close-sheet" aria-label="Close">${icon('close')}</button></div>
       <h2 class="pw-title">${esc(g.title)}</h2><p class="sheet-p">${esc(g.text)}</p>
-      <ul class="benefits">${['500 days', '300 photo backdrops, 30 Live Photos', 'The whole music catalog', 'Your own songs, up to 20', 'Spotify on any number of days'].map(t => `<li>${icon('check')}${t}</li>`).join('')}</ul>
+      <ul class="benefits">${benefits.map(t => `<li>${icon('check')}${t}</li>`).join('')}</ul>
       <div class="plan-opts">${[['year', 'Yearly'], ['month', 'Monthly']].map(([k, n]) => `<button data-act="billing" data-arg="${k}" ${pressed(S.billing, k)}><b>${n}</b><small>Price from the store</small></button>`).join('')}</div>
       <button class="btn btn-primary" data-act="upgrade">Upgrade to Premium</button>
       ${g.alt ? `<button class="btn btn-ghost" data-act="paywall-alt" style="margin-top:8px">${esc(g.alt.label)}</button>` : ''}
       <div class="pw-foot"><button data-act="restore">Restore purchases</button><button data-act="close-sheet">Not now</button></div>
-      <p class="note center">Billed by Apple or Google; cancel in your store settings. People you share with never need Premium to see it. Ending a plan never removes anything.</p>`,
+      <p class="note center">Billed by Apple or Google; cancel in your store settings. People you share with never need Premium to see it. Ending a plan never removes anything.</p>`;
+  },
   // Heavy-use nudge (local mode only). Calm: one primary, a clear Not now, and a line saying how often it can return.
   nudge: () => { const lc = localCount(); return `${sheetHead('Your days deserve a backup')}
     <p class="sheet-p">You are keeping <b>${plural(lc.days, 'day')}</b> and <b>${plural(lc.memos, 'memo')}</b> on this phone. An account adds:</p>
@@ -1015,28 +1083,60 @@ const SHEETS = {
     <button class="btn btn-text" data-act="nudge-no">Not now</button>
     <p class="note center">Your days stay on this phone until you decide to import them. We won't ask again for a month.</p>`; },
   // Import after sign-in, from Settings, and the follow-up states. Same wording in all places.
-  import: ({ step, n, memos: m, failed }) => {
-    const lc = localCount(), acct = esc(S.account?.email || ''), owned = S.accountEvents.filter(isOwner).length, over = S.plan === 'free' && owned + lc.days > LIMITS.free.events;
+  import: ({ step, n, memos: m }) => {
+    const lc = localCount(), acct = esc(S.account?.email || '');
     const rows = S.localEvents.slice(0, 3).map(e => `<div class="lrow"><span class="emo-i">${e.emoji}</span><div class="cl"><b>${title(e)}</b><small>${esc(meta(e, calc(e)))}${e.memos.length ? ` · ${plural(e.memos.length, 'memo')}` : ''}</small></div></div>`).join('') + (lc.days > 3 ? `<div class="lrow"><div class="cl"><small>and ${lc.days - 3} more</small></div></div>` : '');
     if (step === 'confirm') return `${sheetHead('This can’t be undone')}
       <p class="sheet-p">Import ${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} into <b>${acct}</b>?</p>
       <ul class="benefits">${[['check', 'They are saved to your account and sync to your other devices.'], ['lock', 'They are removed from local mode on this phone. Signing out later will not bring them back here.'], ['info', 'You can’t move them back. Delete or edit them in your account as you would any day.']].map(([ic, t]) => `<li>${icon(ic)}${t}</li>`).join('')}</ul>
       <button class="btn btn-primary" data-act="import-yes">Yes, import ${plural(lc.days, 'day')}</button>
       <button class="btn btn-text" data-act="import-back">Go back</button>`;
-    if (step === 'done') return `<div class="empty"><div class="big">✅</div><b>${plural(n, 'day')} imported</b>${plural(m, 'memo')} came with ${n === 1 ? 'it' : 'them'}. ${n === 1 ? 'It is' : 'They are'} in your account now and will appear on your other devices. ${n === 1 ? 'It is' : 'They are'} no longer in local mode on this phone.</div>
+    if (step === 'progress') return `${sheetHead('Importing events')}
+      <div class="empty"><div class="spinner"></div><b style="margin-top:16px">Importing ${plural(n, 'event')}…</b><p class="sheet-p center" style="margin-top:6px">Please keep the app open while events are being imported.</p><div class="meter" style="max-width:200px;margin:14px auto 0"><i class="progress-bar" style="width:68%"></i></div></div>`;
+    if (step === 'done') return `<div class="empty"><div class="big">✅</div><b>${plural(n, 'event')} imported</b><p class="sheet-p center" style="margin-top:8px">${plural(m, 'memo')} came with ${n === 1 ? 'it' : 'them'}. ${n === 1 ? 'It is' : 'They are'} in your account now and will appear on your other devices. ${n === 1 ? 'It is' : 'They are'} no longer in local mode on this phone.</p></div>
       <button class="btn btn-primary" data-act="import-done">Done</button>`;
-    if (step === 'partial') return `<div class="empty"><div class="big">⚠️</div><b>${n} of ${n + failed.length} days imported</b>${esc(failed.join(', '))} couldn’t be imported. The connection dropped. ${plural(failed.length, 'day')} stayed on this phone, safe and unchanged. The others are in your account for good.</div>
+    if (step === 'failed') return `<div class="empty"><div class="big">⚠️</div><b>We couldn’t import your events. Nothing has changed on this device.</b></div>
       <button class="btn btn-primary" data-act="import-retry">Try again</button>
-      <button class="btn btn-text" data-act="import-done">Keep ${failed.length === 1 ? 'it' : 'them'} on this device for now</button>`;
+      <button class="btn btn-text" data-act="import-done" style="margin-top:8px">Not now</button>`;
+    if (step === 'cannot') return `<div class="empty"><div class="big">⚠️</div><b>These events can’t be imported yet. This version of the service doesn’t support something in them, so they stay on this device. We’ve noted it so it can be fixed.</b></div>
+      <button class="btn btn-primary" data-act="import-done">OK</button>`;
     return `${sheetHead('Import this phone’s days?', `Found ${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this device`)}
       <div class="form-card">${rows}</div>
       <p class="sheet-p">Importing moves them into your account, so they sync to your other devices. It is permanent: they leave local mode on this phone and can’t be moved back. If you choose not now, nothing is imported.</p>
-      ${over ? `<div class="info">${icon('info')}<span>Your account would have ${owned + lc.days} days, above the Free plan's ${LIMITS.free.events}. Nothing is deleted; adding new days needs Premium.</span></div>` : ''}
       <button class="btn btn-primary" data-act="import-go">Import ${plural(lc.days, 'day')}…</button>
       <button class="btn btn-ghost" data-act="import-later" style="margin-top:8px">Not now, keep on this device</button>
       <p class="note center">They stay here and are not shown in your account. You can import them later from Settings.</p>`;
   },
-  confirm: ({ title: t, text, label, plain }) => `${sheetHead(t)}<p class="sheet-p">${text}</p><button class="btn ${plain ? 'btn-primary' : 'btn-danger'}" data-act="confirm-yes">${label}</button><button class="btn btn-text" data-act="close-sheet">Cancel</button>`,
+  'file-import': ({ step, n = 4, memos = 2 }) => {
+    if (step === 'pick') return `${sheetHead('Choose a file')}
+      <p class="sheet-p">Select a backup file to import events from.</p>
+      <div class="form-card">
+        <button class="cell" data-act="file-import-chosen" style="text-align:left;width:100%"><span class="ci">${icon('archive')}</span><span class="cl"><b>DaysThatMatter-20261015-120000.zip</b><small>4 events · Today at 12:00</small></span><span class="cv">${icon('chev')}</span></button>
+      </div>
+      <button class="btn btn-text" data-act="close-sheet">Cancel</button>`;
+    if (step === 'confirm') return `${sheetHead('This can’t be undone')}
+      <p class="sheet-p">Import 4 events from <b>DaysThatMatter-20261015-120000.zip</b> into ${S.account ? 'your account' : 'this device'}?</p>
+      <ul class="benefits">${[['check', 'Events and memos in the file will be added.'], ['info', 'Existing events will not be overwritten.']].map(([ic, t]) => `<li>${icon(ic)}${t}</li>`).join('')}</ul>
+      <button class="btn btn-primary" data-act="file-import-yes">Yes, import 4 events</button>
+      <button class="btn btn-text" data-act="file-import-back">Go back</button>`;
+    if (step === 'progress') return `${sheetHead('Importing events')}
+      <div class="empty"><div class="spinner"></div><b style="margin-top:16px">Importing 4 events…</b><p class="sheet-p center" style="margin-top:6px">Please keep the app open while events are being imported.</p><div class="meter" style="max-width:200px;margin:14px auto 0"><i class="progress-bar" style="width:68%"></i></div></div>`;
+    if (step === 'done') return `<div class="empty"><div class="big">✅</div><b>4 events imported</b><p class="sheet-p center" style="margin-top:8px">2 memos came with them. They are now available on this device.</p></div>
+      <button class="btn btn-primary" data-act="close-sheet">Done</button>`;
+    if (step === 'failed') return `<div class="empty"><div class="big">⚠️</div><b>We couldn’t import your events. Nothing has changed on this device.</b></div>
+      <button class="btn btn-primary" data-act="file-import-retry">Try again</button>
+      <button class="btn btn-text" data-act="close-sheet" style="margin-top:8px">Not now</button>`;
+    if (step === 'cannot') return `<div class="empty"><div class="big">⚠️</div><b>These events can’t be imported yet. This version of the service doesn’t support something in them, so they stay on this device. We’ve noted it so it can be fixed.</b></div>
+      <button class="btn btn-primary" data-act="close-sheet">OK</button>`;
+    if (step === 'too-new') return `<div class="empty"><div class="big">⚠️</div><b>This file needs a newer version of the app. Nothing has changed.</b></div>
+      <button class="btn btn-primary" data-act="close-sheet">OK</button>`;
+  },
+  'export-saved': ({ fname, count }) => `${sheetHead('Saved to Downloads')}
+    <div class="empty"><div class="big">📦</div><b>Saved to Downloads: ${esc(fname)}</b>
+    <p class="sheet-p center" style="margin-top:8px">Contains ${plural(count, 'event')} from ${S.account ? 'your account' : 'this device'}.</p></div>
+    <button class="btn btn-primary" data-act="export-share" data-arg="${esc(fname)}">Share</button>
+    <button class="btn btn-text" data-act="close-sheet" style="margin-top:8px">Done</button>`,
+  confirm: ({ title: t, text, label, plain, extra }) => `${sheetHead(t)}<p class="sheet-p">${text}</p>${extra || ''}<button class="btn ${plain ? 'btn-primary' : 'btn-danger'}" data-act="confirm-yes">${label}</button><button class="btn btn-text" data-act="close-sheet">Cancel</button>`,
 };
 
 function overlays() {
@@ -1192,7 +1292,7 @@ function gate(d, prev) {
   if (a && JSON.stringify(a) !== JSON.stringify(pa)) {
     if (a.type === 'track' && track(a.id).premium && free) return wall('premium_audio', keepAudio);
     if (a.type === 'file' && (free || (a.isNew && u.files >= L.files))) return wall('files', keepAudio);
-    if (a.type === 'spotify' && pa?.type !== 'spotify' && u.spotify >= L.spotify) return wall('spotify', keepAudio);
+    if (a.type === 'spotify' && pa?.type !== 'spotify' && L.spotify !== undefined && u.spotify >= L.spotify) return wall('spotify', keepAudio);
   }
   return null;
 }
@@ -1232,18 +1332,52 @@ function signIn(method) {
   if (then) then(); else render();
 }
 
-// Move local days into the account, one day at a time: each day is imported whole or stays local. importFail simulates a dropped connection on the last day.
-function doImport(prior = { n: 0, memos: 0 }) {
-  const list = [...S.localEvents], failing = S.importFail ? list.slice(-1) : [], ok = list.filter(e => !failing.includes(e));
-  S.accountEvents.push(...ok.map(e => ({ ...structuredClone(e), imported: true })));
-  S.localEvents = failing;
-  const memos = prior.memos + ok.reduce((n, e) => n + e.memos.length, 0), n = prior.n + ok.length;
-  if (!failing.length) S.importChoice = 'imported';
-  queueSync(ok.length);
-  S.sheet = { type: 'import', step: failing.length ? 'partial' : 'done', n, memos, failed: failing.map(e => e.title) };
-  S.sheetFresh = true; render();
+function exportFileName() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ymd = `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`;
+  const hms = `${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  return `DaysThatMatter-${ymd}-${hms}.zip`;
 }
+
+// Import is all-or-nothing: progress state, then either all move or none move.
+let importTimer = null;
+function startImportFlow(isFile = false) {
+  const count = isFile ? 4 : S.localEvents.length;
+  const memos = isFile ? 2 : S.localEvents.reduce((n, e) => n + e.memos.length, 0);
+  S.sheet = { type: isFile ? 'file-import' : 'import', step: 'progress', n: count, memos, isFile };
+  S.sheetFresh = true;
+  render();
+  if (importTimer) clearTimeout(importTimer);
+  importTimer = setTimeout(() => {
+    finishImportFlow(isFile, count, memos);
+  }, 1200);
+}
+
+function finishImportFlow(isFile, n, memos) {
+  importTimer = null;
+  const res = S.importResult || 'ok';
+  if (res === 'ok') {
+    if (!isFile) {
+      S.accountEvents.push(...S.localEvents.map(e => ({ ...structuredClone(e), imported: true })));
+      S.localEvents = [];
+      S.importChoice = 'imported';
+      queueSync(n);
+    }
+    S.sheet = { type: isFile ? 'file-import' : 'import', step: 'done', n, memos, isFile };
+  } else if (res === 'fail') {
+    S.sheet = { type: isFile ? 'file-import' : 'import', step: 'failed', n, memos, isFile };
+  } else if (res === 'cannot') {
+    S.sheet = { type: isFile ? 'file-import' : 'import', step: 'cannot', n, memos, isFile };
+  } else if (res === 'new') {
+    S.sheet = { type: isFile ? 'file-import' : 'import', step: isFile ? 'too-new' : 'cannot', n, memos, isFile };
+  }
+  S.sheetFresh = true;
+  render();
+}
+
 function closeImport(choice) {
+  if (importTimer) { clearTimeout(importTimer); importTimer = null; }
   const f = S.afterImport; S.afterImport = null; S.sheet = null;
   if (choice) S.importChoice = choice;
   if (f) f(); else render();
@@ -1471,15 +1605,42 @@ const ACT = {
   'import-open': () => openSheet({ type: 'import', step: 'ask' }),
   'import-go': () => { S.sheet = { ...S.sheet, step: 'confirm' }; render(); },
   'import-back': () => { S.sheet = { ...S.sheet, step: 'ask' }; render(); },
-  'import-yes': () => doImport(),
-  'import-retry': () => { S.importFail = false; doImport({ n: S.sheet.n, memos: S.sheet.memos }); },
+  'import-yes': () => startImportFlow(false),
+  'import-retry': () => startImportFlow(false),
   'import-later': () => { toast('Kept on this device. You can import them from Settings.'); closeImport('skipped'); },
   'import-done': () => closeImport(),
+  'export-events': () => {
+    const fname = exportFileName();
+    const count = (S.account ? S.accountEvents : S.localEvents).length;
+    openSheet({ type: 'export-saved', fname, count });
+  },
+  'export-share': a => { toast(`Sharing ${a}…`); S.sheet = null; render(); },
+  'file-import-open': () => openSheet({ type: 'file-import', step: 'pick' }),
+  'file-import-chosen': () => { S.sheet = { type: 'file-import', step: 'confirm' }; render(); },
+  'file-import-back': () => { S.sheet = { type: 'file-import', step: 'pick' }; render(); },
+  'file-import-yes': () => startImportFlow(true),
+  'file-import-retry': () => startImportFlow(true),
   'nudge-yes': () => { S.sheet = null; openSheet({ type: 'signin', reason: 'nudge' }); },
   'nudge-no': () => { S.nudgeNo++; S.sheet = null; toast(S.nudgeNo >= 2 ? 'OK. We won’t ask again. It’s in Settings if you change your mind.' : 'No problem.'); render(); },
   sync: () => { if (!S.account) return openSheet({ type: 'signin', reason: 'sync' }); S.pending = 0; S.lastSync = Date.now(); toast('Synced just now. Changes sync automatically after each edit.'); render(); },
-  'sign-out': () => { const lc = localCount(); return openSheet({ type: 'confirm', plain: true, title: 'Sign out and use this device only?', text: `${S.pending ? `<b>${S.pending} changes haven't synced yet.</b> ` : ''}You will go back to local mode, where you see only the days kept on this phone${lc.days ? ` (${plural(lc.days, 'day')})` : ''}. Days in your account, including any you imported, stay in your account and won't show here. Other devices stay signed in.`, label: 'Sign out',
-    then: () => { S.account = null; S.filter = 'all'; S.stack = []; S.screen = 'home'; S.anim = 'fade'; toast('Signed out. You’re using this device only.'); } }); },
+  'sign-out': () => {
+    const lc = localCount();
+    const offline = S.unsyncedChanges === 'offline';
+    const offlineMsg = offline ? `<div class="info inset" style="margin:8px 0 16px">${icon('info')}<span>Not everything has been sent yet. The rest will be sent the next time this device is online.</span></div>` : '';
+    const onlineMsg = (!offline && S.pending) ? `<b>We’ll send your latest changes first.</b> ` : '';
+    return openSheet({
+      type: 'confirm',
+      plain: true,
+      title: 'Sign out and use this device only?',
+      text: `${onlineMsg}You will go back to local mode, where you see only the days kept on this phone${lc.days ? ` (${plural(lc.days, 'day')})` : ''}. Days in your account, including any you imported, stay in your account and won’t show here. Other devices stay signed in.`,
+      extra: offlineMsg,
+      label: 'Sign out',
+      then: () => {
+        S.account = null; S.filter = 'all'; S.stack = []; S.screen = 'home'; S.anim = 'fade';
+        toast('Signed out. You’re using this device only.');
+      }
+    });
+  },
   'delete-account': () => openSheet({ type: 'confirm', title: 'Delete your account?', text: `This deletes your days, memos, links, invites and uploads, and removes you from days shared with you. ${S.plan === 'premium' ? '<b>Cancel your Premium subscription in the App Store first;</b> deleting the account does not stop billing.' : ''}`, label: 'Delete account',
     then: () => { S.account = null; S.accountEvents = []; S.plan = 'free'; toast('Account deleted. Days kept on this device are untouched.'); } }),
   // settings
@@ -1589,10 +1750,13 @@ function renderPanel() {
       ${seg('Theme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.settings.theme, 'theme')}
       ${seg('Account', [['local', 'Local'], ['signed', 'Signed in']], S.account ? 'signed' : 'local', 'acct')}
       ${seg('Plan', [['free', 'Free'], ['premium', 'Premium']], S.plan, 'plan')}
+      ${seg('Limits config', [['default', 'Default'], ['no-spotify', 'Spotify limit removed']], S.limitsConfig, 'limits', 'stack')}
       ${seg('Memo badge', [['top-left', 'Left'], ['top-right', 'Right']], S.config.memoBadge, 'badge')}
       ${seg('Days on device', [['none', 'None'], ['some', 'Some']], S.localEvents.length ? 'some' : 'none', 'days')}
       ${seg('Import choice', [['none', 'Not yet'], ['imported', 'Imported'], ['skipped', 'Skipped']], S.importChoice, 'import', 'stack')}
-      ${seg('Import result', [['ok', 'All'], ['fail', 'Partial']], S.importFail ? 'fail' : 'ok', 'result')}
+      ${seg('Import result', [['ok', 'Success'], ['fail', 'Failed'], ['cannot', "Can't import"], ['new', 'File too new']], S.importResult, 'result', 'stack')}
+      ${seg('Widgets', [['normal', 'Normal'], ['signed-out', 'Signed out'], ['not-imported', 'Signed in, not imported']], S.widgetMode, 'wmode', 'stack')}
+      ${seg('Unsynced changes', [['none', 'None'], ['offline', 'Some, offline']], S.unsyncedChanges, 'unsynced', 'stack')}
       ${seg('Name', [['default', 'Short'], ['long', 'Long'], ['emoji', 'Emoji'], ['none', 'None']], nameKey(), 'name', 'stack')}
       ${seg('Time of day', [['now', 'Now'], ['9', 'Morning'], ['14', 'Afternoon'], ['19', 'Evening'], ['1', 'Late']], S.clockHour === null ? 'now' : String(S.clockHour), 'hour', 'stack')}
       <div class="pctl"><span>Heavy-use nudge</span><button class="btn btn-ghost sm" data-pnudge="1">Show</button></div>
@@ -1604,8 +1768,21 @@ panel.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.pact;
   if (b.dataset.ptheme) { S.settings.theme = b.dataset.ptheme; applyTheme(); return render(); }
+  if (b.dataset.plimits) { S.limitsConfig = b.dataset.plimits; return render(); }
+  if (b.dataset.pwmode) { S.widgetMode = b.dataset.pwmode; return render(); }
+  if (b.dataset.punsynced) { S.unsyncedChanges = b.dataset.punsynced; return render(); }
   if (b.dataset.pdays) { setLocalDays(b.dataset.pdays === 'some'); S.sheet = null; return render(); }
-  if (b.dataset.presult) { S.importFail = b.dataset.presult === 'fail'; return render(); }
+  if (b.dataset.presult) {
+    S.importResult = b.dataset.presult;
+    if (S.sheet && (S.sheet.type === 'import' || S.sheet.type === 'file-import')) {
+      if (['done', 'failed', 'cannot', 'too-new'].includes(S.sheet.step)) {
+        const isFile = S.sheet.type === 'file-import';
+        const step = S.importResult === 'ok' ? 'done' : S.importResult === 'fail' ? 'failed' : S.importResult === 'cannot' ? 'cannot' : (isFile ? 'too-new' : 'cannot');
+        S.sheet.step = step;
+      }
+    }
+    return render();
+  }
   if (b.dataset.pname) { const v = b.dataset.pname === 'default' ? (S.account ? ACCOUNT.name : 'Sam') : NAMES[b.dataset.pname]; if (S.account) S.account.name = v; else S.localName = v; return render(); }
   if (b.dataset.phour) { S.clockHour = b.dataset.phour === 'now' ? null : +b.dataset.phour; return render(); }
   if (b.dataset.pnudge) { S.account = null; if (S.screen !== 'home') { S.stack = []; S.screen = 'home'; } return openSheet({ type: 'nudge' }); }
@@ -1615,13 +1792,33 @@ panel.addEventListener('click', e => {
     if (v !== 'skipped' && !S.localEvents.length) setLocalDays(true);
     S.afterImport = null;
     if (v === 'none') { S.importChoice = 'none'; return openSheet({ type: 'import', step: 'ask' }); }
-    if (v === 'imported') { S.importFail = false; S.sheet = null; return doImport(); }
+    if (v === 'imported') {
+      S.sheet = null;
+      if (S.localEvents.length) {
+        S.accountEvents.push(...S.localEvents.map(e => ({ ...structuredClone(e), imported: true })));
+        S.localEvents = [];
+      }
+      S.importChoice = 'imported';
+      return render();
+    }
     S.importChoice = 'skipped'; S.sheet = null; return render();
   }
   if (b.dataset.pacct) { S.account = b.dataset.pacct === 'signed' ? { ...ACCOUNT } : null; S.filter = 'all'; if (S.screen === 'detail' && !visible().includes(byId(S.detailId))) S.screen = 'home'; return render(); }
   if (b.dataset.pplan) { S.plan = b.dataset.pplan; return render(); }
   if (b.dataset.pbadge) { S.config.memoBadge = b.dataset.pbadge; return render(); } // simulates a remote config change
-  if (k === 'reset') { Object.assign(S, { accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, localName: 'Sam', importChoice: 'skipped', importFail: false, afterImport: null, nudgeNo: 0, clockHour: null, plan: 'free', pending: 0, sheet: null, dialog: null, filter: 'all', query: '', searching: false }); delete S.dialogName; S.settings.dayOne = false; return jump('home'); }
+  if (k === 'reset') {
+    if (importTimer) { clearTimeout(importTimer); importTimer = null; }
+    Object.assign(S, {
+      accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(), library: seedLibrary(),
+      account: { ...ACCOUNT }, localName: 'Sam', importChoice: 'skipped', importResult: 'ok',
+      limitsConfig: 'default', widgetMode: 'normal', unsyncedChanges: 'none',
+      afterImport: null, nudgeNo: 0, clockHour: null, plan: 'free', pending: 0,
+      sheet: null, dialog: null, filter: 'all', query: '', searching: false
+    });
+    delete S.dialogName;
+    S.settings.dayOne = false;
+    return jump('home');
+  }
   if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pins()[0]?.id, 'background'); }
   if (k === 'detail' || k === 'share') {
     if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pins()[0] || visible()[0]).id;
