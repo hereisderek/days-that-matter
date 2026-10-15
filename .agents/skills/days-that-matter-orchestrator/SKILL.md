@@ -64,7 +64,7 @@ Execute these verification steps immediately before planning or spawning any sub
      
      ```
 
-   * **Single-Device Serialization Rule**: Because `172.16.30.1:5555` is a shared physical wireless target, parallel sub-agents in separate worktrees must **never** run `adb install` or `connectedDebugAndroidTest` concurrently. Sub-agents run JVM unit tests (`./gradlew testDebugUnitTest`), Robolectric/Compose JVM tests, and static analysis (`./gradlew lintDebug`) inside their isolated worktrees; **you (the Orchestrator)**—or a single serialized Device-QA worker holding the device lock—execute live on-device APK installs, UI inspections, and instrumentation tests on `172.16.30.1:5555`.
+   * **Single-Device Serialization Rule**: Because `172.16.30.1:5555` is a shared physical wireless target, parallel sub-agents in separate worktrees must **never** run `adb install` or `connectedDebugAndroidTest` concurrently. Sub-agents run JVM unit tests (`cd mobile && ./gradlew testDebugUnitTest`), Robolectric/Compose JVM tests, and static analysis (`cd mobile && ./gradlew lintDebug`) inside their isolated worktrees; **you (the Orchestrator)**—or a single serialized Device-QA worker holding the device lock—execute live on-device APK installs, UI inspections, and instrumentation tests on `172.16.30.1:5555`.
 
 4. **Verify OpenSpec & Seed Architectural Memory**:
 
@@ -115,7 +115,7 @@ Decompose the repository work into non-blocking waves so no two concurrent worke
 
 ### Track B — Wave 0 (Sequential Gate): Android Project Foundation & Shared Contracts
 
-* **Scope**: Root Android Gradle configuration (`settings.gradle.kts`, `build.gradle.kts`, `gradle/libs.versions.toml`, debug signing with `docs/keystore/debug.keystore`), core architecture packages (`core:model`, `core:database`, `core:network`, `core:sync`, `core:designsystem`), and OpenSpec change proposals (`/opsx:propose`).
+* **Scope**: Mobile Android Gradle configuration (`mobile/settings.gradle.kts`, `mobile/build.gradle.kts`, `mobile/gradle/libs.versions.toml`, debug signing with `docs/keystore/debug.keystore`), core architecture packages (`core:model`, `core:database`, `core:network`, `core:sync`, `core:designsystem`), and OpenSpec change proposals (`/opsx:propose`).
 
 * **Tasks**:
 
@@ -125,7 +125,7 @@ Decompose the repository work into non-blocking waves so no two concurrent worke
 
   3. Define the pluggable backend interfaces for Global vs. China regions (`docs/architecture/BACKEND.md`, `docs/architecture/CHINA.md`) and shared navigation routes (`docs/SPEC.md`).
 
-  4. Verify `./gradlew assembleDebug testDebugUnitTest lintDebug` passes, install the base shell on `172.16.30.1:5555` via ADB to confirm clean launch, and **merge Wave 0 into the base branch before launching Wave 1**.
+  4. Verify `cd mobile && ./gradlew assembleDebug testDebugUnitTest lintDebug` passes, install the base shell on `172.16.30.1:5555` via ADB to confirm clean launch, and **merge Wave 0 into the base branch before launching Wave 1**.
 
 ### Track B — Wave 1 (Concurrent Feature Fan-Out — Cap at 4 Parallel Workers)
 
@@ -232,7 +232,7 @@ Never trust a worker's `worker_done` claim on faith. Whenever a worker settles, 
    * **For Android branches**:
 
      ```
-     ./gradlew lintDebug testDebugUnitTest
+     cd mobile && ./gradlew lintDebug testDebugUnitTest
      
      ```
 
@@ -247,14 +247,14 @@ For every Android branch (starting with Wave 0 and repeating for each Wave 1 fea
    ```
    adb connect 172.16.30.1:5555
    adb -s 172.16.30.1:5555 wait-for-device
-   ./gradlew installDebug
+   cd mobile && ./gradlew installDebug
    
    ```
 
 2. **Run On-Device Instrumentation Tests**:
 
    ```
-   ANDROID_SERIAL=172.16.30.1:5555 ./gradlew connectedDebugAndroidTest
+   cd mobile && ANDROID_SERIAL=172.16.30.1:5555 ./gradlew connectedDebugAndroidTest
    
    ```
 
@@ -291,7 +291,7 @@ For every Android branch (starting with Wave 0 and repeating for each Wave 1 fea
 
 * **If ALL Gates Pass**:
 
-  1. **Approve & Merge**: Merge the validated child worktree branch cleanly into the target integration branch and run a quick post-merge smoke test (`./gradlew assembleDebug testDebugUnitTest`).
+  1. **Approve & Merge**: Merge the validated child worktree branch cleanly into the target integration branch and run a quick post-merge smoke test (`cd mobile && ./gradlew assembleDebug testDebugUnitTest`).
 
   2. **Release the Worker Terminal**:
 

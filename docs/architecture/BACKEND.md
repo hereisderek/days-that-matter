@@ -52,7 +52,7 @@ Rules:
 ## 3. Directories
 
 ```
-core/model/                 Kotlin Multiplatform (android, iosArm64, iosSimulatorArm64, jvm, js): EventDoc, Memo,
+mobile/core/model/          Kotlin Multiplatform (android, iosArm64, iosSimulatorArm64, jvm, js): EventDoc, Memo,
                             field sets, roles, validation, patch/merge, projections, plan table, countdown engine, API types
 backend/
   core/                     all backend behavior
@@ -849,7 +849,7 @@ Needed before the global launch:
 - `ADMIN_TOKEN` for the storage report, and the inactive account period (24 months is a placeholder).
 - Email provider account and a sending domain with SPF, DKIM and DMARC.
 - Licensed audio tracks and the free and Premium split.
-- Android package name and signing key fingerprints for `assetlinks.json`. The app currently uses `dev.derek.daysthatmatter` as a provisional application id (debug builds add `.debug`), defined once in `androidApp/build.gradle.kts`. It is permanent once published: confirm or replace it before the first release.
+- Android package name and signing key fingerprints for `assetlinks.json`. The app currently uses `dev.derek.daysthatmatter` as a provisional application id (debug builds add `.debug`), defined once in `mobile/androidApp/build.gradle.kts`. It is permanent once published: confirm or replace it before the first release.
 - Abuse contact address, privacy policy owner and jurisdiction.
 - Terms of service, privacy policy and disclaimer ([`docs/legal/`](../legal/README.md)), and a DMCA designated agent registered with the US Copyright Office.
 - For other providers when used: Turso database and Vercel Blob store; a Firebase project on Blaze.

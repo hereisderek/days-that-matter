@@ -13,7 +13,7 @@ Behavior requirements: `event-sync` and `event-history` specs in the OpenSpec ch
 ## 2. Local Database: Room Multiplatform (Room KMP 2.7+)
 
 ### 2.1 Database Schema Definition
-Implemented in `:core:database` (schema version 2, exported to `core/database/schemas/`). Version 1 held only `app_meta`, a key-value table kept for sync cursors; version 2 adds `events` and `memos` by an automatic, additive migration.
+Implemented in `:core:database` (schema version 2, exported to `mobile/core/database/schemas/`). Version 1 held only `app_meta`, a key-value table kept for sync cursors; version 2 adds `events` and `memos` by an automatic, additive migration.
 
 ```kotlin
 package dev.derek.daysthatmatter.core.database.event

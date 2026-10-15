@@ -22,22 +22,23 @@ Progress is tracked in the OpenSpec task lists under [`openspec/changes/`](opens
 ## Repository layout
 
 ```text
-androidApp/         Android application (Application, MainActivity, manifest, signing)
-composeApp/         Shared Compose UI and app wiring; builds the ComposeApp framework for iOS
-core/model/         Shared domain model and rules, also compiled for the backend (JVM, JS)
-core/common/        Shared utilities
-core/designsystem/  Theme, tokens and shared UI components
-core/database/      Room KMP database, DAOs and exported schemas
-core/network/       Ktor API client
-feature/events/     Home, Day and Archived screens
-feature/eventeditor/ Event editor
+mobile/             Mobile multiplatform application (Android, iOS)
+  androidApp/       Android application (Application, MainActivity, manifest, signing)
+  composeApp/       Shared Compose UI and app wiring; builds the ComposeApp framework for iOS
+  core/model/       Shared domain model and rules, also compiled for the backend (JVM, JS)
+  core/common/      Shared utilities
+  core/designsystem/ Theme, tokens and shared UI components
+  core/database/    Room KMP database, DAOs and exported schemas
+  core/network/     Ktor API client
+  feature/events/   Home, Day and Archived screens
+  feature/eventeditor/ Event editor
+  gradle/           Version catalog (libs.versions.toml) and wrapper
 backend/            TypeScript backend (npm workspaces): core now, provider variants later
 services/share/     Old TypeScript share service, frozen reference
 design/             Design system notes and UI prototypes (v1, v2)
 docs/               Specification, architecture, feature specs, standards, CI/CD, legal
 openspec/           OpenSpec specs and active changes
 scripts/            Figma and design token scripts
-gradle/             Version catalog (libs.versions.toml) and wrapper
 ```
 
 ## Prerequisites
@@ -45,23 +46,23 @@ gradle/             Version catalog (libs.versions.toml) and wrapper
 - JDK 21 (Temurin).
 - Android SDK with `platforms;android-37.2` and `build-tools;37.0.0`. Builds do not download SDK components (`android.builder.sdkDownload=false`), so install them first.
 - Node.js 22.18 or newer, for the backend.
-- Gradle: use the wrapper (`./gradlew`, Gradle 9.8.1). No separate install is needed.
+- Gradle: use the wrapper inside `mobile/` (`mobile/gradlew`, Gradle 9.8.1). No separate install is needed.
 
-All versions come from [`gradle/libs.versions.toml`](gradle/libs.versions.toml); the reasons are in [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](docs/ci-cd/TOOLCHAIN_GUIDELINES.md).
+All versions come from [`mobile/gradle/libs.versions.toml`](mobile/gradle/libs.versions.toml); the reasons are in [`docs/ci-cd/TOOLCHAIN_GUIDELINES.md`](docs/ci-cd/TOOLCHAIN_GUIDELINES.md).
 
 ## Build, test and run
 
 | What | Command |
 | :--- | :--- |
-| All multiplatform tests (every target the host can run) | `./gradlew allTests` |
-| Shared model tests | `./gradlew :core:model:allTests` |
-| Android app unit tests | `./gradlew testDebugUnitTest` |
-| Lint (app and its modules) | `./gradlew lintDebug` |
-| Debug APK | `./gradlew :androidApp:assembleDebug` |
-| Release bundle | `./gradlew :androidApp:bundleRelease` |
-| Stop the Gradle daemon | `./gradlew --stop` |
+| All multiplatform tests (every target the host can run) | `cd mobile && ./gradlew allTests` |
+| Shared model tests | `cd mobile && ./gradlew :core:model:allTests` |
+| Android app unit tests | `cd mobile && ./gradlew testDebugUnitTest` |
+| Lint (app and its modules) | `cd mobile && ./gradlew lintDebug` |
+| Debug APK | `cd mobile && ./gradlew :androidApp:assembleDebug` |
+| Release bundle | `cd mobile && ./gradlew :androidApp:bundleRelease` |
+| Stop the Gradle daemon | `cd mobile && ./gradlew --stop` |
 
-The debug APK is written to `androidApp/build/outputs/apk/debug/`. `testDebugUnitTest` covers only `:androidApp`; tests in the multiplatform modules run with `allTests`. iOS targets compile only on macOS and are skipped on Linux and Windows. Release signing is not configured yet. The build is sized for a host with about 8 GB of RAM: run one Gradle build at a time.
+The debug APK is written to `mobile/androidApp/build/outputs/apk/debug/`. `testDebugUnitTest` covers only `:androidApp`; tests in the multiplatform modules run with `allTests`. iOS targets compile only on macOS and are skipped on Linux and Windows. Release signing is not configured yet. The build is sized for a host with about 8 GB of RAM: run one Gradle build at a time.
 
 ## Backend
 
@@ -85,4 +86,4 @@ After a change to `:core:model`, regenerate the backend contract as described in
 
 ## Contributing
 
-Work on a feature branch and open a pull request. Before you push, run the checks above (`./gradlew allTests testDebugUnitTest lintDebug`, `:androidApp:assembleDebug`, and the backend scripts when you touch `backend/`); CI runs the same checks plus the generated contract check. Keep the matching OpenSpec `tasks.md` and the docs in `docs/` in step with the code in the same pull request. Coding and testing standards are in [`docs/standards/`](docs/standards/); the full contributor rules are in [`AGENTS.md`](AGENTS.md).
+Work on a feature branch and open a pull request. Before you push, run the checks above (`cd mobile && ./gradlew allTests testDebugUnitTest lintDebug`, `cd mobile && ./gradlew :androidApp:assembleDebug`, and the backend scripts when you touch `backend/`); CI runs the same checks plus the generated contract check. Keep the matching OpenSpec `tasks.md` and the docs in `docs/` in step with the code in the same pull request. Coding and testing standards are in [`docs/standards/`](docs/standards/); the full contributor rules are in [`AGENTS.md`](AGENTS.md).

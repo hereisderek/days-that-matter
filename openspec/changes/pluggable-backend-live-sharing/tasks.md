@@ -80,7 +80,7 @@ Order: groups 1 to 7 deliver the app on Cloudflare (global region). Groups 8 to 
 
 ## 7. App (Android and iOS)
 
-- [ ] 7.1 Add the Ktor client for the API in `core/network` using `:core:model` types, the region setting (chosen once per install) and `GET /config`; verify with tests against a mock engine.
+- [ ] 7.1 Add the Ktor client for the API in `mobile/core/network` using `:core:model` types, the region setting (chosen once per install) and `GET /config`; verify with tests against a mock engine.
 - [ ] 7.2 Add sign-in: Google (Credential Manager, Google Sign-In on iOS), Apple (AuthenticationServices, custom tab on Android), email code screens, terms and privacy links with consent on sign-up and re-consent on terms changes, add-a-method in settings, secure session storage, and the sign-in prompt on Sync, Share, Invite and online-only Settings rows, and Settings › Account › "Download my data"; verify ViewModel tests and a manual sign-in with each method on both platforms against preview.
 - [ ] 7.3 Change the Room schema and write the sync engine (manifest, batch fetch, pending patches, memo children, overwritten notice, import: task 12.9) and the Sync button with its message; verify DAO and sync tests with an in-memory database and a fake API.
   - Note (wave 1 events): Room schema part done: `events` and `memos` tables (schema 2) with `server_rev`, `child_seq`, `pending_patch`, `is_deleted`, `EventDao.getPending`/`MemoDao.getPending`, and local edits that add changed fields to `pending_patch` for synced rows; DAO tests with an in-memory database. The sync engine, the Sync button and the sync tests are not started.

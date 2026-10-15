@@ -20,8 +20,8 @@ npm run lint
 npm test
 ```
 
-After a change to the shared model: `./gradlew :core:model:generateContract :core:model:generateCountdownVectors`
-from the repository root, then `npm run contract:types -w @days-that-matter/backend-core` to regenerate
+After a change to the shared model: `cd mobile && ./gradlew :core:model:generateContract :core:model:generateCountdownVectors`,
+then `npm run contract:types -w @days-that-matter/backend-core` to regenerate
 `core/src/contract/api.ts`. A test fails while `api.ts` is stale; CI fails while the contract or the
 vectors are stale.
 
