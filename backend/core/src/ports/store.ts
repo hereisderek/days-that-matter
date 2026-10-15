@@ -3,12 +3,14 @@
 // MemoryStore for core tests. Every implementation must pass the store conformance suite
 // (src/store/conformance.ts).
 //
-// This is the foundation set (tasks 3.2 to 3.4): accounts, event documents, patches with their
-// revisions, tombstones and history pages. Later tasks add identities and sessions (3.5), memos and the
-// manifest (3.6), restore and pruning (3.7), links, invites and members (3.8), media (3.10),
-// purchases (3.11), rate counters and purge (3.13), grants, exports and devices (3.16 to 3.18).
-// Times are Unix seconds.
-import type { Plan } from '../contract/index.ts';
+// The foundation set (tasks 3.2 to 3.4): accounts, event documents, patches with their revisions,
+// tombstones and history pages. Task 3.5 added identities, email codes, sessions, the account usage
+// counts and account deletion; task 3.6 the manifest, reads by role, the owned-event limit, memos with
+// their child sequence and tombstones, and the members a reader sees. Later tasks add restore and
+// pruning (3.7), links and invites with join (3.8, building on the members operations here), media
+// (3.10), purchases (3.11), rate counters and the rest of the purge (3.13), grants, exports and
+// devices (3.16 to 3.18). Times are Unix seconds.
+import type { Plan, Role, SignInMethod } from '../contract/index.ts';
 import type { JsonObject } from '../rules/merge.ts';
 
 export interface AccountRecord {
@@ -60,6 +62,14 @@ export interface NewEvent {
   readonly ownerId: string;
   readonly doc: JsonObject;
   readonly now: number;
+  /** The owner's owned-event limit (not deleted events); absent or null = no limit. */
+  readonly maxOwned?: number | null;
+  /**
+   * A first sign-in upload (BACKEND.md section 8): while fewer than `max` of the owner's events were
+   * uploaded this way since `since` (the session start), the event passes `maxOwned` and is marked
+   * with `first_upload_at`. Past that, `maxOwned` applies.
+   */
+  readonly firstUpload?: { readonly since: number; readonly max: number };
 }
 
 export type CreateEventResult =
@@ -67,7 +77,9 @@ export type CreateEventResult =
   /** The id exists with the same owner: the current record (repeating a create is safe). */
   | { readonly status: 'exists'; readonly event: EventRecord }
   /** The id belongs to another account. */
-  | { readonly status: 'conflict' };
+  | { readonly status: 'conflict' }
+  /** The owner already has `maxOwned` events; nothing was written. */
+  | { readonly status: 'limit' };
 
 /** A validated patch by `authorId`, whose role the caller checked. */
 export interface PatchInput {
@@ -76,6 +88,8 @@ export interface PatchInput {
   readonly baseRev: number;
   readonly patch: JsonObject;
   readonly now: number;
+  /** Refuse (`too_large`) when the merged document is larger than this in UTF-8 JSON bytes. */
+  readonly maxDocBytes?: number;
 }
 
 export type PatchOutcome =
@@ -88,7 +102,9 @@ export type PatchOutcome =
       readonly overwritten: readonly string[];
     }
   | { readonly status: 'not_found' }
-  | { readonly status: 'deleted' };
+  | { readonly status: 'deleted' }
+  /** The merged document would exceed `maxDocBytes`; nothing was written. */
+  | { readonly status: 'too_large' };
 
 export interface RevisionRecord {
   readonly eventId: string;
@@ -106,6 +122,195 @@ export interface RevisionQuery {
   /** Only revisions below this rev; all when absent. */
   readonly before?: number;
   readonly limit: number;
+}
+
+// ---- Accounts (task 3.5) ----
+
+/** A sign-in identity as a provider verified it. `subject` is the OIDC `sub`, or the normalized email. */
+export interface IdentityInput {
+  readonly provider: SignInMethod;
+  readonly subject: string;
+  /** Lower-case; null when the provider gave none. */
+  readonly email: string | null;
+  /** Only verified emails link identities to an existing account. */
+  readonly emailVerified: boolean;
+}
+
+export interface IdentityRecord extends IdentityInput {
+  readonly accountId: string;
+  readonly createdAt: number;
+}
+
+export interface SignInInput {
+  readonly identity: IdentityInput;
+  /** Used only when no account matches: the id and display name of the account to create. */
+  readonly newAccount: NewAccount;
+}
+
+/**
+ * `existing`: the identity was known. `linked`: its verified email matched another identity's verified
+ * email, and the identity joined that account. `created`: a new account with this identity.
+ */
+export interface SignInOutcome {
+  readonly status: 'existing' | 'linked' | 'created';
+  readonly account: AccountRecord;
+}
+
+export interface AddIdentityInput {
+  readonly accountId: string;
+  readonly identity: IdentityInput;
+  readonly now: number;
+}
+
+/** `exists`: already this account's; `conflict`: the identity belongs to another account. */
+export type AddIdentityOutcome = 'added' | 'exists' | 'conflict';
+
+export interface EmailCodeInput {
+  readonly emailHash: string;
+  readonly codeMac: string;
+  readonly expiresAt: number;
+}
+
+export interface SessionRecord {
+  readonly tokenHash: string;
+  readonly accountId: string;
+  readonly createdAt: number;
+  readonly lastUsedAt: number;
+}
+
+/** What an account uses of each counted plan limit (BACKEND.md section 11.1). */
+export interface AccountUsage {
+  /** Owned events, not deleted. */
+  readonly events: number;
+  /** Backdrop stills in use uploaded by the account. */
+  readonly photos: number;
+  /** Backdrop motion files in use uploaded by the account. */
+  readonly animatedBackdrop: number;
+  /** Custom audio files in the library or used by a day. */
+  readonly customAudio: number;
+  /** Events, not deleted, whose Spotify link the account set. */
+  readonly spotifyEvents: number;
+}
+
+export type MediaKindValue = 'still' | 'motion' | 'audio';
+
+export interface MediaRef {
+  readonly id: string;
+  readonly kind: MediaKindValue;
+  readonly contentType: string;
+}
+
+/** What deleting an account removed, so the core can delete blob files and send notices. */
+export interface AccountDeletion {
+  /** Owned events, now tombstones with an empty document: their links answer 410 until the purge. */
+  readonly ownedEventIds: readonly string[];
+  /** Events the account was a member of. */
+  readonly memberEventIds: readonly string[];
+  /** Media rows removed: the account's uploads and the files of its owned events. */
+  readonly media: readonly MediaRef[];
+}
+
+// ---- Members and reads by role (task 3.6; links, invites and join come with 3.8) ----
+
+export type MemberRoleValue = 'viewer' | 'editor';
+
+export interface MemberRecord {
+  readonly eventId: string;
+  readonly accountId: string;
+  /** `removed` blocks rejoining. */
+  readonly role: MemberRoleValue | 'removed';
+  readonly inviteId: string | null;
+  /** The member's own archive and reminders; never shown to others. */
+  readonly archivedAt: number | null;
+  readonly reminders: JsonObject | null;
+  readonly createdAt: number;
+}
+
+export interface PutMemberInput {
+  readonly eventId: string;
+  readonly accountId: string;
+  readonly role: MemberRoleValue | 'removed';
+  readonly inviteId: string | null;
+  readonly now: number;
+}
+
+export interface ManifestRow {
+  readonly id: string;
+  readonly rev: number;
+  readonly role: Role;
+  /** The owner's child sequence; 0 for members, who never see memos. */
+  readonly childSeq: number;
+}
+
+/** A display name and role of a person on an event, for the member view. */
+export interface PersonOnEvent {
+  readonly name: string;
+  readonly role: Role;
+}
+
+/** An event as one reader may see it. */
+export interface ReaderEvent {
+  readonly event: EventRecord;
+  readonly role: Role;
+  /** Members only: the reader's own membership. */
+  readonly membership: MemberRecord | null;
+  /** Members only: the owner and the members (not removed), owner first, then by joining time. */
+  readonly people: readonly PersonOnEvent[];
+}
+
+// ---- Memos (task 3.6) ----
+
+export interface MemoRecord {
+  readonly id: string;
+  readonly eventId: string;
+  readonly authorId: string;
+  /** The event's child sequence at the memo's last write. */
+  readonly seq: number;
+  /** content, milestoneTag, createdAt; empty once deleted. */
+  readonly doc: JsonObject;
+  readonly updatedAt: number;
+  readonly deletedAt: number | null;
+}
+
+export interface PutMemoInput {
+  readonly eventId: string;
+  readonly memoId: string;
+  readonly authorId: string;
+  readonly doc: JsonObject;
+  readonly now: number;
+  /** Live memos an event may have. */
+  readonly maxMemos: number;
+}
+
+export type PutMemoOutcome =
+  | { readonly status: 'created'; readonly memo: MemoRecord }
+  /** The id exists on this event: the current memo, tombstone included (repeating a create is safe). */
+  | { readonly status: 'exists'; readonly memo: MemoRecord }
+  /** The id is used on another event. */
+  | { readonly status: 'conflict' }
+  | { readonly status: 'limit' }
+  /** The event is unknown or deleted. */
+  | { readonly status: 'event_missing' };
+
+export interface PatchMemoInput {
+  readonly eventId: string;
+  readonly memoId: string;
+  readonly patch: JsonObject;
+  readonly now: number;
+}
+
+export type MemoWriteOutcome =
+  /** `changed` false: the patch changed nothing and the seq stayed. */
+  | { readonly status: 'ok'; readonly memo: MemoRecord; readonly changed: boolean }
+  /** Unknown on this event, or deleted. */
+  | { readonly status: 'not_found' };
+
+export interface ChildrenPage {
+  /** Live memos and tombstones with a seq above the asked one, by seq. */
+  readonly memos: readonly MemoRecord[];
+  readonly seq: number;
+  /** Highest seq of purged tombstones: a client behind it must reset. */
+  readonly purgedSeq: number;
 }
 
 export interface Store {
@@ -126,6 +331,76 @@ export interface Store {
   deleteEvent(eventId: string, now: number): Promise<boolean>;
   /** Revisions of an event, newest first. */
   listRevisions(eventId: string, query: RevisionQuery): Promise<RevisionRecord[]>;
+
+  // Accounts (task 3.5)
+
+  /**
+   * Signs in with a verified identity: the identity's account; else, for a verified email, the account
+   * of the oldest verified identity with that email (the identity joins it); else a new account.
+   * Concurrent first sign-ins of one identity end in one account.
+   */
+  signIn(input: SignInInput): Promise<SignInOutcome>;
+  /** Adds a sign-in method to an account. */
+  addIdentity(input: AddIdentityInput): Promise<AddIdentityOutcome>;
+  /** The account's identities, oldest first. */
+  listIdentities(accountId: string): Promise<IdentityRecord[]>;
+  updateDisplayName(accountId: string, displayName: string): Promise<AccountRecord | null>;
+  usage(accountId: string): Promise<AccountUsage>;
+  /**
+   * Deletes an account (BACKEND.md section 8): owned events become tombstones with an empty document,
+   * and their revisions, memos, members and media go; the account's memberships, uploads, identities,
+   * sessions, grants, exports and devices go; revisions it wrote on other events keep a null author.
+   * Null when the account is unknown.
+   */
+  deleteAccount(accountId: string, now: number): Promise<AccountDeletion | null>;
+
+  /** Stores the code of an email address, replacing an earlier one with a fresh attempt count. */
+  putEmailCode(input: EmailCodeInput): Promise<void>;
+  /**
+   * Counts one attempt and returns the code MAC to compare, or null when there is no live code
+   * (none, expired at `now`, or out of its `maxAttempts`). Counting before comparing keeps parallel
+   * guesses inside the limit.
+   */
+  takeEmailCodeAttempt(emailHash: string, now: number, maxAttempts: number): Promise<string | null>;
+  /** Deletes the code if it still has this MAC; true when it did, so a code signs in once. */
+  consumeEmailCode(emailHash: string, codeMac: string): Promise<boolean>;
+
+  createSession(session: SessionRecord): Promise<void>;
+  getSession(tokenHash: string): Promise<SessionRecord | null>;
+  /**
+   * Records signed-in use: the session's `last_used_at`, and the account's `last_active_at` with its
+   * inactive notices cleared. The caller does this at most once a day per session.
+   */
+  markActive(tokenHash: string, accountId: string, now: number): Promise<void>;
+  /** Ends a session. False when it is unknown. */
+  deleteSession(tokenHash: string): Promise<boolean>;
+
+  // Sync (task 3.6)
+
+  /** Owned events and events the account is a viewer or editor of, not deleted, by id. */
+  manifest(accountId: string): Promise<ManifestRow[]>;
+  /** The events of `ids` the account owns or is a viewer or editor of, deleted ones included, in no particular order. */
+  readEvents(accountId: string, ids: readonly string[]): Promise<ReaderEvent[]>;
+  /** Adds or changes a membership; a new row keeps no archive or reminders. */
+  putMember(input: PutMemberInput): Promise<void>;
+  getMember(eventId: string, accountId: string): Promise<MemberRecord | null>;
+
+  /** Creates a memo and bumps the event's child sequence. */
+  putMemo(input: PutMemoInput): Promise<PutMemoOutcome>;
+  /** Merges a validated patch into a memo (null clears); a change bumps the child sequence. */
+  patchMemo(input: PatchMemoInput): Promise<MemoWriteOutcome>;
+  /** Tombstones a memo: empty document, `deleted_at`, a new seq. */
+  deleteMemo(eventId: string, memoId: string, now: number): Promise<MemoWriteOutcome>;
+  getMemo(memoId: string): Promise<MemoRecord | null>;
+  /** Memo changes after `after`; null when the event is unknown. */
+  listChildren(eventId: string, after: number): Promise<ChildrenPage | null>;
+  /** All live memos of an event, by seq (a reset). */
+  listMemos(eventId: string): Promise<MemoRecord[]>;
+  /**
+   * Removes memo tombstones deleted before `before` (at most `limit`) and raises each event's
+   * `child_purged_seq` to the highest seq removed. Returns how many it removed. Used by the daily job.
+   */
+  purgeMemoTombstones(before: number, limit: number): Promise<number>;
 }
 
 /** The store could not apply a write after retrying (heavy contention); the core answers 503. */

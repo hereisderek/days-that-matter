@@ -27,3 +27,16 @@ export const WRITE_ATTEMPTS = 20;
 export function copyJson<T extends Json>(value: T): T {
   return structuredClone(value);
 }
+
+/** Size of a stored event document: UTF-8 bytes of its JSON (EventValidation.checkDocumentSize). */
+export function docBytes(doc: JsonObject): number {
+  return new TextEncoder().encode(JSON.stringify(doc)).byteLength;
+}
+
+/** A document without its null members: null means absent in stored documents. */
+export function withoutNulls(doc: JsonObject): JsonObject {
+  return Object.fromEntries(Object.entries(doc).filter(([, v]) => v !== null));
+}
+
+/** Seconds in a day: activity and session use are written at most once per day. */
+export const DAY_SECONDS = 86_400;

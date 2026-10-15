@@ -10,21 +10,9 @@ export { base64Url, cryptoRandom, token22 } from './random.ts';
 export type { Random } from './random.ts';
 export type { SqlDriver, SqlRow, SqlStatement, SqlValue } from './sql.ts';
 export { StoreBusyError } from './store.ts';
-export type {
-  AccountRecord,
-  AudioKind,
-  CreateAccountResult,
-  CreateEventResult,
-  EventRecord,
-  NewAccount,
-  NewEvent,
-  PatchInput,
-  PatchOutcome,
-  RevisionQuery,
-  RevisionRecord,
-  Store,
-} from './store.ts';
+export type * from './store.ts';
 
+import type { KeyFetcher } from '../auth/keys.ts';
 import type { BlobStore } from './blob.ts';
 import type { Clock } from './clock.ts';
 import type { Config } from './config.ts';
@@ -42,4 +30,6 @@ export interface Ports {
   readonly clock: Clock;
   readonly random: Random;
   readonly config: Config;
+  /** Signing keys of Google and Apple; `cachedKeyFetcher(fetch, clock)` in production. */
+  readonly keys: KeyFetcher;
 }

@@ -1,10 +1,12 @@
 package dev.derek.daysthatmatter.core.model.api
 
 import dev.derek.daysthatmatter.core.model.ModelJson
+import dev.derek.daysthatmatter.core.model.event.EventDoc
 import dev.derek.daysthatmatter.core.model.event.MemberRole
 import dev.derek.daysthatmatter.core.model.event.PublicEvent
 import dev.derek.daysthatmatter.core.model.event.Role
 import dev.derek.daysthatmatter.core.model.event.Theme
+import dev.derek.daysthatmatter.core.model.plan.Feature
 import dev.derek.daysthatmatter.core.model.plan.Plan
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.KSerializer
@@ -187,5 +189,55 @@ class ApiTypesJsonTest {
         assertEquals(403, ApiErrorCode.FieldNotAllowed.httpStatus)
         assertEquals(429, ApiErrorCode.QuotaExceeded.httpStatus)
         assertEquals(410, ApiErrorCode.InviteFull.httpStatus)
+    }
+
+    @Test
+    fun accountBodies() {
+        val me = Me(
+            id = "a1",
+            displayName = "Mum",
+            plan = Plan.Free,
+            identities = listOf(IdentityInfo(SignInMethod.Email, "mum@example.com"), IdentityInfo(SignInMethod.Apple)),
+            usage = mapOf(Feature.Events to 2, Feature.SpotifyEvents to 1),
+            limits = mapOf(Feature.Events to 10, Feature.SpotifyEvents to 3),
+            createdAt = at,
+        )
+        decodes(
+            Me.serializer(),
+            """{"id":"a1","displayName":"Mum","plan":"free","planExpiresAt":null,"identities":[{"provider":"email","email":"mum@example.com"},{"provider":"apple"}],"usage":{"events":2,"spotify_events":1},"limits":{"events":10,"spotify_events":3},"createdAt":"2026-10-12T15:04:05Z","unknown":1}""",
+            me,
+        )
+        roundTrip(Me.serializer(), me.copy(plan = Plan.Premium, planExpiresAt = at, limits = mapOf(Feature.Events to 500, Feature.PremiumAudio to null)))
+        val premium = ModelJson.decodeFromString(Me.serializer(), """{"id":"a","displayName":"x","plan":"premium","limits":{"spotify_events":null},"createdAt":"2026-10-12T15:04:05Z"}""")
+        assertEquals(mapOf(Feature.SpotifyEvents to null), premium.limits)
+        assertEquals(emptyList(), premium.identities)
+        roundTrip(MePatchRequest.serializer(), MePatchRequest("Mum"))
+        decodes(
+            SignInResponse.serializer(),
+            """{"session":"st_x","account":{"id":"a1","displayName":"Mum","plan":"free","createdAt":"2026-10-12T15:04:05Z"},"created":true}""",
+            SignInResponse("st_x", Me("a1", "Mum", Plan.Free, createdAt = at), created = true),
+        )
+        assertEquals(false, ModelJson.decodeFromString(SignInResponse.serializer(), """{"session":"s","account":{"id":"a","displayName":"x","plan":"free","createdAt":"2026-10-12T15:04:05Z"}}""").created)
+    }
+
+    @Test
+    fun fetchMemoAndRevisionPageBodies() {
+        val event = ModelJson.decodeFromString(
+            EventDoc.serializer(),
+            """{"id":"e1","rev":3,"role":"editor","title":"t","targetDate":"2027-06-12","theme":{"paletteId":"a","cardStyle":"b","typography":"c"}}""",
+        )
+        roundTrip(FetchEventsResponse.serializer(), FetchEventsResponse(listOf(event)))
+        decodes(FetchEventsResponse.serializer(), """{"events":[]}""", FetchEventsResponse(emptyList()))
+        decodes(
+            MemoPutRequest.serializer(),
+            """{"content":"Booked the venue today.","milestoneTag":"Day 100","createdAt":"2026-10-12T15:04:05Z"}""",
+            MemoPutRequest("Booked the venue today.", "Day 100", at),
+        )
+        roundTrip(MemoPutRequest.serializer(), MemoPutRequest("x", createdAt = at))
+        val patch = ModelJson.decodeFromString(MemoPatchRequest.serializer(), """{"patch":{"content":"Edited","milestoneTag":null}}""")
+        assertEquals(setOf("content", "milestoneTag"), patch.patch.keys)
+        roundTrip(MemoPatchRequest.serializer(), patch)
+        roundTrip(RevisionsPage.serializer(), RevisionsPage(listOf(Revision(10, RevisionAuthor("Mum"), at, emptyList())), next = 10))
+        decodes(RevisionsPage.serializer(), """{"revisions":[]}""", RevisionsPage(emptyList()))
     }
 }

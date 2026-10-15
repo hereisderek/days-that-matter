@@ -124,8 +124,11 @@ interface PurchaseVerifier {            // apple, google; later Chinese Android 
 Implementation notes (`backend/core/src/ports/`, wave 1):
 - `SqlDriver.batch` returns the rows each statement changed. D1 and libSQL over HTTP have no interactive transactions, so `SqlStore` writes optimistically: it reads, computes the merge, then commits one batch whose statements apply only while the event is still at the rev it read, and retries otherwise. After 20 lost attempts the store throws `StoreBusyError` and the core answers `503 service_unavailable`.
 - A new event starts at rev 1 without a revision row; every accepted patch that changes something appends one revision. A patch that changes nothing keeps the rev.
-- `Config` comes from environment variables: `ORIGIN`, `MEDIA_ORIGIN`, `REGION`, `VERSION`, `LIVE_MODE` (`ws` or `poll`), `SIGN_IN` and `STORES` (comma lists), `FEATURE_SPOTIFY`, `UI_MEMO_BADGE`, `MAINTENANCE`, `INACTIVE_JOB`, and the secrets `RATE_SALT`, `EMAIL_CODE_KEY`, `INVITE_KEY` (required) and `ADMIN_TOKEN` (optional, at least 32 characters).
+- `Config` comes from environment variables: `ORIGIN`, `MEDIA_ORIGIN`, `REGION`, `VERSION`, `LIVE_MODE` (`ws` or `poll`), `SIGN_IN` and `STORES` (comma lists), `FEATURE_SPOTIFY`, `UI_MEMO_BADGE`, `MAINTENANCE`, `INACTIVE_JOB`, `GOOGLE_CLIENT_IDS` and `APPLE_CLIENT_IDS` (comma lists of accepted ID token `aud` values, required when that method is in `SIGN_IN`), `APP_SCHEME` (the app's URL scheme for the Apple callback, default `daysthatmatter`), and the secrets `RATE_SALT`, `EMAIL_CODE_KEY`, `INVITE_KEY` (required) and `ADMIN_TOKEN` (optional, at least 32 characters).
+- `Ports` also carries `keys`, the `KeyFetcher` for Google's and Apple's JWKS: `cachedKeyFetcher(fetch, clock)` in production (cached an hour per URL, refetched at most once a minute for an unknown key id), a fixed set of locally generated keys in tests.
+- Identity providers live in `src/auth/`: `googleProvider` and `appleProvider` (`TokenProvider`, built from `Config` and `keys`) and the email code functions over the `Store` and `Mailer`.
 - The store conformance suite (`src/store/conformance.ts`) has no test framework dependency; it runs against `SqlStore` on `node:sqlite` and the in-memory `MemoryStore`, and a test checks that it fails for a store with a lost-update bug.
+- Reads by role (wave 2): `GET /events/{id}` answers `404 not_found` for an unknown or malformed id, `403 forbidden` for an event the caller is not owner, viewer or editor of (removed members included), and `410 deleted` for a deleted event the caller could read. `POST /events/fetch` leaves those out instead. Members see `childSeq` 0 in the manifest. Memo writes past 500 per event answer `429 quota_exceeded` with `details.limit` = `memos_per_event`. Repeating `DELETE /events/{id}` or a memo `DELETE` answers `204`. Lists of ids go to SQL as one JSON parameter (`json_each`), which stays under D1's 100 bound parameters.
 
 ---
 
@@ -157,7 +160,7 @@ Notes:
 
 Times are unix seconds UTC. No foreign key constraints; the core keeps references consistent.
 
-`0001_init.sql` holds `accounts`, `events`, `revisions`, `memos`, `links`, `members`, `media`, `grants`, `exports` and `devices`. The other tables come as their own migrations with their tasks: `identities`, `email_codes` and `sessions` (task 3.5), `invites` (3.8), `purchases` (3.11), `rate_counters` (3.13). Drivers without a migration tool apply the files with `applyMigrations` (table `_migrations`); D1 can use `wrangler d1 migrations apply` on the same files.
+`0001_init.sql` holds `accounts`, `events`, `revisions`, `memos`, `links`, `members`, `media`, `grants`, `exports` and `devices`. `0002_accounts.sql` adds `identities`, `email_codes` and `sessions` (task 3.5) and the column `events.first_upload_at` (section 8, first sign-in upload). The other tables come as their own migrations with their tasks: `invites` (3.8), `purchases` (3.11), `rate_counters` (3.13). Drivers without a migration tool apply the files with `applyMigrations` (table `_migrations`); D1 can use `wrangler d1 migrations apply` on the same files.
 
 ```sql
 CREATE TABLE accounts (
@@ -215,7 +218,8 @@ CREATE TABLE events (
   child_seq        INTEGER NOT NULL DEFAULT 0,  -- bumped by every memo (later comment) write
   child_purged_seq INTEGER NOT NULL DEFAULT 0,  -- highest seq of purged child tombstones
   updated_at       INTEGER NOT NULL,
-  deleted_at       INTEGER                      -- tombstone: links answer 410 until purge
+  deleted_at       INTEGER,                     -- tombstone: links answer 410 until purge
+  first_upload_at  INTEGER                      -- set when a first sign-in upload created it past the owned-event limit (section 8)
 );
 CREATE INDEX idx_events_owner ON events(owner_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_events_spotify ON events(audio_set_by) WHERE audio_kind = 'spotify' AND deleted_at IS NULL;
@@ -537,6 +541,29 @@ Library (`GET /me/library`):
 {"audio": [{"mediaId": "Qm7…", "title": "First dance", "durationSec": 214, "bytes": 2580000, "createdAt": "2026-10-12T15:04:05Z", "usedBy": 2}]}
 ```
 
+Sign-in (`POST /auth/token`, `POST /auth/email/verify`) → `200`; `created` is true when this sign-in created the account:
+```json
+{"session": "st_…", "account": {"...": "as GET /me"}, "created": true}
+```
+
+Account (`GET /me`; also the answer to `PATCH /me` and `POST /me/identities`). `usage` counts what the account uses of each counted feature; `limits` is the effective plan's row of the plan table (0 = not included, null = no limit); `planExpiresAt` null = no end:
+```json
+{"id": "…", "displayName": "Mum", "plan": "free", "planExpiresAt": null,
+ "identities": [{"provider": "google", "email": "mum@example.com"}, {"provider": "apple", "email": null}],
+ "usage": {"events": 2, "photos": 0, "animated_backdrop": 0, "custom_audio": 0, "spotify_events": 1},
+ "limits": {"events": 10, "photos": 5, "animated_backdrop": 0, "premium_audio": 0, "custom_audio": 0, "spotify_events": 3},
+ "createdAt": "2026-10-12T15:04:05Z"}
+```
+`PATCH /me`: `{"displayName": "Mum"}` (title rule, 1 to 100 characters). `POST /me/identities` returns `409 conflict` when the method belongs to another account.
+
+Fetch (`POST /events/fetch`): `{"events": [EventDoc, …]}`, each projected by the caller's role. Ids that are unknown, deleted or not readable by the caller are left out; the manifest already tells the client what went.
+
+Memos: `PUT /events/{id}/memos/{memoId}` with `{"content": "…", "milestoneTag": "Day 100", "createdAt": "…"}` → the memo (section 7.2) with `201` when new, `200` when the id already exists on this event; `PATCH` with `{"patch": {"content": "…", "milestoneTag": null}}` → the memo (null clears `milestoneTag` only); `DELETE` → `204`.
+
+Revisions page (`GET /events/{id}/revisions`): `{"revisions": [Revision, …], "next": 9}`; `next` is the `before` of the next page, null at the end.
+
+Status codes without a body of their own: `PUT /events/{id}` `201` when created, `200` with the current document when it exists; `DELETE /events/{id}` `204`; `POST /auth/signout` `204`; `DELETE /me` `204`; `POST /auth/email/start` `202` with no body.
+
 Membership (`PATCH /events/{id}/membership`):
 ```json
 {"archived": true, "reminders": {"daysBefore": [1], "time": "09:00"}}
@@ -576,13 +603,13 @@ Storage report (`GET /admin/storage`):
 
 ## 8. Accounts, sessions, plans and purchases
 
-- **Google and Apple** (app): Credential Manager and Google Sign-In (iOS) for Google; AuthenticationServices (iOS) and an in-app browser tab (Android) for Apple. The app sends the ID token and its nonce; the core checks signature (JWKS cached per instance), `iss`, `aud`, `exp` and `nonce`.
-- **Sign in with Apple on Android**: the app opens Apple's authorize URL in an in-app browser tab with `response_mode=form_post`, its own `state` and the SHA-256 of its nonce. Apple posts `code`, `id_token`, `state` and, on first sign-in, `user` to `POST /auth/apple/callback`. The core stores nothing there and answers with a redirect to the app (Android intent URL for `daysthatmatter://auth/apple`) carrying those values. The app checks `state` and signs in with `POST /auth/token` like iOS. No cookie and no browser session: the web has no sign-in (design D17).
-- **Email codes**: the address is trimmed and lower-cased. A 6-digit code from a CSPRNG is stored as an HMAC with `EMAIL_CODE_KEY`, valid 10 minutes, dead after 5 wrong attempts. Limits: 5 codes per address per hour, 20 per IP per hour. The response never says whether an account exists. The email contains only the code and the app name.
+- **Google and Apple** (app): Credential Manager and Google Sign-In (iOS) for Google; AuthenticationServices (iOS) and an in-app browser tab (Android) for Apple. The app sends the ID token and its nonce; the core checks signature (RS256, JWKS cached per instance), `iss` (`https://accounts.google.com` or `accounts.google.com`; `https://appleid.apple.com`), `aud` (one of `GOOGLE_CLIENT_IDS` or `APPLE_CLIENT_IDS`), `exp` (one minute of clock skew allowed) and `nonce`. Nonce rule: a Google token's `nonce` claim is the app's nonce as sent; an Apple token's `nonce` claim is the lower-case hex SHA-256 of the app's nonce (the app gives Apple the hash, on iOS and in the Android web flow). Every failure answers `401 unauthorized` with the same message. Only emails the provider marks verified (`email_verified` true or `"true"`) link accounts.
+- **Sign in with Apple on Android**: the app opens Apple's authorize URL in an in-app browser tab with `response_mode=form_post`, its own `state` and the SHA-256 of its nonce. Apple posts `code`, `id_token`, `state` and, on first sign-in, `user` to `POST /auth/apple/callback`. The core stores nothing there and answers `303` with `Location: intent://auth/apple?code=…&id_token=…&state=…&user=…&error=…#Intent;scheme=<APP_SCHEME>;end` (only those fields, when present; `APP_SCHEME` defaults to `daysthatmatter`). The app checks `state` and signs in with `POST /auth/token` like iOS. No cookie and no browser session: the web has no sign-in (design D17).
+- **Email codes**: the address is trimmed and lower-cased. A 6-digit code from a CSPRNG is stored as an HMAC with `EMAIL_CODE_KEY`, valid 10 minutes, dead after 5 wrong attempts. Each try is counted before the code is compared, so parallel guesses stay within the 5; a right code works once; a new request replaces the old code. When the mail provider refuses, `POST /auth/email/start` answers `503 service_unavailable`. Limits: 5 codes per address per hour, 20 per IP per hour. The response never says whether an account exists. The email contains only the code and the app name.
 - **Linking**: a new identity whose verified email matches an existing verified identity joins that account. `POST /me/identities` adds a method explicitly.
 - **Sessions**: `st_` + 43 chars base64url (256 bits), stored as SHA-256. Valid until 90 days after last use.
 - **Activity**: an authenticated request sets `accounts.last_active_at` (at most one write per day) and clears `inactive_notice_1_at` and `inactive_notice_2_at` (section 17).
-- **First sign-in on a device**: the app uploads local events (`PUT /events/{id}`) and memos. Uploads above the owned-event limit are accepted for this first upload only, so nothing local is lost.
+- **First sign-in on a device**: the app uploads local events (`PUT /events/{id}`) and memos. Uploads above the owned-event limit are accepted for this first upload only, so nothing local is lost. The app marks them with `PUT /events/{id}?firstUpload=1&createdAt=<ISO-8601 local creation time>`. The limit is skipped only while the session is less than 24 hours old, `createdAt` is before the session started (pre-sign-in local data), and fewer than 500 of the owner's events were uploaded this way since the session started; such events get `events.first_upload_at`. Otherwise, and for every request without the flag, the limit applies: `402 premium_required` (`details.feature` = `events`) when a higher plan allows more, `429 quota_exceeded` when none does. Known residual risk: a client can forge `createdAt` and sign in again to upload past the limit; the rate limits (task 3.13) and the operator storage report bound it.
 - **Deletion**: deletes owned events (with revisions, memos, links, invites, members, media), the account's memberships, uploads (library included), identities, sessions, grants, exports and devices. Inactive accounts are deleted the same way (section 17). Revisions they authored on other events keep `author_id = NULL`. Store subscriptions are not cancelled by the backend; the app tells the user how.
 - **Purchases (native)**:
   - Apple: the app buys with StoreKit 2 (Swift bridge) and sets `appAccountToken` to the account id when signed in. It sends `jwsRepresentation` of each current entitlement to `POST /purchases/apple`. The core verifies the JWS signature and `x5c` chain to Apple Root CA G3, `bundleId` and `environment`, then stores the purchase. App Store Server Notifications V2 (signed the same way) report renewals, grace periods, expiry and refunds.

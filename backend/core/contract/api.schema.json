@@ -689,6 +689,20 @@
         "ids"
       ]
     },
+    "FetchEventsResponse": {
+      "type": "object",
+      "properties": {
+        "events": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EventDoc"
+          }
+        }
+      },
+      "required": [
+        "events"
+      ]
+    },
     "FieldChange": {
       "type": "object",
       "properties": {
@@ -744,6 +758,27 @@
       "required": [
         "status",
         "version"
+      ]
+    },
+    "IdentityInfo": {
+      "type": "object",
+      "properties": {
+        "provider": {
+          "$ref": "#/$defs/SignInMethod"
+        },
+        "email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "provider"
       ]
     },
     "InviteInfo": {
@@ -1059,6 +1094,77 @@
         "childSeq"
       ]
     },
+    "Me": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "plan": {
+          "$ref": "#/$defs/Plan"
+        },
+        "planExpiresAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "identities": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/IdentityInfo"
+          }
+        },
+        "usage": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer"
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "displayName",
+        "plan",
+        "createdAt"
+      ]
+    },
+    "MePatchRequest": {
+      "type": "object",
+      "properties": {
+        "displayName": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "displayName"
+      ]
+    },
     "MediaKind": {
       "type": "string",
       "enum": [
@@ -1278,6 +1384,43 @@
       "required": [
         "id",
         "seq"
+      ]
+    },
+    "MemoPatchRequest": {
+      "type": "object",
+      "properties": {
+        "patch": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "patch"
+      ]
+    },
+    "MemoPutRequest": {
+      "type": "object",
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "milestoneTag": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "content",
+        "createdAt"
       ]
     },
     "PatchRequest": {
@@ -1583,6 +1726,30 @@
         "name"
       ]
     },
+    "RevisionsPage": {
+      "type": "object",
+      "properties": {
+        "revisions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Revision"
+          }
+        },
+        "next": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "revisions"
+      ]
+    },
     "Role": {
       "type": "string",
       "enum": [
@@ -1637,6 +1804,24 @@
         "apple",
         "google",
         "email"
+      ]
+    },
+    "SignInResponse": {
+      "type": "object",
+      "properties": {
+        "session": {
+          "type": "string"
+        },
+        "account": {
+          "$ref": "#/$defs/Me"
+        },
+        "created": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "session",
+        "account"
       ]
     },
     "StorageBytes": {

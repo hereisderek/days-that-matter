@@ -13,6 +13,7 @@ import dev.derek.daysthatmatter.core.model.api.DeviceRegistration
 import dev.derek.daysthatmatter.core.model.api.EmailStartRequest
 import dev.derek.daysthatmatter.core.model.api.EmailVerifyRequest
 import dev.derek.daysthatmatter.core.model.api.FetchEventsRequest
+import dev.derek.daysthatmatter.core.model.api.FetchEventsResponse
 import dev.derek.daysthatmatter.core.model.api.GooglePurchaseRequest
 import dev.derek.daysthatmatter.core.model.api.HealthResponse
 import dev.derek.daysthatmatter.core.model.api.InviteStatusResponse
@@ -23,13 +24,19 @@ import dev.derek.daysthatmatter.core.model.api.LinkViewResponse
 import dev.derek.daysthatmatter.core.model.api.LiveMessage
 import dev.derek.daysthatmatter.core.model.api.MediaKind
 import dev.derek.daysthatmatter.core.model.api.MediaUploadResponse
+import dev.derek.daysthatmatter.core.model.api.Me
+import dev.derek.daysthatmatter.core.model.api.MePatchRequest
+import dev.derek.daysthatmatter.core.model.api.MemoPatchRequest
+import dev.derek.daysthatmatter.core.model.api.MemoPutRequest
 import dev.derek.daysthatmatter.core.model.api.PatchRequest
 import dev.derek.daysthatmatter.core.model.api.PatchResponse
 import dev.derek.daysthatmatter.core.model.api.PurchaseResponse
 import dev.derek.daysthatmatter.core.model.api.RestoreRequest
 import dev.derek.daysthatmatter.core.model.api.Revision
+import dev.derek.daysthatmatter.core.model.api.RevisionsPage
 import dev.derek.daysthatmatter.core.model.api.SetMemberRoleRequest
 import dev.derek.daysthatmatter.core.model.api.SharingResponse
+import dev.derek.daysthatmatter.core.model.api.SignInResponse
 import dev.derek.daysthatmatter.core.model.api.StorageReport
 import dev.derek.daysthatmatter.core.model.api.SyncManifest
 import dev.derek.daysthatmatter.core.model.api.TokenSignInRequest
@@ -125,12 +132,18 @@ private val API_TYPES: List<KSerializer<*>> = listOf(
     serializer<TokenSignInRequest>(),
     serializer<EmailStartRequest>(),
     serializer<EmailVerifyRequest>(),
+    serializer<SignInResponse>(),
+    serializer<Me>(),
+    serializer<MePatchRequest>(),
     serializer<SyncManifest>(),
     serializer<FetchEventsRequest>(),
+    serializer<FetchEventsResponse>(),
     serializer<EventDoc>(),
     serializer<PublicEvent>(),
     serializer<Memo>(),
     serializer<Membership>(),
+    serializer<MemoPutRequest>(),
+    serializer<MemoPatchRequest>(),
     serializer<PatchRequest>(),
     serializer<PatchResponse>(),
     serializer<ChildrenResponse>(),
@@ -153,6 +166,7 @@ private val API_TYPES: List<KSerializer<*>> = listOf(
     serializer<PurchaseResponse>(),
     serializer<DeviceRegistration>(),
     serializer<Revision>(),
+    serializer<RevisionsPage>(),
     serializer<RestoreRequest>(),
     serializer<StorageReport>(),
     serializer<ApiErrorResponse>(),

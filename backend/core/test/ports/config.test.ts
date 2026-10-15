@@ -32,6 +32,9 @@ describe('loadConfig', () => {
       stores: [],
       features: { spotify: false },
       ui: { memoBadge: 'top-right' },
+      googleClientIds: [],
+      appleClientIds: [],
+      appScheme: 'daysthatmatter',
       maintenance: false,
       inactiveJob: true,
       secrets: { rateSalt: 'salt', emailCodeKey: 'email-key', inviteKey: 'invite-key', adminToken: null },
@@ -42,8 +45,9 @@ describe('loadConfig', () => {
     const c = loadConfig({
       ...BASE, REGION: 'cn', MEDIA_ORIGIN: 'https://media.dtm.example/', VERSION: '1.2.3', LIVE_MODE: 'poll',
       SIGN_IN: 'email, apple,email', STORES: 'google', FEATURE_SPOTIFY: '1', UI_MEMO_BADGE: 'top-left', MAINTENANCE: '1',
-      INACTIVE_JOB: '0', ADMIN_TOKEN: 'a'.repeat(32),
+      INACTIVE_JOB: '0', ADMIN_TOKEN: 'a'.repeat(32), APPLE_CLIENT_IDS: 'app.ios, app.web,app.ios', APP_SCHEME: 'dtm-dev',
     });
+    expect([c.appleClientIds, c.googleClientIds, c.appScheme]).toEqual([['app.ios', 'app.web'], [], 'dtm-dev']);
     expect([c.region, c.mediaOrigin, c.version, c.live, c.signIn, c.stores]).toEqual(['cn', 'https://media.dtm.example', '1.2.3', 'poll', ['email', 'apple'], ['google']]);
     expect([c.features.spotify, c.ui.memoBadge, c.maintenance, c.inactiveJob, c.secrets.adminToken]).toEqual([true, 'top-left', true, false, 'a'.repeat(32)]);
   });
@@ -65,6 +69,9 @@ describe('loadConfig', () => {
     expect(error({ ...BASE, MAINTENANCE: 'yes' })).toBe('MAINTENANCE must be 0 or 1');
     expect(error({ ...BASE, UI_MEMO_BADGE: 'bottom' })).toBe('UI_MEMO_BADGE must be top-left or top-right');
     expect(error({ ...BASE, ADMIN_TOKEN: 'short-secret-value' })).toBe('ADMIN_TOKEN must be at least 32 characters');
+    expect(error({ ...BASE, SIGN_IN: 'google' })).toBe('GOOGLE_CLIENT_IDS is required when that sign-in method is on');
+    expect(error({ ...BASE, SIGN_IN: 'apple', APPLE_CLIENT_IDS: ' , ' })).toBe('APPLE_CLIENT_IDS is required when that sign-in method is on');
+    expect(error({ ...BASE, APP_SCHEME: 'Days That Matter' })).toBe('APP_SCHEME must be a lower-case URL scheme');
   });
 
   it('allows plain http on localhost for local runs', () => {

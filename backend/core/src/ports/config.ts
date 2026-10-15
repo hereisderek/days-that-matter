@@ -25,6 +25,12 @@ export interface Config {
   readonly stores: readonly PurchaseStore[];
   readonly features: { readonly spotify: boolean };
   readonly ui: { readonly memoBadge: MemoBadgePosition };
+  /** Accepted `aud` values of Google ID tokens (the app's OAuth client ids); required when Google sign-in is on. */
+  readonly googleClientIds: readonly string[];
+  /** Accepted `aud` values of Apple ID tokens (bundle id, Services ID); required when Apple sign-in is on. */
+  readonly appleClientIds: readonly string[];
+  /** URL scheme of the app that `POST /auth/apple/callback` redirects to (`daysthatmatter` by default). */
+  readonly appScheme: string;
   /** Writes answer 503 while true. */
   readonly maintenance: boolean;
   /** The inactive account steps of the daily job run while true. */
@@ -48,9 +54,10 @@ const STORES: readonly PurchaseStore[] = ['apple', 'google'];
  * Reads the configuration from environment variables: `ORIGIN` (required), `MEDIA_ORIGIN`, `REGION`
  * (default `global`), `VERSION`, `LIVE_MODE` (`ws` or `poll`, required), `SIGN_IN` and `STORES`
  * (comma lists), `FEATURE_SPOTIFY` (`1`), `UI_MEMO_BADGE` (`top-left` or `top-right`),
- * `MAINTENANCE` (`1`), `INACTIVE_JOB` (`0` pauses) and the secrets `RATE_SALT`, `EMAIL_CODE_KEY`,
- * `INVITE_KEY` (required) and `ADMIN_TOKEN` (optional, at least 32 characters). Messages name the
- * variable, never its value.
+ * `MAINTENANCE` (`1`), `INACTIVE_JOB` (`0` pauses), `GOOGLE_CLIENT_IDS` and `APPLE_CLIENT_IDS` (comma
+ * lists, required when that sign-in method is on), `APP_SCHEME` (default `daysthatmatter`) and the
+ * secrets `RATE_SALT`, `EMAIL_CODE_KEY`, `INVITE_KEY` (required) and `ADMIN_TOKEN` (optional, at least
+ * 32 characters). Messages name the variable, never its value.
  */
 export function loadConfig(env: Env): Config {
   const origin = httpsOrigin(env, 'ORIGIN', true) as string;
@@ -59,6 +66,11 @@ export function loadConfig(env: Env): Config {
   const badge = env['UI_MEMO_BADGE'] ?? 'top-right';
   if (badge !== 'top-left' && badge !== 'top-right') throw new ConfigError('UI_MEMO_BADGE must be top-left or top-right');
   const adminToken = optional(env, 'ADMIN_TOKEN');
+  const signIn = list(env, 'SIGN_IN', SIGN_IN);
+  const googleClientIds = clientIds(env, 'GOOGLE_CLIENT_IDS', signIn.includes('google'));
+  const appleClientIds = clientIds(env, 'APPLE_CLIENT_IDS', signIn.includes('apple'));
+  const appScheme = optional(env, 'APP_SCHEME') ?? 'daysthatmatter';
+  if (!/^[a-z][a-z0-9+.-]{0,31}$/.test(appScheme)) throw new ConfigError('APP_SCHEME must be a lower-case URL scheme');
   if (adminToken !== null && adminToken.length < 32) throw new ConfigError('ADMIN_TOKEN must be at least 32 characters');
   return {
     region: optional(env, 'REGION') ?? 'global',
@@ -66,10 +78,13 @@ export function loadConfig(env: Env): Config {
     mediaOrigin: httpsOrigin(env, 'MEDIA_ORIGIN', false) ?? origin,
     version: optional(env, 'VERSION') ?? 'dev',
     live,
-    signIn: list(env, 'SIGN_IN', SIGN_IN),
+    signIn,
     stores: list(env, 'STORES', STORES),
     features: { spotify: flag(env, 'FEATURE_SPOTIFY', false) },
     ui: { memoBadge: badge },
+    googleClientIds,
+    appleClientIds,
+    appScheme,
     maintenance: flag(env, 'MAINTENANCE', false),
     inactiveJob: flag(env, 'INACTIVE_JOB', true),
     secrets: {
@@ -107,6 +122,12 @@ function list<T extends string>(env: Env, name: string, allowed: readonly T[]): 
     if (!(allowed as readonly string[]).includes(item)) throw new ConfigError(`${name} has an unknown value`);
   }
   return [...new Set(items)] as T[];
+}
+
+function clientIds(env: Env, name: string, isRequired: boolean): string[] {
+  const ids = [...new Set((optional(env, name) ?? '').split(',').map((s) => s.trim()).filter((s) => s !== ''))];
+  if (isRequired && ids.length === 0) throw new ConfigError(`${name} is required when that sign-in method is on`);
+  return ids;
 }
 
 function httpsOrigin(env: Env, name: string, isRequired: boolean): string | null {

@@ -3,7 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryStore } from '../../src/fakes/memory-store.ts';
 import { openSqliteStore } from '../../src/node/node-sqlite-driver.ts';
-import type { PatchInput, PatchOutcome, Store } from '../../src/ports/store.ts';
+import type { PatchInput, PatchOutcome, SignInInput, SignInOutcome, Store } from '../../src/ports/store.ts';
 import { applyEventPatch } from '../../src/rules/merge.ts';
 import { runStoreConformance, storeConformanceCases } from '../../src/store/conformance.ts';
 
@@ -24,9 +24,18 @@ for (const [name, newStore] of Object.entries(stores)) {
 
 /**
  * A store with the classic read-modify-write bug: it reads, yields, then writes without checking
- * that nobody wrote in between, does not write revisions, and reports no overwritten fields.
+ * that nobody wrote in between, does not write revisions, and reports no overwritten fields. It also
+ * never counts email code attempts and links identities by unverified emails.
  */
 class BrokenStore extends MemoryStore {
+  override async takeEmailCodeAttempt(emailHash: string, now: number, _maxAttempts: number): Promise<string | null> {
+    return super.takeEmailCodeAttempt(emailHash, now, Number.MAX_SAFE_INTEGER);
+  }
+
+  override async signIn(input: SignInInput): Promise<SignInOutcome> {
+    return super.signIn({ ...input, identity: { ...input.identity, emailVerified: input.identity.email !== null } });
+  }
+
   readonly #docs = new Map<string, { rev: number; doc: Record<string, never> }>();
 
   override async applyPatch(input: PatchInput): Promise<PatchOutcome> {
@@ -52,6 +61,9 @@ describe('store conformance: a broken store fails', () => {
         'patch: bumps the rev and appends the revision',
         'patch: reports fields that replaced a newer change by someone else',
         'patch: concurrent writers lose nothing',
+        'email codes: every attempt counts, up to the limit, and a code signs in once',
+        'email codes: parallel guesses stay within the attempt limit',
+        'sign-in: a verified email joins the account with that verified email',
       ]),
     );
     for (const r of results.filter((x) => !x.passed)) expect(r.error).toBeTruthy();
