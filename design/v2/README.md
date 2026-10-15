@@ -12,7 +12,7 @@ python3 -m http.server 8766 --directory design/v2
 
 Then open http://localhost:8766. Opening `index.html` directly from disk also works.
 
-The left panel jumps between screens and switches the theme, the account (Guest or Signed in), the plan (Free or Premium) and the memo badge position (remote config). On a phone-width window it becomes a row of tabs and the app fills the screen.
+The left panel jumps between screens and switches the theme, the account (Local or Signed in), the plan (Free or Premium), the memo badge position (remote config) and, for offline use, the days on the device, the import choice and its result, the name, the time of day and the heavy-use nudge (section 9). On a phone-width window it becomes a row of tabs and the app fills the screen.
 
 Things to try:
 
@@ -25,7 +25,7 @@ Things to try:
 - Switch the panel's **Memo badge** between Left and Right (it stands in for remote config). Days with memos show the badge; Grandma's 90th, shared with you, never does.
 - **Customize** › Background › Photo: pick a tile marked LIVE. It moves in the preview. On Free, Save shows the paywall with **Use still photo**.
 - **Share** on "Norway trip": create a public link with a label and expiry, an invite with a role and use count, change a member's role, remove someone.
-- Switch the panel to **Guest** and tap Share: the sign-in prompt appears first. Create a day as a guest: the prompt appears once after the first save.
+- Switch the panel to **Local** and tap Share: the sign-in prompt appears first. In local mode Settings has your name, which the Home greeting uses, and locked online items. Section 9 walks through the offline and import states.
 - Settings shows the account, Sync, the plan's limits in use and the notification switches. Create days until the eleventh: the paywall appears (archived days still count).
 
 | File | What it holds |
@@ -54,7 +54,7 @@ Principles:
 2. **Pinned days lead.** Any number of owned days can be pinned. They sit in a carousel at the top of Home, one in focus, and stay in the list below.
 3. **Same customization everywhere.** Background, card style, typeface, text color, darkness and music work the same way for every day, and the card looks the same in the list, the pinned carousel, the day page, widgets, share images and the web page.
 4. **Readable by default.** Text color is chosen from the background automatically. Photos get a dark scrim and a soft gradient behind the text. The editor shows the contrast ratio. The specs require 4.5:1.
-5. **Calm about money and accounts.** Guests can do everything local without signing in. Paid features can be picked and previewed for free; the paywall appears only on Save and always offers a free way out where one exists.
+5. **Calm about money and accounts.** Local mode (no account) can do everything local without signing in. Paid features can be picked and previewed for free; the paywall appears only on Save and always offers a free way out where one exists.
 6. **Soft motion.** Short fades and slides, a light spring on switches, Live Photos that play once. Everything turns off with the system "reduce motion" setting.
 
 ## 2. Tokens
@@ -160,24 +160,24 @@ On the day page and in share images, Outline is drawn as Clean, because those ar
 
 ### Welcome
 
-Three floating sample cards, one line of copy, then **Continue with Apple** (primary on iOS), **Continue with Google**, **Continue with email**, and **Skip for now**. The same buttons sign in or create an account; there are no passwords. Only the methods the region enables are shown (`GET /config`). Under the buttons: "By continuing you agree to the Terms of Service and Privacy Policy", both linked.
+Three floating sample cards, one line of copy and **Get started**, which opens the device-or-account choice (section 9). Revision 5 moved the sign-in buttons and the old "Skip for now" into that choice. The sign-in buttons (**Continue with Apple** (primary on iOS), **Continue with Google**, **Continue with email**) sign in or create an account; there are no passwords. Only the methods the region enables are shown (`GET /config`). Under the buttons: "By continuing you agree to the Terms of Service and Privacy Policy", both linked.
 
 ### Sign-in prompt (sheet)
 
-Shown to guests on Share, Invite, Sync, opening an invite, and once after the first saved day. Title "Sign in or create an account", one line on why, the sign-in buttons, and **Not now** where the action can wait (not on Share, which needs an account). After signing in, the interrupted action continues; for Share, the share sheet opens with the days already uploading.
+Shown in local mode on Share, Invite, Sync, History, opening an invite, and from the locked rows in Settings (revision 5 removed the prompt after the first saved day; see section 9). Title "Sign in or create an account", one line on why, the sign-in buttons, and **Not now** where the action can wait (not on Share, which needs an account). After signing in, the interrupted action continues; for Share, the share sheet opens with the days already uploading.
 
 Email sign-in is two steps in the same sheet: address, then the 6-digit code ("Valid for 10 minutes", "Send a new code").
 
 ### Home
 
-- Header: today's date and "Your days", search, and the account button (initial when signed in). While edits are waiting to sync, the date line reads "Syncing 2 changes…" with a pulsing dot; sync runs on its own within 2 seconds, so this is brief.
+- Header: today's date and a greeting ("Good morning, Sam"; "Your days" when the greeting is off), search, and the account button (initial when signed in). While edits are waiting to sync, the date line reads "Syncing 2 changes…" with a pulsing dot; sync runs on its own within 2 seconds, so this is brief.
 - The header and the **pinned carousel** stay at the top; the list scrolls under them (section 5). The carousel shows when at least one owned day is pinned and the setting is on, and is hidden while searching or filtering.
 - Filter chips: All, Upcoming, Since, **Shared** (signed in only), **Smart**, then the categories.
 - Two sections, **Upcoming** and **Since**, each with a count. The first section header holds the list/grid switch and sort.
 - Long-press or right-click a card. Owner: Pin to top / Unpin, Customize, Share, Archive, History, Duplicate, Delete (with Undo). Editor of a shared day: Edit, Share image, Archive, History, Report, Leave. Viewer: Share image, Archive, Report, Leave. Smart days have no Share.
 - **Archived · n** row at the end of the list opens the Archived screen. Archiving hides a day from Home, the carousel and widget choices, turns its reminders and notifications off, and **unpins it**; unarchiving does not pin it again. Archive is personal: for a day shared with you it only hides your copy. Archived owned days still count toward the plan's day limit.
 - Floating **New day** button opens a chooser: **A date**, **Smart days** (with today's count next to each) and **Seasonal · limited time** (templates outside their window are shown greyed with "Opens Nov 1"). On Free with 10 owned days it opens the paywall instead.
-- Guests do not see days shared with them (they have none) or the Shared chip.
+- Local mode does not show days shared with you (they have none) or the Shared chip.
 
 ### Day page
 
@@ -234,11 +234,11 @@ A home-screen mock with a small and a medium widget, a lock-screen mock with a c
 
 ### Settings
 
-- Signed in: profile (name, email, sign-in methods, plan badge) and **Sync** ("Synced 4 min ago" or "2 changes waiting", **Sync now**; after a manual sync: "Changes sync automatically after each edit"). Guest: "Saved on this device only" with **Sign in**.
+- Signed in: profile (name, email, sign-in methods, plan badge) and **Sync** ("Synced 4 min ago" or "2 changes waiting", **Sync now**; after a manual sync: "Changes sync automatically after each edit"). Local: the "Local · this device only" card with the name field and **Sign in or create an account** (section 9).
 - **Plan**: limits in use as meters (Days 9 of 10, Photo backdrops 3 of 5, Spotify days 1 of 3), Live photos and music files as Premium, **Upgrade to Premium** or "Manage in the App Store", **Restore purchases**.
 - Appearance, Counting.
 - **Notifications**: Reminders (local, set per day, work offline) with the delivery time; **Changes to shared days**; **Added to a day**; **Offers and news** (off by default, at most 2 a month).
-- More (Widgets, Recently deleted, Privacy lock, Export for guests, Language, Terms of Service, Privacy Policy).
+- More (Widgets, Recently deleted, Privacy lock, Export for local mode, Language, Terms of Service, Privacy Policy).
 - **Account** (signed in): display name, add sign-in method, **Download my data** (emails a download link that works for 30 days), **Sign out** (this device only; warns about unsynced changes), **Delete account** (lists what is deleted; on Premium, says to cancel the subscription in the store first). A line under it: accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a download link.
 
 Items marked **New** were added in this design; where they are specified is listed in section 6.
@@ -295,7 +295,7 @@ Now specified, so removed from this list: Premium and promotions, sharing with r
 | 11 | **Lunar calendar dates (农历)** | Many Chinese users keep birthdays and festivals on lunar dates. Needs "repeats yearly on the lunar date" and a lunar date picker, in the shared engine. |
 | 12 | **Holiday sets per region** | Smart days and Workdays both need real public holiday data per region (and Chinese festivals and solar terms, 节气). Workdays could then skip holidays. |
 | 13 | **Milestone model** | The day page shows milestones (100, 365, 500, 520, 1000, 1314, yearly) but no spec defines the list, custom milestones, or alerts. |
-| 14 | **Guest export** | Signed-in users can download their data. Guests keep data on one device only: offer JSON export and import, and `.ics` import. |
+| 14 | **Local export** | Signed-in users can download their data. Local mode keeps data on one device only: offer JSON export and import, and `.ics` import. |
 | 15 | **"Changed by" marker** | Push covers changes to shared days, but people who turn it off need a small "changed by Lin" marker on the card until they open it. |
 | 16 | **Widget configuration** | Choose the day per widget, widget look, hide titles. |
 | 17 | **Privacy lock and private days** | Biometric lock; a private flag that hides the title in widgets, notifications and previews. |
@@ -351,7 +351,138 @@ Each gradient and art preset needs a stored base color for auto text color and f
 - **Pinned carousel:** `HorizontalPager` with `contentPadding = PaddingValues(horizontal = 26.dp)` and `pageSpacing = 10.dp`; scale and alpha from `currentPageOffsetFraction` in `graphicsLayer`, with the transform origin on the side facing the centre. Follow the list with `snapshotFlow { pagerState.settledPage }` → `listState.animateScrollToItem(index, scrollOffset)`. Collapse the pager when `listState.firstVisibleItemScrollOffset` passes 24 dp, ignoring scrolls started by the follow.
 - **Paywall and sign-in:** use the platforms' own purchase sheet and the official Sign in with Apple and Google buttons; the v2 sheet is the frame around them.
 
-## 9. Revision history
+## 9. Offline use and importing local days
+
+Added in revision 5 of this document, from the owner's requirement "support offline usage". The prototype shows every state; the panel on the left (section "Open the prototype") reaches each one. Onboarding itself is built later; only the first-launch choice screen is drawn here. Nothing in `docs/`, `openspec/` or the app was changed.
+
+### 9.1 The model in one paragraph
+
+Without an account the app is in **local mode** (this replaces "guest"). Local mode is a full, offline app for the user's own days: customize, widgets, reminders, memos. It has no online features (sync, sharing, links, invites, history, restore) and it follows the same plan limits as an account (10 days, 5 photo backdrops and so on, Premium features still Premium), so a user who signs in later is never over the limits because of what they did offline. Each signed-in account has its own database on the device and local mode has one more; **nothing is copied between them except by an explicit, confirmed import**. The name in Settings is stored on the device and drives the Home greeting.
+
+### 9.2 Screens and states
+
+| # | Screen | What it shows | Prototype |
+| :--- | :--- | :--- | :--- |
+| 1 | **First-launch choice** (new, step 2 of onboarding, after Welcome) | "Where should your days live?" Two cards of equal size and weight, each with a full-width primary button: **Use on this device** (no account; all your own days, looks, widgets and reminders; works offline; "Good to know": no sharing, sync, history or invites, and Premium features and plan limits still apply, so moving to an account never goes over them) and **Sign in or create an account** (sharing, sync, history, backup; "Free to start. No password."). Terms line applies to the account path only. | Panel › Device or account |
+| 2 | **Settings, local mode** | A "Local · this device only" card, **Your name** (optional field, stays on the device), an info block explaining local mode, **Sign in or create an account** (accent button), then a **Needs an account** group (Sync, Sharing and invites, History and restore, Backup) with lock icons. Tapping one opens the sign-in prompt with a matching reason, the same behavior Share and Sync have for guests today. Plan meters stay, with a line saying limits are the same as an account's. | Account › Local, then Settings |
+| 3 | **Home greeting** | The h1 becomes "Good morning, Sam". Morning 05:00 to 11:59, afternoon 12:00 to 16:59, evening 17:00 to 21:59, late night 22:00 to 04:59 ("Still up, Sam?"). No name: "Good morning" / "Still up?". Signed in: the account display name. The date line, search and account button stay. Long names wrap to two lines and then end with an ellipsis; emoji names are fine. Settings › Appearance › **Greeting on Home** turns it off (back to "Your days"). | Panel › Name, Time of day |
+| 4 | **Heavy-use nudge** (sheet) | "Your days deserve a backup". Counts what is on the phone ("4 days and 3 memos"), four benefits (sharing, sync, history and restore, backup), **Sign in or create an account**, **Not now**, and "We won't ask again for a month." | Panel › Heavy-use nudge: Show |
+| 5 | **Import prompt** (sheet, right after sign-in) | "Import this phone's days?", "Found 4 days and 3 memos kept on this device", the first three days listed, a paragraph saying import is permanent, that the days leave local mode on this phone, and that nothing is imported if the user says not now. If the import takes a Free account above 10 days, an info line says so and that nothing is deleted. **Import 4 days…** (primary) and **Not now, keep on this device**. | Panel › Import choice › Not yet |
+| 5b | **Confirm** (second sheet) | "This can't be undone". Import 4 days and 3 memos into the account email? Saved to the account and synced; removed from local mode on this phone, and signing out will not bring them back; can't be moved back. **Yes, import 4 days**, **Go back**. | Import › Import 4 days… |
+| 5c | **Success** | "4 days imported", "3 memos came with them", they are in the account and on other devices, no longer in local mode. **Done**. | Confirm › Yes |
+| 5d | **Partial or failed** | "3 of 4 days imported". The one that failed stays on the phone, safe and unchanged; the others are in the account for good. **Try again**, **Keep it on this device for now**. Import is per day: each day moves whole or stays. | Panel › Import result › Partial |
+| 6 | **After "Not now"** | Signed-in Home shows only the account's days. Settings has **On this device › Import days from this device** with the count ("4 days and 3 memos kept on this phone, not in your account"). It opens the same sheets as 5 and 5b. When all days are imported the group disappears. | Panel › Import choice › Skipped |
+| 7 | **Sign out** | Confirmation "Sign out and use this device only?": back to local mode, where only the days kept on this phone (never imported ones) are shown; account days, including imported ones, stay in the account. After confirming the app opens Home in local mode with the local greeting. | Settings › Sign out |
+
+Panel switches added for review: **Account** (Local, Signed in), **Days on device** (None, Some), **Import choice** (Not yet, Imported, Skipped), **Import result** (All, Partial), **Name** (Short, Long, Emoji, None), **Time of day** (Now, Morning, Afternoon, Evening, Late) and **Heavy-use nudge › Show**. "Not yet" signs in if needed and opens the import prompt; "Imported" runs the import; "Skipped" closes it. The prototype starts signed in with 4 local days and "Skipped", so the account Home, the local Home and the Settings import row can all be compared at once. Tapping outside an import sheet is "Not now"; tapping outside the nudge is "Not now".
+
+### 9.3 Copy
+
+| Where | Text |
+| :--- | :--- |
+| Choice, device card | **Use on this device** · No account. Nothing leaves your phone. · "All your own days, looks, widgets and reminders" · "Works offline, no sign-in" · *Good to know.* Sharing, sync, history and invites need an account. Premium features and the plan's limits apply here too, so moving to an account later never goes over them. |
+| Choice, account card | **Sign in or create an account** · Free to start. No password. · "Share days with people you choose" · "Sync across all your devices" · "History, restore and backup" |
+| Settings, local | **Local · this device only** · No account. Your days stay on this phone. · **Your name** Optional. Used in greetings. Stays on this device. · *Local mode.* Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them. |
+| Nudge | **Your days deserve a backup** · You are keeping 4 days and 3 memos on this phone. An account adds: · Sharing with the people you choose · Sync across your devices · History, so any change can be restored · A backup if this phone is lost · [Sign in or create an account] [Not now] · Your days stay on this phone until you decide to import them. We won't ask again for a month. |
+| Import prompt | **Import this phone's days?** Found 4 days and 3 memos kept on this device. Importing moves them into your account, so they sync to your other devices. It is permanent: they leave local mode on this phone and can't be moved back. If you choose not now, nothing is imported. [Import 4 days…] [Not now, keep on this device] They stay here and are not shown in your account. You can import them later from Settings. |
+| Confirm | **This can't be undone** · Import 4 days and 3 memos into alex@example.com? · They are saved to your account and sync to your other devices. · They are removed from local mode on this phone. Signing out later will not bring them back here. · You can't move them back. Delete or edit them in your account as you would any day. · [Yes, import 4 days] [Go back] |
+| Partial | **3 of 4 days imported** · First 5K couldn't be imported. The connection dropped. 1 day stayed on this phone, safe and unchanged. The others are in your account for good. · [Try again] [Keep it on this device for now] |
+| Sign out | **Sign out and use this device only?** You will go back to local mode, where you see only the days kept on this phone (4 days). Days in your account, including any you imported, stay in your account and won't show here. Other devices stay signed in. |
+
+The owner's draft "found local event, want to import?" became a sheet title that names the device ("Import this phone's days?") and a first line that gives the counts. "Phone" is the word for the app on iOS and Android; a tablet build would say "device". The confirmation is its own sheet so the irreversible part gets a full screen of attention, and its button repeats the number ("Yes, import 4 days") instead of "OK".
+
+### 9.4 Proposed rules (the product owner decides)
+
+**What counts as heavy use** (local mode only; days the user made, not seasonal or smart templates they did not edit): any one of
+
+- 12 or more days **and** 14 or more days since first launch (the user came back, not one long first evening), or
+- 25 or more days, or
+- 20 or more memos.
+
+**When it may appear:** only on Home, at app start or when coming back from a Save; never inside an editor, a sheet or a day page; never in the first 7 days; never while a sign-in is in progress.
+
+**How often it may reappear:**
+
+- At most once in 30 days.
+- After **Not now** twice it stops for good. The second "Not now" says so: "OK. We won't ask again. It's in Settings if you change your mind." Settings keeps the **Sign in or create an account** button, so nothing is lost.
+- Closing the sheet any other way (tap outside, back) counts as Not now.
+- Signing in ends it. Signing out later starts the counters from zero.
+- It never blocks anything and has no countdown.
+
+**Import prompt rules:** asked right after every sign-in while local days exist, unless the user chose "Not now" earlier on this device (then only the Settings row is shown, so the prompt does not nag at every sign-in). If more local days appear later (the user signed out and made more), the Settings row shows the new count and the prompt returns once. Import is per day and atomic per day; failed days stay local.
+
+### 9.5 Acceptance checks (walk through in the prototype)
+
+Start with **Reset demo**.
+
+| # | Check | Steps | Expect |
+| :--- | :--- | :--- | :--- |
+| Y1 | **Yes: the records go to the account** | Panel › Import choice › **Not yet**. Tap **Import 4 days…**, then **Yes, import 4 days**. | Success sheet "4 days imported". Account Home now lists Japan 2027, Dad's retirement party, Sourdough starter and First 5K with the other days; the date line reads "Syncing 4 changes…". Settings has no import group. Another device signed in to the account would pull them (stand-in: switch Account to Local and back to Signed in; the days are still there). Build check: the backend holds 4 events owned by this account and memos with them. |
+| Y2 | **Yes: local mode no longer has them** | After Y1, panel Account › **Local**. | Home shows the empty state ("Nothing here yet"); panel "Days on device" reads None; Settings has no import row. Build check: the local database has no rows for those ids. |
+| N1 | **No: signed-in user does not see local days** | Panel › Import choice › **Not yet**, then **Not now, keep on this device**. | Account Home shows only the account's days (no Japan 2027). Settings has **On this device › Import days from this device** with 4. |
+| N2 | **No: local days are visible in local mode** | After N1, panel Account › **Local**. | Home lists the 4 local days (Japan 2027 pinned in the carousel), greeting uses the local name. |
+| N3 | **Import later from Settings** | After N1, Settings › **Import days from this device**. | Same prompt, same confirm, same success as at sign-in; afterwards the row disappears. |
+| S1 | **Sign out** | Signed in, Settings › **Sign out**. | The sheet explains local mode; after "Sign out" Home shows only the local days and the local greeting; imported days are not there. |
+| P1 | **Partial import** | Panel › Import result › **Partial**, then run Y1. | "3 of 4 days imported" naming First 5K. **Try again** gives "4 days imported". Settings (before retrying, via "Keep it on this device for now") still shows the row with 1. |
+| G1 | **Greeting** | Panel › Name and Time of day. | Short, long (two lines, ellipsis), emoji and empty names; four times of day; works in Local and Signed in; switch off in Settings › Appearance. |
+| H1 | **Nudge** | Panel › Heavy-use nudge › Show. Tap **Not now** twice. | The second time the toast says it won't ask again. **Sign in or create an account** opens the usual sign-in sheet. |
+| C1 | **Choice screen** | Panel › Device or account. | **Use on this device** opens local Home; **Sign in or create an account** opens the sign-in sheet and, after signing in, the import prompt if local days exist. |
+
+### 9.6 What changes compared with today
+
+| Topic | Today (revision 4, auth spec, accounts spec) | Now |
+| :--- | :--- | :--- |
+| Name | "Guest" | **Local** (prototype, notes). The enum `AuthState.Guest` would become a local state; naming is the owner's call. |
+| Welcome | Three sign-in buttons and "Skip for now" | Welcome has **Get started**; the next screen is the device-or-account choice. Both options are equal. |
+| First saved day | Sign-in prompt once after the first save | Removed. The heavy-use nudge replaces it, later and less often. |
+| First sign-in | Local days upload automatically; both sets kept | Nothing uploads by itself. The user is asked, confirms, and the move is permanent. |
+| Local data after sign-in | Same data set, now synced | Separate databases. Local days stay in local mode unless imported. |
+| Sign out | Days stay on the phone, you become a guest with the same days | Return to local mode with only the local days; the account's days are not shown. |
+| Settings (no account) | "Guest · Saved on this device only" and Sign in | Local card, name field, explanation, Sign in or create an account, locked online items. |
+| Home header | "Your days" | Greeting (can be turned off). |
+| Plan limits | Apply to guests | Unchanged; an import may take an account above its limit (nothing deleted), as the premium spec already allows. |
+
+### 9.7 Conflicts with existing specs and the built backend (listed, not resolved)
+
+1. **Accounts spec, "First sign-in uploads local data"** (and its scenario of 4 local + 2 account = 6): requires automatic upload and no choice. The new requirement makes it an explicit, permanent import.
+2. **Auth feature spec**, section 2 item 8 ("First sign-in on a device") says the same; section 4.1 "Skip for now (Continue as Guest)", `AuthState.Guest` and the word "guest" throughout.
+3. **Accounts spec and auth spec 4.2 / 2.1, "prompt once after the first saved event"**: removed in this design.
+4. **Accounts spec, Sessions** ("signing out ... SHALL keep the device's data until the user removes it") and auth spec 4.3 "Sign Out": under separate databases the account's cached days are not shown after sign-out; whether they stay on disk is undecided (open question 4).
+5. **Built backend, first sign-in upload exception**: `backend/core/src/http/sync.ts` (`FIRST_UPLOAD_WINDOW_SECONDS` = 86,400, `FIRST_UPLOADS_PER_SESSION` = 500, query `?firstUpload=1&createdAt=`), the store port's `firstUpload` option with the `first_upload_at` marker, and the tests `test/sync/first-upload.test.ts` and `conformance.ts`. The exception lets the first upload exceed the plan's owned-event limit only for a session younger than 24 hours. An import chosen later from Settings can come days afterwards, so the window does not fit; the 500 cap and the "createdAt before session" rule also assume an automatic upload. The exception probably needs to be tied to an explicit import request instead of the session age.
+6. **Premium spec, "Guest data above the free limit"** (14 events kept, creating a new one shows the paywall): still true for imports, but it is worded for automatic upload of "local and account events".
+7. **Premium spec, "Guest buys, then signs in"**: still valid, but the plan is now bought in local mode and moves to an account on sign-in while the days do not; worth a scenario.
+8. **To check by whoever builds it** (not read for this task): `docs/architecture/PERSISTENCE_AND_SYNC.md` and the events spec probably describe one Room database; this requirement needs one per signed-in account plus one for local mode, and widgets, reminders and notifications must follow whichever is active. `docs/legal/` (AGENTS.md rule 8) may need a line on what is kept on the device without an account.
+
+### 9.8 Open questions for the owner
+
+1. **Heavy-use thresholds and frequency** in 9.4: are 12 days / 14 days / 25 days / 20 memos and "once a month, stop after two Not nows" right?
+2. **Re-asking after "Not now":** this design asks once per device and then only shows the Settings row. Or ask at every sign-in?
+3. **Choose which days to import?** Now it is all or nothing (only errors split it). A selection list is a small addition.
+4. **Sign out:** keep the account's cached days on the phone (fast sign-in, offline) or remove them? Removing is the safer privacy default, and the sign-out sheet would then say so.
+5. **Name at first launch:** the name is asked for only in Settings. Ask on the choice screen too? Should the account's display name start from the local name when signing in?
+6. **Greeting wording:** "Good morning, Sam" and the late-night "Still up, Sam?" are proposals; also needed in Chinese and other languages.
+7. **Local backup:** with no account, a phone loss loses everything. The nudge says so; a JSON export (gap 14) is now more important and could be offered next to the nudge.
+8. **Sign-in prompt for locked Settings rows** reuses the existing sheet. A short "what you get" version of it could replace it for non-Share rows.
+9. **Imported days over the Free limit:** kept in full, creating a new day shows the paywall (premium spec). Is a softer note at import time (as drawn) enough?
+10. **Revision number:** the request said "revision 3"; this README already has revisions 1 to 4, so this is revision 5.
+
+### 9.9 Components
+
+No new colors, fonts or component styles. `.choice` (the two onboarding cards) is a `.block` with a header row, the `.benefits` list and a `.btn`; it exists as a class only because the existing `.block` has no inner header row. The import and nudge sheets use `.sheet`, `.benefits`, `.form-card`, `.lrow`, `.info`, `.empty` and `.btn`. The greeting is the existing `.h1` at 28 px (one step under the 32 px title). Added CSS is one block at the end of `styles.css`; it uses existing tokens and sizes only.
+
+### 9.10 Screenshots
+
+All in `offline-accounts/`, light and dark, named `<number>-<screen>-<state>-<light|dark>.png`.
+
+## 10. Revision history
+
+**Revision 5:** offline use and importing local days.
+
+- New section 9 with the model, screens, copy, proposed rules, acceptance checks, conflicts with the specs and the built backend, and open questions.
+- First-launch choice screen (device or account), local-mode Settings (name, locked online items), Home greeting, heavy-use nudge, import prompt with confirmation, success and partial states, Settings import row, sign-out back to local mode.
+- Panel: Account is now Local or Signed in; added Days on device, Import choice, Import result, Name, Time of day and the nudge button.
+- Welcome has **Get started** instead of the sign-in buttons and "Skip for now". The sign-in prompt after the first saved day is gone.
+- "Guest" renamed "Local" (list in 9.6 and the next bullet). Renamed in: panel Account switch, Settings card, toast on starting local use, sign-out toast and sheet, Welcome hint in the panel, `ACT.guest` (now `local-start`), and README lines on the panel, sign-in prompt, Home, Settings, More, gap 14 and revision 2.
 
 **Revision 4:**
 
@@ -379,7 +510,7 @@ Each gradient and art preset needs a stored base color for auto text color and f
 **Revision 2** (aligned with `pluggable-backend-live-sharing`):
 
 - Welcome: Apple, Google and email-code buttons; terms and privacy line. New sign-in prompt sheet with email-code steps.
-- Accounts and sync: account button, sync line on Home, Sync in Settings, account section (name, methods, sign out, delete), guest mode in the prototype.
+- Accounts and sync: account button, sync line on Home, Sync in Settings, account section (name, methods, sign out, delete), guest mode in the prototype (renamed Local in revision 5).
 - Plans: Premium badge, paywall sheet with free alternatives, limit-reached sheet, plan meters in Settings, gating on Save and on New day.
 - Sharing: public links with labels and expiry, invites with role, use count and expiry, people with roles, remove and allow again, revoke confirm. Removed "Update link" and the "photos are not shared" note. Square export replaced by Banner 1.91:1.
 - Shared days: Shared chip, owner name on cards, role-based actions and menus, Shared block on the day page, Leave and Report.
