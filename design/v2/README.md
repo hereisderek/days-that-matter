@@ -234,7 +234,7 @@ A home-screen mock with a small and a medium widget, a lock-screen mock with a c
 
 ### Settings
 
-- Signed in: profile (name, email, sign-in methods, plan badge) and **Sync** ("Synced 4 min ago" or "2 changes waiting", **Sync now**; after a manual sync: "Changes sync automatically after each edit"). Local: the "Local · this device only" card with the name field and **Sign in or create an account** (section 9).
+- Signed in: profile (name, email, sign-in methods, plan badge) and **Sync** ("Synced 4 min ago" or "2 changes waiting", **Sync now**; after a manual sync: "Changes sync automatically after each edit"). Local: the "Local" card (name with popup editor, "Local" subtitle) and **Sign in or create an account** (section 9).
 - **Plan**: limits in use as meters (Days 9 of 10, Photo backdrops 3 of 5, Spotify days 1 of 3), Live photos and music files as Premium, **Upgrade to Premium** or "Manage in the App Store", **Restore purchases**.
 - Appearance, Counting.
 - **Notifications**: Reminders (local, set per day, work offline) with the delivery time; **Changes to shared days**; **Added to a day**; **Offers and news** (off by default, at most 2 a month).
@@ -357,14 +357,14 @@ Added in revision 5 of this document, from the owner's requirement "support offl
 
 ### 9.1 The model in one paragraph
 
-Without an account the app is in **local mode** (this replaces "guest"). Local mode is a full, offline app for the user's own days: customize, widgets, reminders, memos. It has no online features (sync, sharing, links, invites, history, restore) and it follows the same plan limits as an account (10 days, 5 photo backdrops and so on, Premium features still Premium), so a user who signs in later is never over the limits because of what they did offline. Each signed-in account has its own database on the device and local mode has one more; **nothing is copied between them except by an explicit, confirmed import**. The name in Settings is stored on the device and drives the Home greeting.
+Without an account the app is in **local mode** (this replaces "guest"). Local mode is a full, offline app for the user's own days: customize, widgets, reminders, memos. It has no online features (sync, sharing, links, invites, history, restore) and it follows the same plan limits as an account (10 days, 5 photo backdrops and so on, Premium features still Premium), so a user who signs in later is never over the limits because of what they did offline. Each signed-in account has its own database on the device and local mode has one more; **nothing is copied between them except by an explicit, confirmed import**. The name in the Settings card (edited via a popup) is stored on the device and drives the Home greeting.
 
 ### 9.2 Screens and states
 
 | # | Screen | What it shows | Prototype |
 | :--- | :--- | :--- | :--- |
-| 1 | **First-launch choice** (new, step 2 of onboarding, after Welcome) | "Where should your days live?" Two cards of equal size and weight, each with a full-width primary button: **Use on this device** (no account; all your own days, looks, widgets and reminders; works offline; "Good to know": no sharing, sync, history or invites, and Premium features and plan limits still apply, so moving to an account never goes over them) and **Sign in or create an account** (sharing, sync, history, backup; "Free to start. No password."). Terms line applies to the account path only. | Panel › Device or account |
-| 2 | **Settings, local mode** | A "Local · this device only" card, **Your name** (optional field, stays on the device), an info block explaining local mode, **Sign in or create an account** (accent button), then a **Needs an account** group (Sync, Sharing and invites, History and restore, Backup) with lock icons. Tapping one opens the sign-in prompt with a matching reason, the same behavior Share and Sync have for guests today. Plan meters stay, with a line saying limits are the same as an account's. | Account › Local, then Settings |
+| 1 | **First-launch choice** (new, step 2 of onboarding, after Welcome) | "Where should your days live?" Two cards of equal size and weight, each with a full-width primary button: **Use on this device** (no account; all your own days, looks, widgets and reminders; works offline; "Good to know": no sharing, sync, history or invites) and **Sign in or create an account** (sharing, sync, history, backup; "Free to start. No password."). Terms line applies to the account path only. | Panel › Device or account |
+| 2 | **Settings, local mode** | A "Local" card showing the name as title (or "Add your name" when empty) with subtitle "Local", tappable to open a small popup dialog to edit the name ("What should we call you?"), an info block explaining local mode, **Sign in or create an account** (accent button), then a **Needs an account** group (Sync, Sharing and invites, History and restore, Backup) with lock icons. Tapping one opens the sign-in prompt with a matching reason, the same behavior Share and Sync have for guests today. Plan meters stay, with a line saying limits are the same as an account's. | Account › Local, then Settings |
 | 3 | **Home greeting** | The h1 becomes "Good morning, Sam". Morning 05:00 to 11:59, afternoon 12:00 to 16:59, evening 17:00 to 21:59, late night 22:00 to 04:59 ("Still up, Sam?"). No name: "Good morning" / "Still up?". Signed in: the account display name. The date line, search and account button stay. Long names wrap to two lines and then end with an ellipsis; emoji names are fine. Settings › Appearance › **Greeting on Home** turns it off (back to "Your days"). | Panel › Name, Time of day |
 | 4 | **Heavy-use nudge** (sheet) | "Your days deserve a backup". Counts what is on the phone ("4 days and 3 memos"), four benefits (sharing, sync, history and restore, backup), **Sign in or create an account**, **Not now**, and "We won't ask again for a month." | Panel › Heavy-use nudge: Show |
 | 5 | **Import prompt** (sheet, right after sign-in) | "Import this phone's days?", "Found 4 days and 3 memos kept on this device", the first three days listed, a paragraph saying import is permanent, that the days leave local mode on this phone, and that nothing is imported if the user says not now. If the import takes a Free account above 10 days, an info line says so and that nothing is deleted. **Import 4 days…** (primary) and **Not now, keep on this device**. | Panel › Import choice › Not yet |
@@ -380,9 +380,10 @@ Panel switches added for review: **Account** (Local, Signed in), **Days on devic
 
 | Where | Text |
 | :--- | :--- |
-| Choice, device card | **Use on this device** · No account. Nothing leaves your phone. · "All your own days, looks, widgets and reminders" · "Works offline, no sign-in" · *Good to know.* Sharing, sync, history and invites need an account. Premium features and the plan's limits apply here too, so moving to an account later never goes over them. |
+| Choice, device card | **Use on this device** · No account. Nothing leaves your phone. · "All your own days, looks, widgets and reminders" · "Works offline, no sign-in" · *Good to know.* Sharing, sync, history and invites need an account. |
 | Choice, account card | **Sign in or create an account** · Free to start. No password. · "Share days with people you choose" · "Sync across all your devices" · "History, restore and backup" |
-| Settings, local | **Local · this device only** · No account. Your days stay on this phone. · **Your name** Optional. Used in greetings. Stays on this device. · *Local mode.* Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them. |
+| Settings, local | **[Name / Add your name]** (tappable) · Subtitle: **Local** · [Free/Premium badge] · *Local mode.* Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them. |
+| Name popup dialog | **What should we call you?** · Text field (prefilled, max 40 chars, optional) · *Used in greetings. Stays on this device.* (local) / *Shown on your account and in greetings.* (signed in) · [Cancel] [Save] |
 | Nudge | **Your days deserve a backup** · You are keeping 4 days and 3 memos on this phone. An account adds: · Sharing with the people you choose · Sync across your devices · History, so any change can be restored · A backup if this phone is lost · [Sign in or create an account] [Not now] · Your days stay on this phone until you decide to import them. We won't ask again for a month. |
 | Import prompt | **Import this phone's days?** Found 4 days and 3 memos kept on this device. Importing moves them into your account, so they sync to your other devices. It is permanent: they leave local mode on this phone and can't be moved back. If you choose not now, nothing is imported. [Import 4 days…] [Not now, keep on this device] They stay here and are not shown in your account. You can import them later from Settings. |
 | Confirm | **This can't be undone** · Import 4 days and 3 memos into alex@example.com? · They are saved to your account and sync to your other devices. · They are removed from local mode on this phone. Signing out later will not bring them back here. · You can't move them back. Delete or edit them in your account as you would any day. · [Yes, import 4 days] [Go back] |
@@ -438,7 +439,7 @@ Start with **Reset demo**.
 | First sign-in | Local days upload automatically; both sets kept | Nothing uploads by itself. The user is asked, confirms, and the move is permanent. |
 | Local data after sign-in | Same data set, now synced | Separate databases. Local days stay in local mode unless imported. |
 | Sign out | Days stay on the phone, you become a guest with the same days | Return to local mode with only the local days; the account's days are not shown. |
-| Settings (no account) | "Guest · Saved on this device only" and Sign in | Local card, name field, explanation, Sign in or create an account, locked online items. |
+| Settings (no account) | "Guest · Saved on this device only" and Sign in | Local card (tappable name with edit popup, "Local" subtitle), explanation, Sign in or create an account, locked online items. |
 | Home header | "Your days" | Greeting (can be turned off). |
 | Plan limits | Apply to guests | Unchanged; an import may take an account above its limit (nothing deleted), as the premium spec already allows. |
 
@@ -463,7 +464,7 @@ Start with **Reset demo**.
 6. **Greeting wording:** "Good morning, Sam" and the late-night "Still up, Sam?" are proposals; also needed in Chinese and other languages.
 7. **Local backup:** with no account, a phone loss loses everything. The nudge says so; a JSON export (gap 14) is now more important and could be offered next to the nudge.
 8. **Sign-in prompt for locked Settings rows** reuses the existing sheet. A short "what you get" version of it could replace it for non-Share rows.
-9. **Imported days over the Free limit:** kept in full, creating a new day shows the paywall (premium spec). Is a softer note at import time (as drawn) enough?
+9. **Imported days over the Free limit:** kept in full, creating a new day shows the paywall (premium spec). Is a softer note at import time (as drawn) enough? Also for the owner to decide: the import prompt shows a notice about the plan limit ("Your account would have 13 days, above the Free plan's 10...") when a sign-in happens; should that notice stay at sign-in time or be removed/softened so first sign-in does not throw users off with plan limits?
 10. **Revision number:** the request said "revision 3"; this README already has revisions 1 to 4, so this is revision 5.
 
 ### 9.9 Components
@@ -474,13 +475,14 @@ No new colors, fonts or component styles. `.choice` (the two onboarding cards) i
 
 All in `offline-accounts/`, light and dark, named `<number>-<screen>-<state>-<light|dark>.png`.
 
-**Status: captured, not committed.** The PNGs were captured on 2026-10-15 in a real Chrome (Chrome 155 on macOS) with `offline-accounts/capture-cdp.mjs`, which drives a running Chrome through the DevTools protocol using only Node 22's built-in WebSocket (no Playwright, nothing to install). At 2x the 34 files are about 17 MB, so they are kept as local review files and ignored by Git (`offline-accounts/.gitignore`); to put them in the repository after approval, capture at 1x (set `deviceScaleFactor` to 1 in the script) and remove the ignore rule. To regenerate: serve `design/v2` (for example `python3 -m http.server 8765 --directory design/v2`), start Chrome with `--remote-debugging-port=9333 --user-data-dir=/tmp/dtm-cdp` and the prototype open, make that port reachable (SSH `-R 9333:127.0.0.1:9333` when Chrome runs on another machine), then run `CDP_URL=http://127.0.0.1:9333 node offline-accounts/capture-cdp.mjs`. `capture.mjs` is an earlier Playwright version that was never run; `capture-cdp.mjs` is the one that was used. The phone frame is 876 px tall and sits about 384 px down the page, so the capture viewport must be at least 1300 px tall or the bottom of each phone is cut off (the first run had this fault and was redone).
+**Status: captured, not committed.** The PNGs were captured on 2026-10-15 in a real Chrome (Chrome 155 on macOS) with `offline-accounts/capture-cdp.mjs`, which drives a running Chrome through the DevTools protocol using only Node 22's built-in WebSocket (no Playwright, nothing to install). At 2x the 36 files are about 18 MB, so they are kept as local review files and ignored by Git (`offline-accounts/.gitignore`); to put them in the repository after approval, capture at 1x (set `deviceScaleFactor` to 1 in the script) and remove the ignore rule. To regenerate: serve `design/v2` (for example `python3 -m http.server 8765 --directory design/v2`), start Chrome with `--remote-debugging-port=9333 --user-data-dir=/tmp/dtm-cdp` and the prototype open, make that port reachable (SSH `-R 9333:127.0.0.1:9333` when Chrome runs on another machine), then run `CDP_URL=http://127.0.0.1:9333 node offline-accounts/capture-cdp.mjs`. `capture.mjs` is an earlier Playwright version that was never run; `capture-cdp.mjs` is the one that was used. The phone frame is 876 px tall and sits about 384 px down the page, so the capture viewport must be at least 1300 px tall or the bottom of each phone is cut off (the first run had this fault and was redone).
 
 Each name below exists as `-light.png` and `-dark.png`.
 
 - `00-welcome`: Welcome with Get started
 - `01-onboarding-choice`: First-launch choice, device or account
-- `02-settings-local`: Settings in local mode: name, explanation, locked items
+- `02-settings-local`: Settings in local mode: name card, explanation, locked items
+- `02a-settings-local-name-popup`: Settings in local mode with the name popup open
 - `03-home-greeting-morning-local`: Local Home, morning, name Sam
 - `04-home-greeting-afternoon-no-name`: Local Home, afternoon, no name
 - `05-home-greeting-evening-long-name`: Local Home, evening, long name wrapping to two lines
@@ -499,6 +501,12 @@ Each name below exists as `-light.png` and `-dark.png`.
 **No new colors, fonts or component styles, how it was checked:** the change to `styles.css` is one appended block of 37 lines (`git diff 37f7839 -- styles.css`), no existing rule is edited, and a search of the added lines for hex, `rgb` and `hsl` values finds none: every color is an existing token. No font or font size outside the existing scale is added (28 px is used for the greeting).
 
 ## 10. Revision history
+
+**Revision 6:** feedback revisions to offline accounts.
+- Settings local profile card: removed separate "Your name" section; the card now displays the name as its title (or "Add your name" when empty) with subtitle "Local", and tapping the title area opens a compact centered popup dialog ("What should we call you?") to edit the name with helper text and Save/Cancel buttons. The same popup works for the signed-in account card.
+- Shortened state label to "Local".
+- Onboarding first-launch choice sheet ("Where should your days live?"): removed the sentence stating plan limits and Premium from the note to avoid throwing users off on first launch.
+- Added screenshot step `02a-settings-local-name-popup` to capture script and documented in section 9.10.
 
 **Revision 5:** offline use and importing local days.
 

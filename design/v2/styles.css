@@ -811,3 +811,16 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .sheet.import .empty, .sheet.nudge .empty { padding: 28px 12px 20px; }
 .sheet .benefits li { align-items: flex-start; }
 .sheet .benefits .i { margin-top: 2px; }
+
+/* Tappable name in Settings profile card and compact centered name dialog */
+.profile > div { min-width: 0; flex: 1; }
+.profile-name { display: inline-flex; align-items: center; gap: 6px; text-align: left; max-width: 100%; }
+.profile-name b { display: inline; font-size: 17px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-name b.muted { color: var(--ink-3); font-weight: 500; }
+.profile-name .i { width: 14px; height: 14px; color: var(--ink-3); flex: none; }
+
+.dialog { position: absolute; top: 50%; left: 20px; right: 20px; transform: translateY(-50%); z-index: 65; padding: 22px 20px 20px; border-radius: var(--r-xl); background: var(--surface); box-shadow: var(--shadow-2); animation: inFade .2s var(--ease); }
+.dialog-title { font-size: 19px; font-weight: 650; letter-spacing: -.02em; margin: 0 0 14px; color: var(--ink); }
+.dialog-hint { font-size: 13px; color: var(--ink-3); margin: 6px 2px 18px; line-height: 1.4; }
+.dialog .btn-row { margin-top: 18px; gap: 10px; }
+.dialog .btn-row .btn { height: 46px; font-size: 15px; }

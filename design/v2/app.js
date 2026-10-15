@@ -296,7 +296,7 @@ const S = {
   detailId: 'norway', playing: false, motion: false, pinIndex: 0,
   draft: null, edTab: 'details', bgTab: 'photo', soundTab: 'builtin', prevCtx: 'hero', trackPreview: null,
   share: { tab: 'link', format: 'story', watermark: true, newLink: false, linkLabel: '', linkExpiry: 'never', inviteRole: 'editor', inviteUses: '5', inviteExpiry: '30' },
-  sheet: null, toast: null, after: null, billing: 'year',
+  sheet: null, dialog: null, toast: null, after: null, billing: 'year',
   library: seedLibrary(), config: { memoBadge: 'top-right' }, // config = remote config from GET /config
   settings: { greeting: true, theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true, notifyShared: true, notifyAdded: true, notifyOffers: false },
 };
@@ -751,7 +751,7 @@ function settingsView() {
   return `<section class="view" data-key="settings">
     <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
     <h1 class="page-title">Settings</h1>
-    ${a ? `<div class="profile"><span class="pic">${esc(initial())}</span><div><b>${esc(a.name || a.email)}</b><small>${esc(a.email)} · ${a.methods.map(methodName).join(', ')}</small></div><span class="pro ${premium ? '' : 'free'}">${premium ? 'Premium' : 'Free'}</span></div>
+    ${a ? `<div class="profile"><span class="pic">${esc(initial())}</span><div><button class="profile-name" data-act="edit-name"><b class="${(a.name || '').trim() ? '' : 'muted'}">${esc((a.name || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>${esc(a.email)} · ${a.methods.map(methodName).join(', ')}</small></div><span class="pro ${premium ? '' : 'free'}">${premium ? 'Premium' : 'Free'}</span></div>
       <div class="group">
         <div class="cell"><span class="ci">${icon('cloud')}</span><span class="cl">Sync<small>${S.pending ? `${S.pending} ${S.pending === 1 ? 'change' : 'changes'} waiting` : `Synced ${ago(S.lastSync)}`}</small></span><button class="btn btn-ghost sm" data-act="sync">Sync now</button></div>
       </div>
@@ -759,10 +759,7 @@ function settingsView() {
       <div class="group">
         <button class="cell" data-act="import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import days from this device<small>${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this phone, not in your account</small></span><span class="cv">${lc.days}${icon('chev')}</span></button>
       </div>` : ''}`
-    : `<div class="profile"><span class="pic">🌤️</span><div><b>Local · this device only</b><small>No account. Your days stay on this phone.</small></div><span class="pro free">${premium ? 'Premium' : 'Free'}</span></div>
-      <div class="group">
-        <label class="cell"><span class="ci">${icon('user')}</span><span class="cl">Your name<small>Optional. Used in greetings. Stays on this device.</small></span><input class="input" data-field="localname" maxlength="40" value="${esc(S.localName)}" placeholder="Add a name" aria-label="Your name" autocomplete="off"></label>
-      </div>
+    : `<div class="profile"><span class="pic">🌤️</span><div><button class="profile-name" data-act="edit-name"><b class="${(S.localName || '').trim() ? '' : 'muted'}">${esc((S.localName || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>Local</small></div><span class="pro free">${premium ? 'Premium' : 'Free'}</span></div>
       <div class="info inset">${icon('info')}<span><b>Local mode.</b> Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them.</span></div>
       <div class="cta-wrap"><button class="btn btn-accent" data-act="signin-prompt" data-arg="settings">Sign in or create an account</button></div>
       <p class="group-label">Needs an account</p>
@@ -888,7 +885,7 @@ function choiceView() {
     <article class="choice">
       <div class="choice-h"><span class="ci">${icon('lock')}</span><div><b>Use on this device</b><small>No account. Nothing leaves your phone.</small></div></div>
       ${li([['check', 'All your own days, looks, widgets and reminders'], ['check', 'Works offline, no sign-in']])}
-      <p class="note"><b>Good to know.</b> Sharing, sync, history and invites need an account. Premium features and the plan's limits apply here too, so moving to an account later never goes over them.</p>
+      <p class="note"><b>Good to know.</b> Sharing, sync, history and invites need an account.</p>
       <button class="btn btn-primary" data-act="local-start">Use on this device</button>
     </article>
     <article class="choice">
@@ -1044,6 +1041,19 @@ const SHEETS = {
 
 function overlays() {
   let html = '';
+  if (S.dialog === 'name') {
+    const cur = S.dialogName !== undefined ? S.dialogName : (S.account ? (S.account.name || '') : (S.localName || ''));
+    const helper = S.account ? 'Shown on your account and in greetings.' : 'Used in greetings. Stays on this device.';
+    html += `<div class="scrim" data-act="dialog-cancel"></div><div class="dialog" role="dialog" aria-modal="true">
+      <h2 class="dialog-title">What should we call you?</h2>
+      <input class="input" data-field="dialog-name" maxlength="40" value="${esc(cur)}" placeholder="Add your name" aria-label="What should we call you?" autocomplete="off">
+      <p class="dialog-hint">${helper}</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" data-act="dialog-cancel">Cancel</button>
+        <button class="btn btn-primary" data-act="dialog-save">Save</button>
+      </div>
+    </div>`;
+  }
   if (S.sheet) html += `<div class="scrim" data-act="close-sheet"></div><div class="sheet ${S.sheet.type}" role="dialog" aria-modal="true"><div class="grabber"></div>${SHEETS[S.sheet.type](S.sheet)}</div>`;
   if (S.toast) html += `<div class="toast" role="status"><span>${esc(S.toast.text)}</span>${S.toast.undo ? '<button data-act="undo">Undo</button>' : ''}</div>`;
   return html;
@@ -1107,9 +1117,9 @@ const scrollPins = i => { const t = app.querySelector('.pins'); t.scrollTo({ lef
 
 const openSheet = sheet => { S.sheet = sheet; S.sheetFresh = true; render(); };
 
-function go(screen, anim = 'right') { S.stack.push(S.screen); S.screen = screen; S.anim = anim; S.sheet = null; render(); }
-function back() { if (S.screen === 'detail') S.playing = false; S.screen = S.stack.pop() || 'home'; S.anim = 'back'; S.sheet = null; render(); }
-function jump(screen) { S.stack = screen === 'home' || screen === 'onboarding' ? [] : screen === 'choice' ? ['onboarding'] : ['home']; S.screen = screen; S.anim = 'fade'; S.sheet = null; render(); }
+function go(screen, anim = 'right') { S.stack.push(S.screen); S.screen = screen; S.anim = anim; S.sheet = null; S.dialog = null; render(); }
+function back() { if (S.screen === 'detail') S.playing = false; S.screen = S.stack.pop() || 'home'; S.anim = 'back'; S.sheet = null; S.dialog = null; render(); }
+function jump(screen) { S.stack = screen === 'home' || screen === 'onboarding' ? [] : screen === 'choice' ? ['onboarding'] : ['home']; S.screen = screen; S.anim = 'fade'; S.sheet = null; S.dialog = null; render(); }
 
 let toastTimer;
 function toast(text, undo) {
@@ -1421,7 +1431,26 @@ const ACT = {
   signin: a => { if (a === 'email') { S.sheet = { type: 'signin', reason: S.sheet?.reason || 'settings', step: 'email' }; S.sheetFresh = !app.querySelector('.sheet'); return render(); } signIn(a); },
   'send-code': () => { const email = app.querySelector('[data-field="email"]')?.value.trim() || S.sheet.email; if (!/^\S+@\S+\.\S+$/.test(email || '')) { toast('Enter an email address'); return render(); } S.sheet = { ...S.sheet, step: 'code', email }; toast('Code sent'); render(); },
   'verify-code': () => { const v = app.querySelector('[data-field="code"]').value; if (!/^\d{6}$/.test(v)) { toast('Enter the 6-digit code'); return render(); } signIn('email'); },
-  'local-start': () => { S.account = null; S.filter = 'all'; jump('home'); toast('Using this device only. Add your name in Settings if you like.'); render(); },
+  'local-start': () => { S.account = null; S.filter = 'all'; jump('home'); toast('Using this device only. Tap your name in Settings to add it.'); render(); },
+  'edit-name': () => {
+    S.dialog = 'name';
+    S.dialogName = S.account ? (S.account.name || '') : (S.localName || '');
+    S.focus = '.dialog input';
+    render();
+  },
+  'dialog-save': () => {
+    const val = (S.dialogName !== undefined ? S.dialogName : (app.querySelector('.dialog input')?.value ?? '')).trim();
+    if (S.account) S.account.name = val;
+    else S.localName = val;
+    S.dialog = null;
+    delete S.dialogName;
+    render();
+  },
+  'dialog-cancel': () => {
+    S.dialog = null;
+    delete S.dialogName;
+    render();
+  },
   'import-open': () => openSheet({ type: 'import', step: 'ask' }),
   'import-go': () => { S.sheet = { ...S.sheet, step: 'confirm' }; render(); },
   'import-back': () => { S.sheet = { ...S.sheet, step: 'ask' }; render(); },
@@ -1455,7 +1484,14 @@ app.addEventListener('click', e => {
 });
 app.addEventListener('keydown', e => {
   const t = e.target;
-  if (e.key === 'Escape' && S.sheet) { S.sheet = null; return render(); }
+  if (e.key === 'Escape') {
+    if (S.dialog) { S.dialog = null; delete S.dialogName; return render(); }
+    if (S.sheet) { S.sheet = null; return render(); }
+  }
+  if (t.dataset?.field === 'dialog-name' && e.key === 'Enter') {
+    e.preventDefault();
+    return ACT['dialog-save']();
+  }
   if (t.dataset?.field === 'memo' && e.key === 'Enter') return ACT['add-memo']();
   if ((e.key === 'Enter' || e.key === ' ') && t.matches?.('[role="button"][data-act], [role="radio"][data-act]')) { e.preventDefault(); t.click(); }
 });
@@ -1498,7 +1534,7 @@ app.addEventListener('input', e => {
   else if (f === 'blur') { d.look.blur = +val; app.querySelector('#blur-out').textContent = val; refreshPreview(); }
   else if (f === 'color') { d.look.bg = { type: 'color', value: val.toUpperCase() }; refreshPreview(); }
   else if (f === 'link-label') S.share.linkLabel = val;
-  else if (f === 'localname') S.localName = val; // stored on this device; no re-render so typing keeps focus
+  else if (f === 'dialog-name') S.dialogName = val;
   else if (e.target.type === 'range') e.target.nextElementSibling.textContent = `${val}%`;
 });
 app.addEventListener('change', e => {
@@ -1568,7 +1604,7 @@ panel.addEventListener('click', e => {
   if (b.dataset.pacct) { S.account = b.dataset.pacct === 'signed' ? { ...ACCOUNT } : null; S.filter = 'all'; if (S.screen === 'detail' && !visible().includes(byId(S.detailId))) S.screen = 'home'; return render(); }
   if (b.dataset.pplan) { S.plan = b.dataset.pplan; return render(); }
   if (b.dataset.pbadge) { S.config.memoBadge = b.dataset.pbadge; return render(); } // simulates a remote config change
-  if (k === 'reset') { Object.assign(S, { accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, localName: 'Sam', importChoice: 'skipped', importFail: false, afterImport: null, nudgeNo: 0, clockHour: null, plan: 'free', pending: 0, sheet: null, filter: 'all', query: '', searching: false }); S.settings.dayOne = false; return jump('home'); }
+  if (k === 'reset') { Object.assign(S, { accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, localName: 'Sam', importChoice: 'skipped', importFail: false, afterImport: null, nudgeNo: 0, clockHour: null, plan: 'free', pending: 0, sheet: null, dialog: null, filter: 'all', query: '', searching: false }); delete S.dialogName; S.settings.dayOne = false; return jump('home'); }
   if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pins()[0]?.id, 'background'); }
   if (k === 'detail' || k === 'share') {
     if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pins()[0] || visible()[0]).id;

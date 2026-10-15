@@ -65,6 +65,11 @@ window.__cap = {
     if (!b) throw new Error('button not found: /' + src + '/');
     b.click();
   },
+  click(sel) {
+    const el = document.querySelector(sel);
+    if (!el) throw new Error('element not found: ' + sel);
+    el.click();
+  },
   scrollTop() { const v = document.querySelector('#app .view'); if (v) v.scrollTop = 0; },
   rect() { const r = document.querySelector('#device').getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; }
 };`;
@@ -83,6 +88,7 @@ for (const theme of ['light', 'dark']) {
   const panel = (l, v) => ev(`__cap.panel(${JSON.stringify(l)}, ${JSON.stringify(v)})`);
   const nav = n => ev(`__cap.nav(${JSON.stringify(n)})`);
   const btn = (src, flags) => ev(`__cap.btn(${JSON.stringify(src)}, ${JSON.stringify(flags ?? '')})`);
+  const click = sel => ev(`__cap.click(${JSON.stringify(sel)})`);
   const reset = async () => { await btn('^Reset demo$'); await sleep(300); };
   const shot = async name => {
     await sleep(700);
@@ -97,6 +103,7 @@ for (const theme of ['light', 'dark']) {
   await step('00', async () => { await nav('Welcome'); await shot('00-welcome'); });
   await step('01', async () => { await nav('Device or account'); await shot('01-onboarding-choice'); });
   await step('02', async () => { await panel('Account', 'Local'); await nav('Settings'); await shot('02-settings-local'); });
+  await step('02a', async () => { await click('[data-act="edit-name"]'); await shot('02a-settings-local-name-popup'); await btn('^Cancel$'); });
   await step('03', async () => { await nav('Home'); await panel('Time of day', 'Morning'); await shot('03-home-greeting-morning-local'); });
   await step('04', async () => { await panel('Name', 'None'); await panel('Time of day', 'Afternoon'); await shot('04-home-greeting-afternoon-no-name'); });
   await step('05', async () => { await panel('Name', 'Long'); await panel('Time of day', 'Evening'); await shot('05-home-greeting-evening-long-name'); });
