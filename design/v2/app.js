@@ -768,35 +768,10 @@ function settingsView() {
     ${a ? `<div class="profile"><span class="pic">${esc(initial())}</span><div><button class="profile-name" data-act="edit-name"><b class="${(a.name || '').trim() ? '' : 'muted'}">${esc((a.name || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>${esc(a.email)} · ${a.methods.map(methodName).join(', ')}</small></div><span class="pro ${premium ? '' : 'free'}">${premium ? 'Premium' : 'Free'}</span></div>
       <div class="group">
         <div class="cell"><span class="ci">${icon('cloud')}</span><span class="cl">Sync<small>${S.pending ? `${S.pending} ${S.pending === 1 ? 'change' : 'changes'} waiting` : `Synced ${ago(S.lastSync)}`}</small></span><button class="btn btn-ghost sm" data-act="sync">Sync now</button></div>
-      </div>
-      <p class="group-label">Your events on this device<span class="new">New</span></p>
-      <div class="group">
-        ${lc.days ? `<button class="cell" data-act="import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import days from this device<small>${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this phone, not in your account</small></span><span class="cv">${lc.days}${icon('chev')}</span></button>` : ''}
-        <button class="cell" data-act="export-events"><span class="ci">${icon('download')}</span><span class="cl">Export events<small>Save to a backup file</small></span><span class="cv">${icon('chev')}</span></button>
-        <button class="cell" data-act="file-import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import events<small>Restore from a backup file</small></span><span class="cv">${icon('chev')}</span></button>
       </div>`
     : `<div class="profile"><span class="pic">🌤️</span><div><button class="profile-name" data-act="edit-name"><b class="${(S.localName || '').trim() ? '' : 'muted'}">${esc((S.localName || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>Local</small></div><span class="pro free">${premium ? 'Premium' : 'Free'}</span></div>
       <div class="info inset">${icon('info')}<span><b>Local mode.</b> Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them.</span></div>
-      <div class="cta-wrap"><button class="btn btn-accent" data-act="signin-prompt" data-arg="settings">Sign in or create an account</button></div>
-      <p class="group-label">Your events on this device<span class="new">New</span></p>
-      <div class="group">
-        <button class="cell" data-act="export-events"><span class="ci">${icon('download')}</span><span class="cl">Export events<small>Save to a backup file</small></span><span class="cv">${icon('chev')}</span></button>
-        <button class="cell" data-act="file-import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import events<small>Restore from a backup file</small></span><span class="cv">${icon('chev')}</span></button>
-      </div>
-      <p class="group-label">Needs an account</p>
-      <div class="group">
-        ${locked('cloud', 'Sync across devices', 'sync')}${locked('share', 'Sharing and invites', 'share')}${locked('history', 'History and restore', 'history')}${locked('download', 'Backup and download my data', 'backup')}
-      </div>`}
-    <p class="group-label">Plan</p>
-    <div class="group">
-      ${meter('Events', u.events, L.events)}
-      ${meter('Photo backdrops', u.photos, L.photos)}
-      ${gated('Live photos', u.animated, L.animated)}
-      ${gated('Your music files', u.files, L.files)}
-      ${L.spotify !== undefined ? (premium ? `<div class="cell"><span class="cl">Spotify events</span><span class="cv">${u.spotify} · no limit</span></div>` : meter('Spotify events', u.spotify, L.spotify)) : ''}
-      <div class="cell">${premium ? '<span class="cl">Manage in the App Store</span>' : '<button class="btn btn-primary sm" data-act="paywall">Upgrade to Premium</button>'}<button class="txt-btn" data-act="restore">Restore purchases</button></div>
-    </div>
-    ${a ? '' : '<p class="note pad">Local mode follows the same limits as an account, so signing in later never puts you over them. Premium features stay Premium.</p>'}
+      <div class="cta-wrap"><button class="btn btn-accent" data-act="signin-prompt" data-arg="settings">Sign in or create an account</button></div>`}
     <p class="group-label">Appearance</p>
     <div class="group">
       <div class="cell"><span class="ci">${icon('sun')}</span><span class="cl">Theme</span><div class="seg sm">${[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="theme" data-arg="${k}" ${pressed(st.theme, k)}>${n}</button>`).join('')}</div></div>
@@ -818,6 +793,26 @@ function settingsView() {
       <div class="cell"><span class="ci">${icon('plus')}</span><span class="cl">Added to a day<small>When someone adds you to a day</small></span>${sw('notifyAdded', 'Added to a day')}</div>
       <div class="cell"><span class="ci">${icon('sparkle')}</span><span class="cl">Offers and news<small>Like free Premium weeks. Off unless you turn it on; at most 2 a month.</small></span>${sw('notifyOffers', 'Offers and news')}</div>
     </div>
+    <p class="group-label">Your events on this device<span class="new">New</span></p>
+    <div class="group">
+      ${a && lc.days ? `<button class="cell" data-act="import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import days from this device<small>${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this phone, not in your account</small></span><span class="cv">${lc.days}${icon('chev')}</span></button>` : ''}
+      <button class="cell" data-act="export-events"><span class="ci">${icon('download')}</span><span class="cl">Export events<small>Save to a backup file</small></span><span class="cv">${icon('chev')}</span></button>
+      <button class="cell" data-act="file-import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import events<small>Restore from a backup file</small></span><span class="cv">${icon('chev')}</span></button>
+    </div>
+    ${a ? '' : `<p class="group-label">Needs an account</p>
+    <div class="group">
+      ${locked('cloud', 'Sync across devices', 'sync')}${locked('share', 'Sharing and invites', 'share')}${locked('history', 'History and restore', 'history')}${locked('download', 'Backup and download my data', 'backup')}
+    </div>`}
+    <p class="group-label">Plan</p>
+    <div class="group">
+      ${meter('Events', u.events, L.events)}
+      ${meter('Photo backdrops', u.photos, L.photos)}
+      ${gated('Live photos', u.animated, L.animated)}
+      ${gated('Your music files', u.files, L.files)}
+      ${L.spotify !== undefined ? (premium ? `<div class="cell"><span class="cl">Spotify events</span><span class="cv">${u.spotify} · no limit</span></div>` : meter('Spotify events', u.spotify, L.spotify)) : ''}
+      <div class="cell">${premium ? '<span class="cl">Manage in the App Store</span>' : '<button class="btn btn-primary sm" data-act="paywall">Upgrade to Premium</button>'}<button class="txt-btn" data-act="restore">Restore purchases</button></div>
+    </div>
+    ${a ? '' : '<p class="note pad">Local mode follows the same limits as an account, so signing in later never puts you over them. Premium features stay Premium.</p>'}
     <p class="group-label">More</p>
     <div class="group">
       <button class="cell" data-act="go" data-arg="widgets"><span class="ci">${icon('widgets')}</span><span class="cl">Widgets</span><span class="cv">${icon('chev')}</span></button>
