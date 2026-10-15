@@ -18,8 +18,10 @@ const PROTOTYPE = process.env.PROTOTYPE_URL ?? 'http://127.0.0.1:8765/index.html
 const out = path.dirname(fileURLToPath(import.meta.url));
 
 const targets = await (await fetch(`${CDP}/json/list`)).json();
-const target = targets.find(t => t.type === 'page' && t.url.startsWith(PROTOTYPE.replace(/index\.html.*$/, ''))) ?? targets.find(t => t.type === 'page');
-if (!target) throw new Error('no page target found at ' + CDP);
+let target = targets.find(t => t.type === 'page' && t.url.startsWith(PROTOTYPE.replace(/index\.html.*$/, ''))) ?? targets.find(t => t.type === 'page');
+// With no open tab, open one for the run and close it at the end.
+let created = null;
+if (!target) { created = await (await fetch(`${CDP}/json/new?${PROTOTYPE}`, { method: 'PUT' })).json(); target = created; }
 const ws = new WebSocket(target.webSocketDebuggerUrl);
 await new Promise((res, rej) => { ws.addEventListener('open', res, { once: true }); ws.addEventListener('error', rej, { once: true }); });
 let nextId = 0;
@@ -127,7 +129,7 @@ for (const theme of ['light', 'dark']) {
   await step('14', async () => { await btn('^Sign out'); await shot('14-signout-confirm'); });
   await step('15', async () => { await btn('^Sign out$'); await shot('15-home-local-after-signout'); });
   await step('16', async () => {
-    await reset(); await panel('Import choice', 'Not yet');
+    await sleep(5000); /* let the sign-out toast of the previous step go away */ await reset(); await panel('Import choice', 'Not yet');
     await btn('^Import 4 days'); await btn('^Yes, import'); await shot('16-import-progress');
   });
   await step('17', async () => {
@@ -145,11 +147,12 @@ for (const theme of ['light', 'dark']) {
   await step('21', async () => { await reset(); await panel('Widgets', 'Signed out'); await nav('Widgets'); await shot('21-widgets-signed-out'); });
   await step('22', async () => { await panel('Widgets', 'Signed in, not imported'); await shot('22-widgets-not-imported'); });
   await step('23', async () => { await reset(); await panel('Unsynced changes', 'Some, offline'); await nav('Settings'); await btn('^Sign out'); await shot('23-signout-offline-unsynced'); });
-  await step('24', async () => { await reset(); await panel('Limits config', 'Spotify limit removed'); await nav('Settings'); await shot('24-settings-limit-removed'); });
+  await step('24', async () => { await reset(); await panel('Limits config', 'Spotify limit removed'); await nav('Settings'); await sleep(1200); /* the screen resets its scroll while it renders */ await ev("(() => { const r = [...document.querySelectorAll('#app .view *')].find(e => e.children.length === 0 && /Photo backdrops/.test(e.textContent)); if (!r) return; let c = r.parentElement; while (c && c.scrollHeight <= c.clientHeight + 1) c = c.parentElement; if (c) c.scrollTop += r.getBoundingClientRect().top - c.getBoundingClientRect().top - c.clientHeight / 3; })()"); await shot('24-settings-limit-removed'); });
   await step('25', async () => { await btn('^Upgrade to Premium'); await shot('25-paywall-limit-removed'); });
 }
 
 await send('Emulation.clearDeviceMetricsOverride');
 ws.close();
+if (created) await fetch(`${CDP}/json/close/${created.id}`);
 if (failures.length) { console.error('\n' + failures.length + ' step(s) failed:\n' + failures.join('\n')); process.exit(1); }
 console.log('done');

@@ -561,7 +561,7 @@ Each name below exists as `-light.png` and `-dark.png`.
 - `21-widgets-signed-out`: Widgets in Signed out state: account event widgets show placeholder
 - `22-widgets-not-imported`: Widgets in Signed in, not imported state: local event widgets show placeholder
 - `23-signout-offline-unsynced`: Sign-out sheet while offline with unsynced changes warning
-- `24-settings-limit-removed`: Settings with Spotify limit removed from remote configuration
+- `24-settings-limit-removed`: Settings with Spotify limit removed from remote configuration The Spotify usage row sits below the first screen of Settings; the screenshot shows the top. Checked in the page text instead: with Limits config set to Spotify limit removed, neither Settings nor the paywall contains a Spotify row (the default state has both).
 - `25-paywall-limit-removed`: Paywall with Spotify benefit removed from remote configuration
 
 **No new colors, fonts or component styles, how it was checked:** the change to `styles.css` is one appended block of 37 lines (`git diff 37f7839 -- styles.css`), no existing rule is edited, and a search of the added lines for hex, `rgb` and `hsl` values finds none: every color is an existing token. No font or font size outside the existing scale is added (28 px is used for the greeting).
