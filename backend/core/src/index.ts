@@ -1,5 +1,7 @@
 // Public surface of the backend core for the variants.
 export * from './contract/index.ts';
+export { cachedKeyFetcher, staticKeyFetcher } from './auth/keys.ts';
+export type { FetchFn, Jwk, KeyFetcher } from './auth/keys.ts';
 export { createApp, coreRoutes, API } from './http/app.ts';
 export type { App, AppOptions, Handler, RequestContext } from './http/app.ts';
 export { readBody, readJsonObject } from './http/body.ts';
