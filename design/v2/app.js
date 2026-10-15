@@ -1626,7 +1626,7 @@ const ACT = {
   'sign-out': () => {
     const lc = localCount();
     const offline = S.unsyncedChanges === 'offline';
-    const offlineMsg = offline ? `<div class="info inset" style="margin:8px 0 16px">${icon('info')}<span>Not everything has been sent yet. The rest will be sent the next time this device is online.</span></div>` : '';
+    const offlineMsg = offline ? `<div class="info inset" style="margin:8px 0 16px">${icon('info')}<span>Not everything has been sent yet. The rest will be sent when you sign in again.</span></div>` : '';
     const onlineMsg = (!offline && S.pending) ? `<b>We’ll send your latest changes first.</b> ` : '';
     return openSheet({
       type: 'confirm',
