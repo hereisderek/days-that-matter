@@ -141,14 +141,14 @@ Import SHALL read such a file into the active database, local or the signed-in a
 - **THEN** the app says the file needs a newer version of the app and changes nothing
 
 ### Requirement: Sign out never loses changes
-Signing out SHALL first sync pending changes. Every change SHALL be kept in the database with a flag saying whether the server has it, until the server confirms it. When the device is offline or the sync fails, the app SHALL tell the user that not everything has been sent and that the rest will be sent the next time the device is online.
+Signing out SHALL first sync pending changes. Every change SHALL be kept in the database with a flag saying whether the server has it, until the server confirms it. Signing out SHALL end the session at once. When the device is offline or the sync fails, the app SHALL tell the user that not everything has been sent and that the rest will be sent when they sign in to that account again; sending needs a signed-in session, so nothing is sent in the meantime.
 
 #### Scenario: Sign out offline with unsynced changes
 - **WHEN** a signed-in user with edits made offline signs out while the device is offline
-- **THEN** the app says not everything has been sent and the rest will be sent when the device is online, shows local mode, and sends the edits at the next opportunity before removing the account's data
+- **THEN** the app says not everything has been sent and the rest will be sent when they sign in again, ends the session, shows local mode, and keeps the unsent edits on the device until the user signs in to that account and they are sent
 
 ### Requirement: The account's data after sign-out
-After signing out the app SHALL show local mode only; the account's database SHALL stay on the device, hidden, until its pending changes have been sent, and SHALL then be removed. Signing out SHALL otherwise remove the account's events from the device.
+After signing out the app SHALL show local mode only. When the account has no unsent changes, its database SHALL be removed from the device. When it has unsent changes, its database SHALL stay on the device, hidden and never shown in local mode, until the user signs in to that account again and the changes are sent; it SHALL then be handled like any other synced account database. A different account signing in SHALL NOT see it.
 
 #### Scenario: Sign out online
 - **WHEN** a signed-in user with no pending changes signs out

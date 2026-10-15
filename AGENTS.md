@@ -65,6 +65,7 @@ Active changes:
 - **API Design Conventions:** [`docs/standards/API_DESIGN.md`](docs/standards/API_DESIGN.md)
 - **User Copy Rules:** [`docs/standards/USER_COPY.md`](docs/standards/USER_COPY.md)
 - **Open Items & Planning Roadmap (TODO):** [`docs/plans/TODO.md`](docs/plans/TODO.md)
+- **Coordinator handoff (where progress is tracked, how to run workers, environment, current state):** [`docs/plans/COORDINATOR_HANDOFF.md`](docs/plans/COORDINATOR_HANDOFF.md)
 - **Superseded, kept as reference until removed:** the TypeScript share service in `services/share/`: [`SHARE_SERVICE.md`](docs/architecture/SHARE_SERVICE.md), [`SHARE_SERVICE_IMPLEMENTATION_PLAN.md`](docs/plans/SHARE_SERVICE_IMPLEMENTATION_PLAN.md), [`SHARE_SERVICE_STATUS.md`](docs/plans/SHARE_SERVICE_STATUS.md).
 
 ### 4.2 Feature Specifications

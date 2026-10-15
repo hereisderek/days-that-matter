@@ -73,7 +73,7 @@ sealed interface AuthState {
 - Display name (editable), email, sign-in methods ("Add sign-in method"), plan, limits used and "Restore purchases".
 - "Download my data": emails a link to a page with `data.json` (account, days, memos, history the user wrote, sharing settings, audio library list) and each uploaded file. At most 1 request per day; the link works for 30 days.
 - Sync status: last synced time, pending changes, Sync button.
-- "Sign Out": syncs first, then ends this device's session and returns to local mode. Offline or with unsynced changes it says that not everything has been sent and the rest will be sent the next time the device is online; the account's data then stays hidden on the device until it has been sent.
+- "Sign Out": syncs first, then ends this device's session and returns to local mode. Offline or with unsynced changes it says that not everything has been sent and the rest will be sent when the user signs in to that account again (the session ends at sign-out, so nothing can be sent before); the account's data then stays hidden on the device until it has been sent.
 - "Delete Account": deletes owned events, memos, links, invites and backdrops on the backend and removes access to events shared with the user (App Store and Google Play account deletion rules). Explains how to cancel an active subscription in the store first.
 
 ---

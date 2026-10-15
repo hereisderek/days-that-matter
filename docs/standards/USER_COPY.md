@@ -19,7 +19,7 @@ Rules for every text a user reads: screens, buttons, dialogs, notifications, wid
 | Local mode fetches the remote configuration | "Anonymous config request sent" | Nothing is shown. It is not a user action. |
 | Import fails, can try again | "Import failed: HTTP 503" | "The import did not work, and none of your events were moved. Try again." |
 | Import cannot work with this service version | "invalid_payload: unknown field backdrop.dimLevel" | "This version of the service cannot take your events yet. They are still on this device. We will fix this in an update." |
-| Sign out while offline with unsent changes | "Pending sync queue not empty" | "Not everything has been sent yet. The rest will be sent the next time this device is online." |
+| Sign out while offline with unsent changes | "Pending sync queue not empty" | "Not everything has been sent yet. The rest will be sent when you sign in again." |
 | Widget whose event is not in the active database | "Error: event not found (404)" | "Event not available. Tap to open the app." |
 | Onboarding, online features | "No account: offline mode with limited functionality" | "Sharing, sync, history and invites need an account. Everything else works on this device." |
 | Free limit reached | "You have used 20 of 20 events" typed into the string | "You reached the limit for the Free plan" (the count comes from configuration) |
