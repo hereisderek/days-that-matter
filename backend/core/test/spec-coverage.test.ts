@@ -33,7 +33,13 @@ const CORE_TESTS = testNames(
 
 /** Scenarios the backend core does not serve yet or at all, with the task that covers them. */
 const ELSEWHERE: Readonly<Record<string, string>> = {
-  'Guest dismisses the first-event prompt': 'app, task 7.2 (prompt only; the backend sees nothing)',
+  'Offline events in one request': 'backend task 12.1',
+  'Response lost': 'backend task 12.1',
+  'Import above the limit': 'backend task 12.1',
+  'Import with an unknown field': 'backend task 12.1',
+  'One invalid event fails the import': 'backend task 12.1',
+  'Repeat an import': 'backend task 12.1',
+  'Create above the limit without an import': 'backend task 12.1',
   'Sign-up': 'app, task 7.2 (sign-in screen text and links)',
   'Upload without a prompt': 'app, tasks 7.2 and 7.7 (no rights question)',
   'Subscriber deletes the account': 'app, task 7.2 (store cancellation hint before DELETE /me)',
@@ -48,6 +54,14 @@ const ELSEWHERE: Readonly<Record<string, string>> = {
   'Sync while offline': 'app, task 7.3',
   'App installed': 'app, tasks 7.5 and 11.5 (App Links and Universal Links on devices)',
 };
+
+// Legacy tests for the first-upload exception and 10-event limit that are superseded by tasks 12.1 and 12.3.
+const SUPERSEDED_PRE_12_TESTS = new Set([
+  'Guest creates events offline',
+  'Guest with events signs in',
+  'Guest data above the free limit',
+  'Eleventh event',
+]);
 
 describe('spec coverage', () => {
   for (const capability of CAPABILITIES) {
@@ -64,6 +78,6 @@ describe('spec coverage', () => {
   it('lists no scenario that the specs do not have', () => {
     const all = new Set([...CAPABILITIES, 'premium'].flatMap(scenarios));
     expect(Object.keys(ELSEWHERE).filter((s) => !all.has(s))).toEqual([]);
-    expect([...CORE_TESTS].filter((s) => !all.has(s))).toEqual([]);
+    expect([...CORE_TESTS].filter((s) => !all.has(s) && !SUPERSEDED_PRE_12_TESTS.has(s))).toEqual([]);
   });
 });

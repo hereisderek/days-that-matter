@@ -25,7 +25,7 @@ Events can have background music for emotional depth: a built-in track served by
 - No full-track playback in the app: Spotify's Web API and SDK access is limited to a few allowlisted users unless an app has 250,000 monthly users, and on-demand playback needs Spotify Premium.
 - The share web page shows "Listen on Spotify" and loads no Spotify content.
 - Spotify links are never added to the custom audio library.
-- Free plan: Spotify links on up to 3 events (counted for the person who set them). Premium: no separate limit.
+- Free plan: Spotify links on up to 5 events (counted for the person who set them). Premium: no separate limit.
 - Hidden in regions where Spotify is unavailable (China).
 
 ### 2.3 Custom Audio Files (Premium)

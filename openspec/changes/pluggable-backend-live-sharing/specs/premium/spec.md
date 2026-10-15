@@ -7,21 +7,21 @@ Defines the plans (Free, Premium and a reserved Premium Plus), the limits of eac
 ## ADDED Requirements
 
 ### Requirement: Plans and one plan table
-Every account SHALL have one plan: free, premium or premium_plus; guests SHALL follow the free plan on the device. One plan table SHALL hold every feature and limit per plan. The app and the backend SHALL use the same table, built from one shared definition, and the premium feature doc SHALL list the same values.
+Every account SHALL have one plan: free, premium or premium_plus; local mode SHALL follow the free plan on the device. The values SHALL be adjustable without a release through the remote configuration (remote-config spec). One plan table SHALL hold every feature and limit per plan. The app and the backend SHALL use the same table, built from one shared definition, and the premium feature doc SHALL list the same values.
 
 #### Scenario: Limit changed in the table
-- **WHEN** the free event limit in the plan table changes from 10 to 15
-- **THEN** the app's check and the backend's check both use 15 after the release, with no other code change
+- **WHEN** the free event limit in the plan table changes from 20 to 30 in the remote configuration
+- **THEN** the backend's check uses 30 at once and the app's check uses 30 after it has read the new value, with no release
 
 ### Requirement: Free plan limits
-The free plan SHALL limit owned events (initial value 10), photo backdrops in use (5) and Spotify events (3), SHALL include free built-in tracks only, and SHALL exclude animated photos and custom audio files.
+The free plan SHALL limit owned events (initial value 20), photo backdrops in use (5) and Spotify events (5), SHALL include free built-in tracks only, and SHALL exclude animated photos and custom audio files. There SHALL be one limit for events, counted in events, and no separate count of days.
 
-#### Scenario: Eleventh event
-- **WHEN** a free user with 10 owned events creates another
+#### Scenario: Twenty-first event
+- **WHEN** a free user with 20 owned events creates another
 - **THEN** the paywall appears and the event is not created
 
 ### Requirement: Paid plans have limits too
-Paid plans SHALL also have limits, to prevent abuse. Premium SHALL allow 500 owned events, 300 photo backdrops in use, 30 animated photos in use and 20 custom audio files in use (initial values). Over a paid limit, the app SHALL say the limit is reached and the backend SHALL return `429 quota_exceeded`.
+Paid plans SHALL also have limits, to prevent abuse. Premium SHALL allow 500 owned events, 300 photo backdrops in use, 30 animated photos in use and 20 custom audio files in use (initial values, adjustable through the remote configuration). Over a paid limit, the app SHALL say the limit is reached and the backend SHALL return `429 quota_exceeded`.
 
 #### Scenario: Premium at the custom audio limit
 - **WHEN** a Premium user with 20 custom audio files in use adds another
@@ -55,15 +55,15 @@ Reaching a limit, or a plan ending, SHALL NOT delete or hide anything. It SHALL 
 - **WHEN** a user with 20 photo backdrops, 8 animated photos and 5 Spotify events lets Premium lapse
 - **THEN** everything keeps working, and adding another photo, animated photo or Spotify link shows the paywall
 
-#### Scenario: Guest data above the free limit
-- **WHEN** a free user signs in and their local and account events total 14
-- **THEN** all 14 events are kept and creating a new one shows the paywall
+#### Scenario: Imported events above the free limit
+- **WHEN** a free user with 18 account events imports 14 local events
+- **THEN** all 32 events are kept and creating a new one shows the paywall
 
 ### Requirement: Purchase and restore
-Users SHALL buy Premium as an App Store or Google Play subscription inside the app. A guest SHALL be able to buy, and the purchase SHALL attach to their account when they sign in. "Restore purchases" SHALL restore the plan on a new device. The web page SHALL NOT sell plans.
+Users SHALL buy Premium as an App Store or Google Play subscription inside the app. A local-mode user SHALL be able to buy, and the purchase SHALL attach to their account when they sign in; the purchase moves the plan, never the events, which only an import moves. "Restore purchases" SHALL restore the plan on a new device. The web page SHALL NOT sell plans.
 
-#### Scenario: Guest buys, then signs in
-- **WHEN** a guest buys Premium and later signs in
+#### Scenario: Local user buys, then signs in
+- **WHEN** a local-mode user buys Premium and later signs in
 - **THEN** their account has Premium on every device
 
 ### Requirement: Backend verifies purchases with the stores
@@ -91,3 +91,10 @@ The operator SHALL be able to grant a plan to an account for a period, without a
 #### Scenario: Grant and subscription
 - **WHEN** a user with an active grant also buys Premium in the store
 - **THEN** the account stays on Premium, and it remains Premium after the grant ends while the subscription is active
+
+### Requirement: Paywall shows the current limits
+The paywall and the usage rows in Settings SHALL be built from the current plan table in the remote configuration. A limit or feature that is not in the current configuration SHALL NOT appear in either.
+
+#### Scenario: Limit removed from the paywall
+- **WHEN** the operator removes the Spotify limit from the configuration
+- **THEN** the paywall no longer lists a Spotify limit after the app has read the new configuration

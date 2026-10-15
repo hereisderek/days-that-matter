@@ -10,7 +10,7 @@ The app helps users track meaningful moments in their lives—past anniversaries
 2. **Precision & Depth:** Multi-unit countdown calculations down to seconds, intelligent recurring events, and time-zone resilience.
 3. **Emotional Resonance:** Rich customization including bespoke card aesthetics, typography, full-bleed imagery, and atmospheric background audio.
 4. **Universal Accessibility:** Android and iOS first, with native home-screen and lock-screen widgets. Desktop (JVM) and Web (Wasm) apps follow. Shared events open in any browser.
-5. **Privacy & Offline-First:** Full offline utility powered by local SQLite/Room. Guests keep everything on the device. Signed-in users sync everything through our own backend, which can run on several providers.
+5. **Privacy & Offline-First:** Full offline utility powered by local SQLite/Room. In local mode everything stays on the device. Signed-in users sync everything through our own backend, which can run on several providers.
 
 ---
 
@@ -70,7 +70,7 @@ All feature-specific requirements, data models, UI flows, and edge cases are iso
 
 | Feature Area | Folder Location | Scope & Highlights |
 | :--- | :--- | :--- |
-| **Authentication** | [`docs/features/auth/SPEC.md`](features/auth/SPEC.md) | Guest mode, sign-in prompt, Google, Apple and email code sign-in, sessions |
+| **Authentication** | [`docs/features/auth/SPEC.md`](features/auth/SPEC.md) | Local mode, sign-in prompt, Google, Apple and email code sign-in, sessions |
 | **Event Engine** | [`docs/features/events/SPEC.md`](features/events/SPEC.md) | Countdown engine with six unit modes (Workdays included), recurring cadences, sorting, categorization, pinned carousel, archive, smart days (draft) |
 | **Customization** | [`docs/features/customization/SPEC.md`](features/customization/SPEC.md) | Theming, card styles and sizes, typography, color palettes, still and animated (Live/Motion) photo backdrops, dim and blur |
 | **Media & Audio** | [`docs/features/media/SPEC.md`](features/media/SPEC.md) | Built-in audio catalog, custom audio library (Premium), Spotify links and previews, loop/fade controls |

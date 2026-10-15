@@ -35,6 +35,12 @@ Provides glanceable countdowns on mobile home screens and lock screens, keeping 
 - Widgets ignore the card size (Small, Medium, Large) and show no memo badge.
 - Animated backdrops show their key photo only.
 
+### 2.4 Source and placeholder
+Normative: `local-mode` spec, requirement "Widgets follow their source".
+- Each widget remembers its source (local mode, or one account) and its event.
+- A widget shows its event normally when the event is available in the database active for its source: a local widget in local mode, an account widget while that account is signed in, and the widget of a local event that was imported while the account is signed in.
+- Otherwise it shows a placeholder, "Event not available", in plain words, and tapping it opens the app. A local widget while signed in and an account widget while signed out are the two cases. A widget never shows data from another source.
+
 ---
 
 ## 3. Deep Linking from Widgets

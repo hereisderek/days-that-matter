@@ -221,7 +221,7 @@ CREATE TABLE events (
   child_purged_seq INTEGER NOT NULL DEFAULT 0,  -- highest seq of purged child tombstones
   updated_at       INTEGER NOT NULL,
   deleted_at       INTEGER,                     -- tombstone: links answer 410 until purge
-  first_upload_at  INTEGER                      -- set when a first sign-in upload created it past the owned-event limit (section 8)
+  first_upload_at  INTEGER                      -- set when a first sign-in upload created it past the owned-event limit (section 8); becomes `imported_at`, set by `POST /events/import`, in a new migration in task 12.1
 );
 CREATE INDEX idx_events_owner ON events(owner_id) WHERE deleted_at IS NULL;
 CREATE INDEX idx_events_spotify ON events(audio_set_by) WHERE audio_kind = 'spotify' AND deleted_at IS NULL;
@@ -392,9 +392,11 @@ Patch, memo writes (which bump `childSeq`), invite join (which bumps `useCount`)
 
 - Base URL `https://<domain>/api/v1`. JSON, UTF-8. Timestamps are ISO-8601 UTC strings (`2026-10-12T15:04:05Z`).
 - Requests are validated strictly: unknown fields give `400 invalid_payload`. Clients ignore unknown fields in responses.
-- JSON bodies at most 64 KB. Uploads at most 4,194,304 bytes.
+- JSON bodies at most 64 KB, except `POST /events/batch` and `POST /events/import` (4,194,304 bytes). Uploads at most 4,194,304 bytes.
 - Auth: `Authorization: Bearer st_<43 chars>` from the app. Share web pages have no sessions and set no cookies (design D17). Operator routes take `Authorization: Bearer <ADMIN_TOKEN>` (section 14).
 - No CORS headers on any route. Every response has `X-Request-Id`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
+- Versioning: every JSON API route is under `/api/v1/`. Unversioned, because a version means nothing there: the share pages `/e`, `/i` and `/s`, `/auth/apple/callback`, `/export/{token}`, `/admin/*` and `/.well-known/*`. Conventions and the reasons: [`docs/standards/API_DESIGN.md`](../standards/API_DESIGN.md).
+- Public endpoints (no token): `GET /health`, `GET /config`, `GET /remote-config` (an optional token only sets the audience), `GET /audio/catalog`, `GET /holidays/{region}/{year}`, `GET /smart/catalog`, `GET /links/{token}`, `GET /audio/{id}?link=` (section 10.3), the sign-in routes under `/auth/` (rate limited), `POST /purchases/*` from a local-mode app (the proof is verified with the store) and `POST /purchases/apple/notifications` (signed by Apple). Every other route needs the bearer access token (`401 unauthorized`); operator routes need `ADMIN_TOKEN`.
 - Error body: `{"error": {"code": "invalid_payload", "message": "title: too long", "details": {"field": "title"}}}`.
 
 ### 7.2 Event document
@@ -462,6 +464,9 @@ Memo:
 | GET | `/sync` | session | manifest `{"events":[{id, rev, role, childSeq}]}`, ETag |
 | POST | `/events/fetch` | session | `{ids}` (at most 100): documents projected by role |
 | GET | `/events/{id}` | owner, member | one document, ETag |
+| POST | `/events/batch` | session | `{events:[<event document with its memos>]}`, up to 100 → `200` `{results:[{id, status, error?}]}` with one result per event; each event is validated and limit-checked like `PUT /events/{id}`; idempotent by id, so repeating after a lost response creates no duplicates |
+| POST | `/events/import` | session (rate limited) | `{events:[<event document with its memos>]}`, up to 500 events and 4 MB, atomic: all stored or none. Skips the owned-event limit, enforces every other rule, refuses unknown fields (`400 invalid_payload` with the field path) → `200` `{imported:[{id, unstoredFields:[]}]}`. Same id with the same content counts as imported; different content fails the whole request (`409 conflict`). Section 8 |
+| GET | `/remote-config?user=` | anyone; the token only sets the audience | the remote configuration document, ETag (section 7.6) |
 | PUT | `/events/{id}` | session | create (owned-event limit applies); repeating with the same owner returns the current document |
 | PATCH | `/events/{id}` | owner, editor | `{baseRev, patch}` → `{event, overwritten}` |
 | DELETE | `/events/{id}` | owner | delete the event, its memos, links, invites, members and media |
@@ -574,7 +579,7 @@ Account (`GET /me`; also the answer to `PATCH /me` and `POST /me/identities`). `
 {"id": "…", "displayName": "Mum", "plan": "free", "planExpiresAt": null,
  "identities": [{"provider": "google", "email": "mum@example.com"}, {"provider": "apple", "email": null}],
  "usage": {"events": 2, "photos": 0, "animated_backdrop": 0, "custom_audio": 0, "spotify_events": 1},
- "limits": {"events": 10, "photos": 5, "animated_backdrop": 0, "premium_audio": 0, "custom_audio": 0, "spotify_events": 3},
+ "limits": {"events": 20, "photos": 5, "animated_backdrop": 0, "premium_audio": 0, "custom_audio": 0, "spotify_events": 5},
  "createdAt": "2026-10-12T15:04:05Z"}
 ```
 `PATCH /me`: `{"displayName": "Mum"}` (title rule, 1 to 100 characters). `POST /me/identities` returns `409 conflict` when the method belongs to another account.
@@ -631,6 +636,16 @@ Storage report (`GET /admin/storage`):
 | 500 | `internal_error` | `details.requestId` set |
 | 503 | `service_unavailable` | Maintenance mode or provider limit reached |
 
+### 7.6 Remote configuration
+
+Design D21, spec `remote-config`. Code in `backend/core/src/remote-config/` (task 12.2).
+
+- **Shape:** `GET /remote-config` returns `{"version": 7, "ttlSeconds": 3600, "audience": "local", "values": {"plans.free.events": {"value": 20, "delivery": "background"}, …}}`. Keys: the plan table, media thresholds (photo bytes and pixels, motion part and audio sizes) and the sign-in suggestion rules. Every key has a default and a range in `:core:model`; the app ignores unknown keys and uses the default for a missing or out-of-range value. Data only, never code. `ETag` and `304`.
+- **Delivery:** `background` keys (the default) are read from the cache, fetched after launch and applied on the next read or launch. `blocking` keys (rare) are awaited at launch for at most 1.5 seconds, then cache, then default. The app never retries in a way that holds up launch.
+- **Audience:** the bearer token decides. No token means `local` (a local-mode app sends no identifier). The optional `user` query parameter (a user id or `local`) is a hint: the backend uses an id only when it equals the token's account and otherwise answers for `local`, so nobody can read another account's targeted values.
+- **Providers:** the core loads values through one `RemoteConfigSource` port. The default provider reads a static file shipped with the deployment. An HTTP source or Firebase Remote Config (for example behind a Cloudflare backend) is a later adapter. The configuration may run apart from the backend; the app sees the same document.
+- **Enforcement:** the plan table used for gating is read from the current configuration; when the app's copy is out of date the backend's `402` or `429` wins and the app refreshes.
+
 ---
 
 ## 8. Accounts, sessions, plans and purchases
@@ -641,7 +656,7 @@ Storage report (`GET /admin/storage`):
 - **Linking**: a new identity whose verified email matches an existing verified identity joins that account. `POST /me/identities` adds a method explicitly.
 - **Sessions**: `st_` + 43 chars base64url (256 bits), stored as SHA-256. Valid until 90 days after last use.
 - **Activity**: an authenticated request sets `accounts.last_active_at` (at most one write per day) and clears `inactive_notice_1_at` and `inactive_notice_2_at` (section 17).
-- **First sign-in on a device**: the app uploads local events (`PUT /events/{id}`) and memos. Uploads above the owned-event limit are accepted for this first upload only, so nothing local is lost. The app marks them with `PUT /events/{id}?firstUpload=1&createdAt=<ISO-8601 local creation time>`. The limit is skipped only while the session is less than 24 hours old, `createdAt` is before the session started (pre-sign-in local data), and fewer than 500 of the owner's events were uploaded this way since the session started; such events get `events.first_upload_at`. Otherwise, and for every request without the flag, the limit applies: `402 premium_required` (`details.feature` = `events`) when a higher plan allows more, `429 quota_exceeded` when none does. Known residual risk: a client can forge `createdAt` and sign in again to upload past the limit; the rate limits (task 3.13) and the operator storage report bound it.
+- **Importing local events**: a local-mode app keeps its events on the device; signing in sends nothing. When the user confirms an import, the app sends the events with their memos to `POST /events/import` (design D20). The backend stores all of them or none, skips the owned-event limit so the account keeps its events and the device's, and answers with the id of every imported event and any field it did not store. The app treats a missing id or any unstored field as a failed import and removes its local events only after that check and after copying them into the account's database on the device. The route decides the policy; no request field can turn the limit off. Residual risk: any signed-in client can use the import route to go past the event limit; the rate limit, the request limits and the account's storage budget bound it (task 12.1 fixes the numbers). **Until task 12.1 the code still has the old first-upload exception** (`PUT /events/{id}?firstUpload=1&createdAt=`, `FIRST_UPLOAD_*`, `events.first_upload_at`, limit skipped for a session under 24 hours old, at most 500 per session); task 12.1 removes it with its tests.
 - **Deletion**: deletes owned events (with revisions, memos, links, invites, members, media), the account's memberships, uploads (library included), identities, sessions, grants, exports and devices. Inactive accounts are deleted the same way (section 17). Revisions they authored on other events keep `author_id = NULL`. Store subscriptions are not cancelled by the backend; the app tells the user how.
 - **Purchases (native)**:
   - Apple: the app buys with StoreKit 2 (Swift bridge) and sets `appAccountToken` to the account id when signed in. It sends `jwsRepresentation` of each current entitlement to `POST /purchases/apple`. The core verifies the JWS signature and `x5c` chain to Apple Root CA G3, `bundleId` and `environment`, then stores the purchase. App Store Server Notifications V2 (signed the same way) report renewals, grace periods, expiry and refunds.
@@ -717,16 +732,16 @@ Files are AAC (`.m4a`), at most 4 MB, stored at `audio/{id}.m4a`, uploaded by th
 
 ### 11.1 Plan table (initial values)
 
-The plan table in `:core:model` is the source of truth; [`docs/features/premium/SPEC.md`](../features/premium/SPEC.md) lists the same values. Counts are per account: owned events count the owner's events; the others count what the account added.
+The plan table in `:core:model` holds the compiled-in defaults, and every value here is a remote-config default (section 7.6): the backend enforces the current configuration and the app builds the paywall and the usage rows from it. [`docs/features/premium/SPEC.md`](../features/premium/SPEC.md) lists the same values. Counts are per account: owned events count the owner's events; the others count what the account added.
 
 | Limit | Free | Premium | Premium Plus |
 | :--- | :--- | :--- | :--- |
-| Owned events | 10 | 500 | as Premium until decided |
+| Owned events (one limit, counted in events) | 20 | 500 | as Premium until decided |
 | Photo backdrops in use (still or animated) | 5 | 300 | |
 | Animated photos in use | 0 | 30 | |
 | Custom audio files in use (in the library or used by a day) | 0 | 20 | |
 | Built-in tracks | free tracks | all | |
-| Spotify events (set by the account) | 3 | no separate limit | |
+| Spotify events (set by the account) | 5 | no separate limit | |
 
 ### 11.2 Fixed limits (all plans)
 
@@ -748,6 +763,8 @@ The plan table in `:core:model` is the source of truth; [`docs/features/premium/
 | Files | section 10.1 |
 | Uploads | 20 per hour per account |
 | Writes (event and memo PUT, PATCH, DELETE, restore) | 120 per minute per account |
+| Batch create | 100 events per request |
+| Import | 500 events and 4 MB per request; request rate limit set in task 12.1 (placeholder: 10 per hour per account) |
 | Email codes | 5 per address per hour, 20 per IP per hour; 10 minutes; 5 attempts |
 | Sign-in attempts | 30 per hour per IP |
 | Live polling | 20 s visible, 60 s after 10 min idle, none hidden |

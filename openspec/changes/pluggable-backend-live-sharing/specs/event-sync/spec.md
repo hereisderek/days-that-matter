@@ -7,14 +7,14 @@ Keeps a signed-in user's events and memos the same on all their devices and with
 ## ADDED Requirements
 
 ### Requirement: Everything syncs for signed-in users
-For a signed-in user, all their events and memos SHALL sync to the backend and to their other signed-in devices, and events shared with them SHALL sync to their devices. Comments SHALL sync the same way when comments are added. Guests SHALL NOT sync.
+For a signed-in user, all their events and memos SHALL sync to the backend and to their other signed-in devices, and events shared with them SHALL sync to their devices. Comments SHALL sync the same way when comments are added. Local mode SHALL NOT sync (local-mode spec).
 
 #### Scenario: Second device
 - **WHEN** a user signs in on a second device
 - **THEN** all events and memos from their first device appear on the second device
 
 ### Requirement: Automatic sync after edits
-The app SHALL sync automatically within 2 seconds of each saved edit when online, when the app starts and when it returns to the foreground. Pending edits SHALL be sent in order and SHALL survive app restarts.
+The app SHALL sync automatically within 2 seconds of each saved edit when online, when the app starts and when it returns to the foreground. Pending edits SHALL be sent in order and SHALL survive app restarts; each is kept in the database with a flag saying whether the server has it, until the server confirms it.
 
 #### Scenario: Edit offline
 - **WHEN** a user edits an event in airplane mode and restarts the app
@@ -80,3 +80,40 @@ While a shared event is open in the app, changes made by others SHALL appear wit
 #### Scenario: Owner watches an editor's change
 - **WHEN** the owner has an event open and an editor changes its title
 - **THEN** the owner's screen shows the new title without leaving the screen
+
+### Requirement: Batch create
+The backend SHALL accept up to 100 events with their memos in one `POST /api/v1/events/batch`, so that events created offline do not each need a request. Each event SHALL be validated and limit-checked like a single create, and the response SHALL give a result for each event, so one invalid event does not block the others. Events are identified by the client's id: repeating a request after a lost response SHALL return the stored events and SHALL NOT duplicate them.
+
+#### Scenario: Offline events in one request
+- **WHEN** an app that created 12 events offline syncs
+- **THEN** it sends them in one batch request and gets one result per event
+
+#### Scenario: Response lost
+- **WHEN** an app repeats a batch whose response it never received
+- **THEN** the backend returns the events it already stored and creates no duplicates
+
+### Requirement: Import of local events
+`POST /api/v1/events/import` SHALL accept up to 500 events with their memos in one request of at most 4 MB and SHALL be atomic: every event is imported or none is. It SHALL skip the plan's owned-event limit, so that events from the device and from the account are all kept, and SHALL still enforce every per-event rule, the request limits and the account's storage budget, and SHALL be rate limited. Events written by an import SHALL be marked as imported in the backend's records.
+
+#### Scenario: Import above the limit
+- **WHEN** a Free account with 20 events imports 5 local events
+- **THEN** the account has 25 events and the response lists the 5 ids
+
+#### Scenario: One invalid event fails the import
+- **WHEN** one of 10 events in an import is invalid
+- **THEN** none of the 10 is stored and the response names the invalid event
+
+#### Scenario: Create above the limit without an import
+- **WHEN** a Free user with 20 events creates another one through the normal create
+- **THEN** the response is `402 premium_required`
+
+### Requirement: Import response and repeats
+The import response SHALL list the id of every imported event and, for each, the fields the backend did not store. A request containing a field the backend does not know SHALL be refused with `400 invalid_payload` and the field path, so a version difference is never hidden. An event already in the account with identical content SHALL count as imported; one with different content SHALL fail the whole import with `409 conflict`.
+
+#### Scenario: Import with an unknown field
+- **WHEN** an event in the import contains a field the backend does not know
+- **THEN** the response is `400 invalid_payload` with the field path and nothing is stored
+
+#### Scenario: Repeat an import
+- **WHEN** an app repeats an import that already succeeded
+- **THEN** the response lists the same ids and no event is duplicated

@@ -18,7 +18,7 @@ describe('accounts scenarios', () => {
     expect(await api.ports.store.getEvent(EVENT)).toBeNull();
   });
 
-  it('Guest taps Sync', async () => {
+  it('Local user taps Sync', async () => {
     const api = await testApi();
     const res = await api.call('GET', 'sync');
     expect(res.status).toBe(401);

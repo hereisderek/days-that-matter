@@ -10,7 +10,7 @@ Normative requirements: the [`premium`](../../../openspec/changes/pluggable-back
 
 | Plan | Key | Status |
 | :--- | :--- | :--- |
-| Free | `free` | Default for every account and for guests |
+| Free | `free` | Default for every account and for local mode |
 | Premium | `premium` | Sold as an App Store and Google Play subscription |
 | Premium Plus | `premium_plus` | Reserved. Includes everything in Premium. Not sold until features are assigned |
 
@@ -22,17 +22,17 @@ Counts are per account. "Owned events" counts the owner's events. Every other co
 
 | Feature or limit | Key | Free | Premium | Premium Plus |
 | :--- | :--- | :--- | :--- | :--- |
-| Owned events | `events` | 10 | 500 | as Premium until decided |
+| Owned events (one limit, counted in events) | `events` | 20 | 500 | as Premium until decided |
 | Photo backdrops in use (still or animated) | `photos` | 5 | 300 | |
 | Animated photos in use (iPhone Live Photo, Google Motion Photo) | `animated_backdrop` | 0: preview only, paywall on save, "Use still photo" offered | 30 | |
 | Built-in audio tracks | `premium_audio` | free tracks only (initial catalog: 5) | all tracks | |
 | Custom audio files in use (AAC, at most 4 MB each; a file counts while it is in the library or used by a day) | `custom_audio` | 0: preview only, paywall on save, also for a file already in the library | 20 | |
-| Spotify links (events where the account set one) | `spotify_events` | 3 | no separate limit | |
+| Spotify links (events where the account set one) | `spotify_events` | 5 | no separate limit | |
 | Sync, sharing, invites, history, memos, data export | - | yes (needs an account) | yes | yes |
 | Unit modes, card sizes, archive, pinned carousel, reminders and notifications (change `design-v2-features`) | - | yes | yes | yes |
 | Still photo backdrops | - | within `photos` | within `photos` | |
 
-File sizes are capped on every plan, to prevent abuse: photos at most 1.5 MB (motion part 4 MB), audio files at most 4 MB. The app compresses photos and converts audio automatically when a file is too big, so users never resize anything themselves. Other fixed limits for every plan (links per event, members per event, rate limits) are in `BACKEND.md` section 11.2.
+File sizes are capped on every plan, to prevent abuse: photos at most 1.5 MB (motion part 4 MB), audio files at most 4 MB; these thresholds are remote-config values too. The app compresses photos and converts audio automatically when a file is too big, so users never resize anything themselves. Other fixed limits for every plan (links per event, members per event, rate limits) are in `BACKEND.md` section 11.2.
 
 ---
 
@@ -42,10 +42,11 @@ File sizes are capped on every plan, to prevent abuse: photos at most 1.5 MB (mo
 2. **Viewing is never gated.** Members and link visitors see animated photos animated and hear Premium tracks whatever their plan. Custom audio plays for members only, never on public links (copyright).
 3. **Try before buying:** picking and previewing a paid feature is free. The paywall appears on Save and offers a free alternative where one exists ("Use still photo").
 4. **Paid plans have limits** to prevent abuse. Over a paid limit the app says the limit is reached; the backend returns `429 quota_exceeded`.
-5. **Limits never delete anything.** Reaching a limit or ending a plan only blocks adding more. Existing animated photos, tracks, audio files and Spotify links keep working. A free user whose first sign-in brings them above the event limit keeps all events.
-6. **Guests** follow the free plan on the device and can buy Premium; the purchase attaches to the account at sign-in.
+5. **Limits never delete anything.** Reaching a limit or ending a plan only blocks adding more. Existing animated photos, tracks, audio files and Spotify links keep working. A free user whose import brings them above the event limit keeps all events.
+6. **Local mode** (no account) follows the free plan on the device, with the same 20-event limit, and a local-mode user can buy Premium; the purchase attaches to the account at sign-in.
 7. **Custom audio counting:** a custom audio file counts toward `custom_audio` while it is in the uploader's library or used by any day. Removing it from the library frees the slot only when no day uses it.
 8. **Promotions:** the operator can grant a plan for a period without a store purchase (for example, free Premium for a month). The account's plan is the highest of its store purchases and active grants. When a grant ends, rule 5 applies: content added and quota used during the grant stay and keep working; only adding more above the free limits is blocked.
+9. **Limits are remote configuration.** Every value in the table above, and the photo size and resolution thresholds, are remote-config keys with these values as defaults (`remote-config` spec, `BACKEND.md` section 7.6). The paywall and the Settings usage rows are generated from the current configuration: a limit that is removed from it disappears from both. The backend enforces the current values and wins when the app's copy is out of date. Copy never hard-codes a number.
 
 ---
 

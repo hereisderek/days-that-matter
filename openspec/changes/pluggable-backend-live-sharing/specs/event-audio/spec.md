@@ -117,10 +117,10 @@ Where Spotify offers a supported way to do so, the app SHALL play a short previe
 - **THEN** the app opens the item in Spotify
 
 ### Requirement: Spotify limit on the free plan
-A free user SHALL be able to set Spotify links on at most 3 events, counting the events where that user set the link. Premium SHALL have no separate Spotify limit. Adding a fourth SHALL show the paywall, and the backend SHALL reject it with `402 premium_required`.
+A free user SHALL be able to set Spotify links on at most 5 events (initial value, adjustable through the remote configuration), counting the events where that user set the link. Premium SHALL have no separate Spotify limit. Adding a fourth SHALL show the paywall, and the backend SHALL reject it with `402 premium_required`.
 
 #### Scenario: Fourth Spotify event
-- **WHEN** a free user who set Spotify links on 3 events links Spotify on a fourth
+- **WHEN** a free user who set Spotify links on 5 events links Spotify on a sixth
 - **THEN** the paywall appears and the fourth event keeps its previous audio
 
 ### Requirement: Playback in the app

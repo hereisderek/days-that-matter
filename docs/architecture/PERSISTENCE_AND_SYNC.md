@@ -5,7 +5,7 @@ Behavior requirements: `event-sync` and `event-history` specs in the OpenSpec ch
 ## 1. Offline-First Principles
 - All event creations, edits, deletions, and memo logs execute locally first against the SQLite database via **Room KMP**.
 - User actions return immediate optimistic UI updates without blocking on network round-trips.
-- Signed-in users sync everything: events and memos now, comments when they ship. Guests sync nothing; Sync, Share and Invite show the sign-in prompt (see [`auth/SPEC.md`](../features/auth/SPEC.md)).
+- Signed-in users sync everything: events and memos now, comments when they ship. Local mode syncs nothing; Sync, Share and Invite show the sign-in prompt (see [`auth/SPEC.md`](../features/auth/SPEC.md)).
 - Sync runs automatically within 2 seconds of each saved edit, on app start and on foreground. The **Sync button** runs it at once, shows "Synced just now" and the hint "Changes sync automatically after each edit".
 
 ---
@@ -94,7 +94,7 @@ Shared rules (`:core:model`): field sets, validation, patch apply, plan table. T
 
 1. **Push** (signed in only), in order of `updated_at`:
    - Pending backdrop files are uploaded first (`POST /events/{id}/media`), and pending custom audio files to the library (`POST /me/library`); the returned ids replace the local paths in the patch.
-   - Events with `server_rev == null`: `PUT /events/{id}` with the full document. This also covers the first sign-in on a device, when all guest events are new to the account.
+   - Events with `server_rev == null`: `PUT /events/{id}` with the full document. Events created while signed in and offline are sent together with `POST /events/batch` (up to 100 per request). Local-mode events are never pushed this way; they reach an account only through the import (section 5).
    - `is_deleted`: `DELETE /events/{id}` (owner), or leave (`DELETE /events/{id}/members/me`) for shared-with-me events. On success the row is removed.
    - For shared-with-me events, `archivedAt` and `reminders` in `pending_patch` go to `PATCH /events/{id}/membership` (`{archived, reminders}`); they never reach the event.
    - Otherwise: `PATCH /events/{id}` with `{baseRev: server_rev, patch: pending_patch}`. On success, store the returned document and `rev`, clear `pending_patch`. If `overwritten` is not empty, show a notice naming the replaced fields.
@@ -113,3 +113,30 @@ Shared rules (`:core:model`): field sets, validation, patch apply, plan table. T
 
 ## 4. Shared Events
 An event is shared through links and people grants that point at the backend copy of the event. There are no snapshots and no manage tokens. Details: [`docs/features/sharing/SPEC.md`](../features/sharing/SPEC.md).
+
+---
+
+## 5. Local and account databases, the sync flag and the import journal
+
+Normative: `local-mode` spec; decision D20 in the change design. Task 12.5 and 12.9.
+
+### 5.1 Two kinds of database
+- **Local database:** the events, memos and settings of local mode. It never syncs and exists once per install.
+- **Account database:** one per signed-in account, holding that account's events, memos, sync cursors and pending changes. Signing in opens it; signing out syncs and hides it, and it is removed once nothing is pending. Widgets, reminders and notifications follow the database they belong to.
+- Events move between them only by the import (5.3); nothing is merged field by field.
+
+### 5.2 The sync flag on changes
+Every change is stored with a flag saying whether the server has it, until the server confirms it. Options:
+1. **Keep `pending_patch` and `is_deleted` as the flag** (as now): a row is unsent when `server_rev IS NULL OR pending_patch IS NOT NULL OR is_deleted = 1` (`getPending`). No schema change; the flag is derived, so it cannot disagree with the data.
+2. **Add an explicit `sync_state`** (`synced`, `pending`, `failed`): one indexed column, simple "N changes not sent" counts and a place to record a rejected change. It must be kept in step with `pending_patch` in every write, which is a source of bugs.
+
+Recommendation: option 1, plus a derived `observePendingCount()` query. Add `sync_state` later only if a rejected-change state is needed. Sign-out waits until `getPending()` is empty for events and memos, or the user accepts the "not everything has been sent" message.
+
+### 5.3 The import journal
+A table `import_journal` in the account database (one row per import): `id`, `started_at`, `source` (local mode or a file), `event_ids`, and `state`:
+- `pending`: confirmed, nothing sent.
+- `uploaded`: `POST /events/import` answered.
+- `verified`: the answer lists every id and no unstored field.
+- `copied`: the events are written to the account database in one transaction.
+- `removed`: the local events are gone.
+A crash resumes from the recorded state: `pending` retries (the endpoint is idempotent by id), `uploaded` verifies again, `verified` copies, `copied` removes. Local events are removed only from `copied`, which follows `verified`. Any failure before that leaves them untouched and shows Try again; an unrecoverable failure is explained, skipped, kept local and recorded for diagnostics (analytics to-do in [`docs/plans/TODO.md`](../plans/TODO.md)).

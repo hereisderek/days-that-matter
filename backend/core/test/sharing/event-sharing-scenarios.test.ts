@@ -32,7 +32,7 @@ for (const [storeName, newStore] of Object.entries(stores)) {
   describe(`event-sharing scenarios (${storeName})`, () => {
     const api = async (): Promise<Api> => testApi({ store: await newStore() });
 
-    it('Guest taps Share', async () => {
+    it('Local user taps Share', async () => {
       const a = await api();
       // A guest has no session: nothing to share yet.
       expect((await a.call<ErrorBody>('POST', `events/${uuid(1)}/links`, { body: {} })).status).toBe(401);

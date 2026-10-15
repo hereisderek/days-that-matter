@@ -70,7 +70,7 @@ days-that-matter/
 │   ├── designsystem/     # Material 3 Adaptive theme, typography, color palettes, shared UI
 │   └── audio/            # Multiplatform audio playback engine abstraction
 ├── feature/
-│   ├── auth/             # Google, Apple and email code sign-in, guest onboarding, account settings
+│   ├── auth/             # Google, Apple and email code sign-in, first-launch choice, account settings
 │   ├── events/           # Event listing, filtering, search, sorting
 │   ├── eventdetail/      # Live countdown view, milestone progress, audio player overlay
 │   ├── eventeditor/      # Creation/editing form, recurrence, customization, backdrop and audio pickers

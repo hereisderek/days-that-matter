@@ -2,27 +2,16 @@
 
 ## Purpose
 
-Identifies people so that sync, sharing, membership, edit history and purchases belong to an account, while guests can still use the app fully on one device.
+Identifies people so that sync, sharing, membership, edit history and purchases belong to an account, while people can still use the app fully on one device without an account (local-mode spec).
 
 ## ADDED Requirements
 
-### Requirement: Local use without an account
-The app SHALL work fully, offline included, without an account, within the free plan's limits. Without an account, data SHALL stay on the device and the app SHALL send nothing to the backend.
-
-#### Scenario: Guest creates events offline
-- **WHEN** a new user skips sign-in and creates events and memos with no network
-- **THEN** they are saved and shown, and the app makes no request to the backend
-
 ### Requirement: Sign-in prompt for online features
-When a guest taps Sync, Share or Invite, or opens an invite link, the app SHALL show a prompt to sign in or create an account, with a "Not now" choice for actions that can wait. The app SHALL also show this prompt once after a guest saves their first event.
+When a local-mode user taps Sync, Share or Invite, or opens an invite link, the app SHALL show a prompt to sign in or create an account, with a "Not now" choice for actions that can wait. Online-only rows in Settings SHALL show the same prompt. The app SHALL NOT show this prompt after the first saved event; the heavy-use suggestion (local-mode spec) replaces it.
 
-#### Scenario: Guest taps Sync
-- **WHEN** a guest taps the Sync button
+#### Scenario: Local user taps Sync
+- **WHEN** a local-mode user taps the Sync button
 - **THEN** the app shows the sign-in or create account prompt and syncs nothing
-
-#### Scenario: Guest dismisses the first-event prompt
-- **WHEN** a guest saves their first event and chooses "Not now"
-- **THEN** the event stays on the device and the prompt does not appear again on later saves
 
 ### Requirement: Sign-in methods
 The app SHALL offer the sign-in methods the deployment enables. Share web pages SHALL NOT offer sign-in (share-web spec). The global deployment SHALL enable Sign in with Google, Sign in with Apple and email with a one-time code. The first sign-in with a method SHALL create the account. New methods SHALL be addable without changing existing accounts.
@@ -64,26 +53,19 @@ Creating an account SHALL require agreeing to the terms of service and the priva
 - **WHEN** a Premium user uploads a photo or a custom audio file
 - **THEN** the app asks no rights question; the terms already cover it
 
-### Requirement: First sign-in uploads local data
-When a guest signs in on a device, their local events and memos SHALL upload to the account. If the account already has data from another device, both sets SHALL be kept, even if the total is above the plan's event limit.
-
-#### Scenario: Guest with events signs in
-- **WHEN** a guest with four local events signs in to an account that already has two events
-- **THEN** the account has six events on every signed-in device
-
 ### Requirement: Sessions
-A session SHALL stay valid until 90 days after its last use. Signing out SHALL end only the current device's session and SHALL keep the device's data until the user removes it.
+A session SHALL stay valid until 90 days after its last use. Signing out SHALL end only the current device's session and SHALL return the app to local mode; what happens to the account's data and to changes that were not yet sent is defined in the local-mode spec (Sign out never loses changes).
 
 #### Scenario: Session expired
 - **WHEN** the app calls the backend with a session unused for more than 90 days
-- **THEN** the response is `401 unauthorized` and the app asks the user to sign in again, keeping local data and pending changes
+- **THEN** the response is `401 unauthorized` and the app asks the user to sign in again, keeping the account's data and pending changes on the device
 
 #### Scenario: Sign out on one device
 - **WHEN** a user signed in on a phone and a tablet signs out on the phone
 - **THEN** the tablet stays signed in
 
 ### Requirement: Display name
-Each account SHALL have a display name that members see in the member list and in history. It SHALL default to the name from the sign-in method, or the part of the email address before `@`, and SHALL be editable.
+Each account SHALL have a display name that members see in the member list and in history. It SHALL default to the name from the sign-in method, or the part of the email address before `@`, and SHALL be editable. In local mode the name is the local name (local-mode spec); signing in SHALL NOT copy it to the account.
 
 #### Scenario: Name in history
 - **WHEN** an editor with display name "Mum" changes an event's date

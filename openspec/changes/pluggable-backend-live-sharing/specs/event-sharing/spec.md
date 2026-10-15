@@ -9,8 +9,8 @@ Lets a signed-in owner share an event through public view-only links that anyone
 ### Requirement: Sharing needs an account, viewing a public link does not
 Creating links and invites SHALL require the owner to be signed in. Joining through an invite SHALL require the receiver to be signed in. Opening a public link SHALL NOT require an account.
 
-#### Scenario: Guest taps Share
-- **WHEN** a guest taps Share on an event
+#### Scenario: Local user taps Share
+- **WHEN** a local-mode user taps Share on an event
 - **THEN** the app asks them to sign in or create an account, and after sign-in continues to the share screen with the event uploaded
 
 ### Requirement: Public links
