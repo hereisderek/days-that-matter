@@ -1,5 +1,5 @@
 // Turns backend/core/contract/api.schema.json (generated from :core:model) into TypeScript types.
-// Handles exactly the subset JsonSchemaGenerator in core/model writes: $ref, const, enum, anyOf and
+// Handles exactly the subset JsonSchemaGenerator in mobile/core/model writes: $ref, const, enum, anyOf and
 // oneOf, objects with properties, maps, arrays, and the primitive types. Anything else throws, so a
 // new schema shape is never turned into a wrong type.
 

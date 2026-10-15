@@ -20,7 +20,7 @@ The app helps users track meaningful moments in their lives—past anniversaries
 | :--- | :--- | :--- |
 | **Language** | Kotlin 2.1+ | Modern K2 compiler enabled |
 | **UI Framework** | Compose Multiplatform 1.8+ | Material 3 Adaptive Design |
-| **Build System** | Gradle 8.13+ (Kotlin DSL) | Version catalog (`gradle/libs.versions.toml`) |
+| **Build System** | Gradle 8.13+ (Kotlin DSL) | Version catalog (`mobile/gradle/libs.versions.toml`) |
 | **JDK Runtime** | JDK 21 LTS | Temurin / OpenJDK 21 |
 | **Android Targets** | Compile SDK 35/36, Min SDK 26 | 16KB page alignment compliant |
 | **iOS Targets** | iOS 16.0+ | Compose Multiplatform UI + native WidgetKit |

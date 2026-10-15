@@ -35,7 +35,7 @@ captures/
 
 # --- Kotlin / KMP Specific ---
 .konan/              # Kotlin/Native compiler cache
-/kotlin-js-store/
+kotlin-js-store/
 .kotlin/
 
 # --- Android Studio / IntelliJ Specific ---

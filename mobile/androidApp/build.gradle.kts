@@ -28,7 +28,7 @@ android {
     signingConfigs {
         // The shared debug key in docs/keystore, so every machine and CI build the same debug signature.
         getByName("debug") {
-            storeFile = rootProject.file("docs/keystore/debug.keystore")
+            storeFile = rootProject.file("../docs/keystore/debug.keystore")
             storePassword = "android"
             keyAlias = "androiddebugkey"
             keyPassword = "android"

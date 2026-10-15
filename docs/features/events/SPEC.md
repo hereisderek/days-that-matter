@@ -38,7 +38,7 @@ The engine uses `kotlinx-datetime` and computes time relative to the event's tim
 - A fixed zone means every viewer sees the same instant (a flight, a launch). New events default to the device's zone.
 - Null means "floating": the viewer's local zone is used (New Year, birthdays).
 - An event with no `targetTime` counts to 00:00 in its zone.
-- The engine lives in `:core:model`, so the app and the backend compute the same result. The share page's `countdown.js` is checked against test vectors generated from this engine (`./gradlew :core:model:generateCountdownVectors` writes `backend/core/web/test/countdown-vectors.json`; `checkCountdownVectors` fails when the committed file is out of date).
+- The engine lives in `:core:model`, so the app and the backend compute the same result. The share page's `countdown.js` is checked against test vectors generated from this engine (`cd mobile && ./gradlew :core:model:generateCountdownVectors` writes `backend/core/web/test/countdown-vectors.json`; `checkCountdownVectors` fails when the committed file is out of date).
 - A local time in a DST gap moves forward by the length of the gap (02:30 on a spring-forward night is 03:30). An ambiguous time in a DST overlap takes the earlier instant.
 
 ### 2.5 Calculation Rules

@@ -10,7 +10,7 @@ Sensitive signing certificates and Firebase configurations are never committed d
 
 | Secret Name | Description | Target Destination |
 | :--- | :--- | :--- |
-| `GOOGLE_SERVICES_JSON_BASE64` | Android Firebase configuration. To be removed: the app no longer uses Firebase (task 7.8 of the OpenSpec change `pluggable-backend-live-sharing`) | `composeApp/google-services.json` |
+| `GOOGLE_SERVICES_JSON_BASE64` | Android Firebase configuration. To be removed: the app no longer uses Firebase (task 7.8 of the OpenSpec change `pluggable-backend-live-sharing`) | `mobile/composeApp/google-services.json` |
 | `PROD_KEYSTORE_BASE64` | Android production signing keystore | `docs/keystore/prod.keystore` |
 | `KEYSTORE_PASSWORD` | Password for `prod.keystore` | Environment Variable |
 | `KEY_ALIAS` | Key alias in `prod.keystore` | Environment Variable |
@@ -22,14 +22,14 @@ Sensitive signing certificates and Firebase configurations are never committed d
 ## 3. Pipeline Architectures
 
 ### 3.1 Pull Request Verification (`pr-check.yml`)
-- **Trigger:** Pull request opened or synchronized targeting `master` or `main`.
+- **Trigger:** Pull request opened or synchronized targeting `master` or `main` (touching `mobile/**`, `backend/**`, `design/**`, or `.github/workflows/pr-check.yml`).
 - **Steps:**
   1. Checkout repository code.
   2. Setup JDK 21 (Temurin) and Android SDK.
-  3. Setup Gradle with build cache support.
-  4. Run multiplatform checks: `./gradlew allTests` (or `testDebugUnitTest`). No Firebase configuration or mock secrets are needed.
-  5. Run static lint: `./gradlew lintDebug`.
-  6. Build debug snapshot APK: `./gradlew :androidApp:assembleDebug`.
+  3. Setup Gradle with build cache support (`build-root-directory: mobile`).
+  4. Run multiplatform checks: `cd mobile && ./gradlew allTests` (or `testDebugUnitTest`). No Firebase configuration or mock secrets are needed.
+  5. Run static lint: `cd mobile && ./gradlew lintDebug`.
+  6. Build debug snapshot APK: `cd mobile && ./gradlew :androidApp:assembleDebug`.
   7. Upload debug snapshot artifact with commit hash and run date.
 
 ### 3.2 Production Release Pipeline (`release.yml`)
@@ -38,7 +38,7 @@ Sensitive signing certificates and Firebase configurations are never committed d
   1. Full pre-flight test verification.
   2. Decode production signing keystore and production Firebase credentials.
   3. Inject dynamic `versionCode` derived from GitHub Run Number.
-  4. Build signed Android App Bundle (`./gradlew :composeApp:bundleRelease`).
+  4. Build signed Android App Bundle (`cd mobile && ./gradlew :androidApp:bundleRelease`).
   5. Create GitHub Release with release notes, attaching `.aab`, `.apk`, and R8 mapping file.
   6. Deploy `.aab` to Google Play Store internal test track.
 
@@ -52,7 +52,7 @@ Sensitive signing certificates and Firebase configurations are never committed d
 
 The backend in `backend/` (see [`BACKEND.md`](../architecture/BACKEND.md)) gets one workflow, added by task 5.3 of the OpenSpec change `pluggable-backend-live-sharing`:
 
-- **Pull request** touching `core/model/**`, `backend/**` or the workflow: `:core:model` and `backend/core` tests (plus the contract drift check with a TypeScript core), store conformance, then the HTTP conformance suite against each variant (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
+- **Pull request** touching `mobile/core/model/**`, `backend/**` or the workflow: `:core:model` and `backend/core` tests (plus the contract drift check with a TypeScript core), store conformance, then the HTTP conformance suite against each variant (Cloudflare via `wrangler dev`, the self-host container, the Vercel handler on Node, the Firebase emulators), `wrangler deploy --dry-run`.
 - **Push to `master`:** the same, then D1 migrations and deploy to the Cloudflare preview, then the smoke test.
 - **Tag `backend-v*.*.*`:** production deploy to Cloudflare with environment approval. Other providers deploy manually until they are used in production.
 - Secrets: GitHub repository secrets `CLOUDFLARE_API_TOKEN` (scoped to Workers, D1 and R2 edit) and `CLOUDFLARE_ACCOUNT_ID`; GitHub environments `preview` and `production` (`production` with required reviewers). OAuth client secrets, the Apple keys, the Google Play service account, the email provider key, `RATE_SALT`, `EMAIL_CODE_KEY` and `INVITE_KEY` are set per environment with `wrangler secret put`, never in CI.

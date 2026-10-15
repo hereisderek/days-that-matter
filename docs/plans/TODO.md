@@ -21,13 +21,8 @@ Purpose: record critical operational failures (such as unrecoverable event impor
 
 ---
 
-## 3. Dedicated `mobile/` Directory Move
-Planned chore: move all mobile application code into a top-level `mobile/` folder (`mobile/composeApp`, `mobile/androidApp`, `mobile/core`, `mobile/feature`). `design/` stays at the repository root.
-Known impacts to update:
-- Two Gradle tasks/paths in `:core:model` that generate contracts and countdown vectors into `backend/` (`backend/core/contract/` and `backend/core/web/test/countdown-vectors.json`).
-- Debug keystore path referenced by Android build configuration.
-- CI workflows (`pr-check.yml`, etc.): working directory, paths, and caching keys.
-- Documentation references and AGENTS.md paths across the repository.
+## 3. Dedicated `mobile/` Directory Move (Done)
+Completed: all mobile application code moved into a top-level `mobile/` folder (`mobile/composeApp`, `mobile/androidApp`, `mobile/core`, `mobile/feature`, `mobile/gradle`, `mobile/gradlew`, `mobile/settings.gradle.kts`, `mobile/build.gradle.kts`, `mobile/gradle.properties`). `design/`, `backend/`, `docs/`, `openspec/`, `scripts/`, `services/`, `.github/`, `AGENTS.md` and `README.md` stay at the repository root. Paths and references updated across `:core:model` generators, `androidApp` debug keystore, CI workflows, and documentation.
 
 ---
 

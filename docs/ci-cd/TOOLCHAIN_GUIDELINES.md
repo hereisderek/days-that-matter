@@ -4,7 +4,7 @@
 
 **Rule:** use the latest stable release of every dependency, plugin, SDK level (compileSdk, targetSdk), build tools and Gradle unless the owner explicitly pins a version. When adding or touching a dependency, check for a newer stable release and update this table.
 
-The versions in use, checked against the current stable releases on 2026-10-14. The single source is [`gradle/libs.versions.toml`](../../gradle/libs.versions.toml); this table records the set and the reasons.
+The versions in use, checked against the current stable releases on 2026-10-14. The single source is [`mobile/gradle/libs.versions.toml`](../../mobile/gradle/libs.versions.toml); this table records the set and the reasons.
 
 | Component | Version | Notes |
 | :--- | :--- | :--- |
@@ -14,7 +14,7 @@ The versions in use, checked against the current stable releases on 2026-10-14. 
 | Kotlin | 2.4.21 | K2 compiler. Also provides the Compose compiler plugin and the serialization plugin. |
 | KSP | 2.3.12 | KSP2; its version no longer follows the Kotlin version. Used by Room. |
 | Compose Multiplatform | 1.12.1 | Pulls Jetpack Compose 1.12.1, which needs compileSdk 37 or later. Material 3 for Compose Multiplatform is versioned separately: 1.9.0. |
-| Room KMP | 2.8.5 | With `androidx.sqlite:sqlite-bundled` 2.7.1 and the Room Gradle plugin (exported schemas in `core/database/schemas/`). |
+| Room KMP | 2.8.5 | With `androidx.sqlite:sqlite-bundled` 2.7.1 and the Room Gradle plugin (exported schemas in `mobile/core/database/schemas/`). |
 | Koin | 4.2.2 | `koin-core` in shared code, `koin-android` in `:androidApp`. |
 | Ktor | 3.6.0 | OkHttp engine on Android, Darwin on iOS. |
 | kotlinx-coroutines | 1.11.0 | |
@@ -42,16 +42,16 @@ AGP 9 does not allow the `com.android.application` plugin in a Kotlin Multiplatf
 
 ## 3. Gradle Version Catalog Standards
 
-All library coordinates and plugin versions must be defined strictly in `gradle/libs.versions.toml`. Hardcoding versions inside `build.gradle.kts` files is disallowed. SDK levels and the build tools version are catalog entries too (`android-compileSdk`, `android-targetSdk`, `android-minSdk`, `android-buildTools`). Modules use type-safe project accessors (`projects.core.model`).
+All library coordinates and plugin versions must be defined strictly in `mobile/gradle/libs.versions.toml`. Hardcoding versions inside `build.gradle.kts` files is disallowed. SDK levels and the build tools version are catalog entries too (`android-compileSdk`, `android-targetSdk`, `android-minSdk`, `android-buildTools`). Modules use type-safe project accessors (`projects.core.model`).
 
 ---
 
 ## 4. Compiler & Build Optimization
 
-- Gradle configuration cache, build cache and parallel project execution are on (`gradle.properties`).
-- Memory: the build is sized for a host with 8 GB RAM shared with other tools. Earlier settings (4 GB Gradle heap plus a 3 GB Kotlin daemon) were killed by the OOM killer on a 4 GB host. The settings are `org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g`, `kotlin.compiler.execution.strategy=in-process` (no separate Kotlin daemon) and `org.gradle.workers.max=2`. On a shared host run one Gradle build at a time and `./gradlew --stop` afterwards.
+- Gradle configuration cache, build cache and parallel project execution are on (`mobile/gradle.properties`).
+- Memory: the build is sized for a host with 8 GB RAM shared with other tools. Earlier settings (4 GB Gradle heap plus a 3 GB Kotlin daemon) were killed by the OOM killer on a 4 GB host. The settings are `org.gradle.jvmargs=-Xmx3g -XX:MaxMetaspaceSize=1g`, `kotlin.compiler.execution.strategy=in-process` (no separate Kotlin daemon) and `org.gradle.workers.max=2`. On a shared host run one Gradle build at a time and `cd mobile && ./gradlew --stop` afterwards.
 - `android.builder.sdkDownload=false`: a build never installs SDK components. A missing platform or build tools version fails the build and is installed on purpose.
-- Kotlin/JS (the `js` target of `:core:model`) downloads Node.js and Yarn from repositories declared in `settings.gradle.kts`, because `FAIL_ON_PROJECT_REPOS` forbids the Kotlin plugin from adding its own.
+- Kotlin/JS (the `js` target of `:core:model`) downloads Node.js and Yarn from repositories declared in `mobile/settings.gradle.kts`, because `FAIL_ON_PROJECT_REPOS` forbids the Kotlin plugin from adding its own.
 - 16 KB page alignment (Android 15+): `:androidApp` keeps native libraries uncompressed (`useLegacyPackaging = false`), so AGP aligns them to 16 KB in the APK, and the native libraries in the APK today (bundled SQLite `libsqliteJni.so`, `libandroidx.graphics.path.so` from Compose) are built with 16 KB ELF segment alignment. Check an APK with `zipalign -c -P 16 -v 4 <apk>` and each library with `readelf -lW <lib.so>` (LOAD alignment `0x4000`).
 
 ---
