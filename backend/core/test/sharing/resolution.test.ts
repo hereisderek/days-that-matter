@@ -96,6 +96,27 @@ describe('identical not-found responses (byte comparison)', () => {
       expect(second).toEqual(first);
     }
   });
+
+  it('revoked and expired invites refuse joins with the same bytes for every token in that state', async () => {
+    const a = await testApi();
+    const { owner } = await sharedEvent(a, {});
+    const make = async (body: Record<string, unknown>) =>
+      (await a.call<{ inviteId: string; url: string }>('POST', `events/${uuid(1)}/invites`, { token: owner.token, body })).body;
+    const revoked = [await make({ role: 'viewer' }), await make({ role: 'editor', maxUses: 5 })];
+    for (const i of revoked) await a.call('DELETE', `invites/${i.inviteId}`, { token: owner.token });
+    const soon = new Date(a.ports.clock.nowMs() + DAY_MS).toISOString();
+    const expired = [await make({ role: 'viewer', expiresAt: soon }), await make({ role: 'editor', maxUses: null, expiresAt: soon })];
+    a.ports.clock.advance(DAY_MS);
+    const guest = await a.google('guest-sub');
+    const joinBytes = async (url: string) =>
+      bytes(await a.app.handle(request('POST', `/api/v1/invites/${tokenOf(url)}/join`, { headers: { Authorization: `Bearer ${guest.token}` } })));
+    for (const [group, code] of [[revoked, 'invite_revoked'], [expired, 'invite_expired']] as const) {
+      const [first, second] = await Promise.all(group.map((i) => joinBytes(i.url)));
+      expect(first?.status).toBe(410);
+      expect(JSON.parse(first?.body ?? '{}').error.code).toBe(code);
+      expect(second).toEqual(first);
+    }
+  });
 });
 
 describe('token formats are checked before any store access', () => {
