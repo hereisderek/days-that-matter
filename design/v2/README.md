@@ -175,8 +175,8 @@ Email sign-in is two steps in the same sheet: address, then the 6-digit code ("V
 - Filter chips: All, Upcoming, Since, **Shared** (signed in only), **Smart**, then the categories.
 - Two sections, **Upcoming** and **Since**, each with a count. The first section header holds the list/grid switch and sort.
 - Long-press or right-click a card. Owner: Pin to top / Unpin, Customize, Share, Archive, History, Duplicate, Delete (with Undo). Editor of a shared day: Edit, Share image, Archive, History, Report, Leave. Viewer: Share image, Archive, Report, Leave. Smart days have no Share.
-- **Archived · n** row at the end of the list opens the Archived screen. Archiving hides a day from Home, the carousel and widget choices, turns its reminders and notifications off, and **unpins it**; unarchiving does not pin it again. Archive is personal: for a day shared with you it only hides your copy. Archived owned days still count toward the plan's day limit.
-- Floating **New day** button opens a chooser: **A date**, **Smart days** (with today's count next to each) and **Seasonal · limited time** (templates outside their window are shown greyed with "Opens Nov 1"). On Free with 10 owned days it opens the paywall instead.
+- **Archived · n** row at the end of the list opens the Archived screen. Archiving hides a day from Home, the carousel and widget choices, turns its reminders and notifications off, and **unpins it**; unarchiving does not pin it again. Archive is personal: for a day shared with you it only hides your copy. Archived owned days still count toward the plan's event limit.
+- Floating **New day** button opens a chooser: **A date**, **Smart days** (with today's count next to each) and **Seasonal · limited time** (templates outside their window are shown greyed with "Opens Nov 1"). On Free with 20 owned events it opens the paywall instead.
 - Local mode does not show days shared with you (they have none) or the Shared chip.
 
 ### Day page
@@ -208,13 +208,13 @@ Owners and editors, signed in. Each revision shows author, time, revision number
   - **Sound**: three sources, one per day.
     - **Built-in**: the catalog with title, artist and length; Premium tracks carry a badge; every track has a preview button.
     - **My library** (Premium to save): **Pick an audio file** stays at the top; a new pick shows a "New" row with a trim bar to choose the part to keep (AAC, at most 4 MB, about 5½ minutes). Below it, **Your library** lists earlier songs, newest first, with length and "used on N days", a preview button, and **×** to remove a song from the list. Removing only hides it: days that use it keep playing it, and it counts toward the 20 songs until no day uses it. Songs play for the owner and members, never on public links.
-    - **Spotify**: paste a link or share from Spotify; shows the name and "30-second preview here, full song in Spotify"; Free shows "3 days (1 used)". The in-app preview is an assumption to check against Spotify's rules when building (the Web API stopped returning preview URLs for new apps in November 2024; the embed player still plays previews).
+    - **Spotify**: paste a link or share from Spotify; shows the name and "30-second preview here, full song in Spotify"; Free shows "5 events (1 used)" (was 3). The in-app preview is an assumption to check against Spotify's rules when building (the Web API stopped returning preview URLs for new apps in November 2024; the embed player still plays previews).
     - Volume, loop and fade are under "On this device" because they do not sync.
 - **Save** checks the plan of the person saving (premium spec). Over a Free limit it opens the paywall with the matching reason and a free way out: **Use still photo**, **Keep the previous music**, **Keep the previous background**. Over a Premium limit it says "Limit reached" with the same way out.
 
 ### Paywall (sheet)
 
-A light gold-and-mint header with "Premium", the reason it opened ("Animated photos are part of Premium"), five benefits from the plan table, Yearly and Monthly options with store prices, **Upgrade to Premium**, the free alternative if any, **Restore purchases**, **Not now**, and one line: billed by Apple or Google, people you share with never need Premium, ending a plan never removes anything. Only Premium is offered; Premium Plus is reserved.
+A light gold-and-mint header with "Premium", the reason it opened ("Animated photos are part of Premium"), benefits dynamically generated from the current remote configuration (Default includes: 500 events, Unlimited photo backdrops, Unlimited Spotify events, Live Photo backdrops, Upload your own music files; if Spotify limit is removed from remote configuration, the Spotify benefit row disappears), Yearly and Monthly options with store prices, **Upgrade to Premium**, the free alternative if any, **Restore purchases**, **Not now**, and one line: billed by Apple or Google, people you share with never need Premium, ending a plan never removes anything. Only Premium is offered; Premium Plus is reserved.
 
 ### Share (sheet, owner)
 
@@ -232,14 +232,24 @@ The web is **view-only** (decision, 2026-10-12): public link pages show the day 
 
 A home-screen mock with a small and a medium widget, a lock-screen mock with a circular and a rectangular accessory, and a widget look option: Match card, Minimal, Tinted. Live Photos show the key photo.
 
+**Placeholder states:** when an event is not available (such as an event deleted, signed out of the account that owns it, or a local event on this device that was not imported), widgets display a placeholder card: **"This event isn't available"** with the smaller line **"Open the app"** in plain words across all existing widget sizes. Demonstrated via the panel switch **Widgets**:
+- **Normal**: all widgets display their event normally.
+- **Signed out**: widgets referencing account events display the placeholder card; widgets referencing local events display normally.
+- **Signed in, not imported**: widgets referencing local events that were not imported display the placeholder card; widgets referencing imported events and account events display normally.
+
+One short explanatory line under the widget previews clarifies availability based on account and import state.
+
 ### Settings
 
 - Signed in: profile (name, email, sign-in methods, plan badge) and **Sync** ("Synced 4 min ago" or "2 changes waiting", **Sync now**; after a manual sync: "Changes sync automatically after each edit"). Local: the "Local" card (name with popup editor, "Local" subtitle) and **Sign in or create an account** (section 9).
-- **Plan**: limits in use as meters (Days 9 of 10, Photo backdrops 3 of 5, Spotify days 1 of 3), Live photos and music files as Premium, **Upgrade to Premium** or "Manage in the App Store", **Restore purchases**.
+- **Plan**: limits in use as meters ("Events 9 of 20", "Photo backdrops 3 of 5", "Spotify events 1 of 5"). If a limit is removed from remote configuration (e.g., Spotify limit removed), that meter row is automatically omitted. Live photos and music files as Premium, **Upgrade to Premium** or "Manage in the App Store", **Restore purchases**.
 - Appearance, Counting.
+- **Your events on this device**: in both local mode and signed-in, provides offline file export and import:
+  - **Export events**: saves a `.zip` archive named with the current timestamp (`DaysThatMatter-YYYYMMDD-HHMMSS.zip`) to Downloads, showing a sheet/toast with a **Share** button; contains active events (local events in local mode, account events when signed in).
+  - **Import events**: opens a "Choose a file" step, then the confirmation, progress, and result flow (Success, Failed, Can't import, or "This file needs a newer version of the app. Nothing has changed.").
 - **Notifications**: Reminders (local, set per day, work offline) with the delivery time; **Changes to shared days**; **Added to a day**; **Offers and news** (off by default, at most 2 a month).
-- More (Widgets, Recently deleted, Privacy lock, Export for local mode, Language, Terms of Service, Privacy Policy).
-- **Account** (signed in): display name, add sign-in method, **Download my data** (emails a download link that works for 30 days), **Sign out** (this device only; warns about unsynced changes), **Delete account** (lists what is deleted; on Premium, says to cancel the subscription in the store first). A line under it: accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a download link.
+- More (Widgets, Recently deleted, Privacy lock, Language, Terms of Service, Privacy Policy).
+- **Account** (signed in): display name, add sign-in method, **Download my data** (emails a download link that works for 30 days), **Sign out** (this device only; warns about unsynced changes. When offline with unsynced changes, shows the plain message: "Not everything has been sent yet. The rest will be sent when you sign in again." above buttons), **Delete account** (lists what is deleted; on Premium, says to cancel the subscription in the store first). A line under it: accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a download link.
 
 Items marked **New** were added in this design; where they are specified is listed in section 6.
 
@@ -358,24 +368,41 @@ Added in revision 5 of this document, from the owner's requirement "support offl
 
 ### 9.1 The model in one paragraph
 
-Without an account the app is in **local mode** (this replaces "guest"). Local mode is a full, offline app for the user's own days: customize, widgets, reminders, memos. It has no online features (sync, sharing, links, invites, history, restore) and it follows the same plan limits as an account (10 days, 5 photo backdrops and so on, Premium features still Premium), so a user who signs in later is never over the limits because of what they did offline. Each signed-in account has its own database on the device and local mode has one more; **nothing is copied between them except by an explicit, confirmed import**. The name in the Settings card (edited via a popup) is stored on the device and drives the Home greeting.
+Without an account the app is in **local mode** (this replaces "guest"). Local mode is a full, offline app for the user's own days: customize, widgets, reminders, memos, and offline file backup/import (.zip). It has no online features (sync, sharing, links, invites, history, restore) and it follows the same plan limits as an account (20 events, 5 photo backdrops, 5 Spotify events, driven by remote configuration; Premium features still Premium), so a user who signs in later is never over the limits because of what they did offline. Each signed-in account has its own database on the device and local mode has one more; **nothing is copied between them except by an explicit, confirmed import**. Import is strictly **all or nothing**: all events transfer or nothing changes on the device. The name in the Settings card (edited via a popup) is stored on the device and drives the Home greeting.
 
 ### 9.2 Screens and states
 
 | # | Screen | What it shows | Prototype |
 | :--- | :--- | :--- | :--- |
 | 1 | **First-launch choice** (new, step 2 of onboarding, after Welcome) | "Where should your days live?" Two cards of equal size and weight, each with a full-width primary button: **Use on this device** (no account; all your own days, looks, widgets and reminders; works offline; "Good to know": no sharing, sync, history or invites) and **Sign in or create an account** (sharing, sync, history, backup; "Free to start. No password."). Terms line applies to the account path only. | Panel › Device or account |
-| 2 | **Settings, local mode** | A "Local" card showing the name as title (or "Add your name" when empty) with subtitle "Local", tappable to open a small popup dialog to edit the name ("What should we call you?"), an info block explaining local mode, **Sign in or create an account** (accent button), then a **Needs an account** group (Sync, Sharing and invites, History and restore, Backup) with lock icons. Tapping one opens the sign-in prompt with a matching reason, the same behavior Share and Sync have for guests today. Plan meters stay, with a line saying limits are the same as an account's. | Account › Local, then Settings |
+| 2 | **Settings, local mode** | A "Local" card showing the name as title (or "Add your name" when empty) with subtitle "Local", tappable to open a small popup dialog to edit the name ("What should we call you?"), an info block explaining local mode, **Sign in or create an account** (accent button), then a **Needs an account** group (Sync, Sharing and invites, History and restore, Backup) with lock icons. Tapping one opens the sign-in prompt with a matching reason, the same behavior Share and Sync have for guests today. **Your events on this device** group offers **Export events** and **Import events**. Plan meters stay ("Events 9 of 20", "Photo backdrops 3 of 5", "Spotify events 1 of 5"). | Account › Local, then Settings |
 | 3 | **Home greeting** | The h1 becomes "Good morning, Sam". Morning 05:00 to 11:59, afternoon 12:00 to 16:59, evening 17:00 to 21:59, late night 22:00 to 04:59 ("Still up, Sam?"). No name: "Good morning" / "Still up?". Signed in: the account display name. The date line, search and account button stay. Long names wrap to two lines and then end with an ellipsis; emoji names are fine. Settings › Appearance › **Greeting on Home** turns it off (back to "Your days"). | Panel › Name, Time of day |
 | 4 | **Heavy-use nudge** (sheet) | "Your days deserve a backup". Counts what is on the phone ("4 days and 3 memos"), four benefits (sharing, sync, history and restore, backup), **Sign in or create an account**, **Not now**, and "We won't ask again for a month." | Panel › Heavy-use nudge: Show |
-| 5 | **Import prompt** (sheet, right after sign-in) | "Import this phone's days?", "Found 4 days and 3 memos kept on this device", the first three days listed, a paragraph saying import is permanent, that the days leave local mode on this phone, and that nothing is imported if the user says not now. If the import takes a Free account above 10 days, an info line says so and that nothing is deleted. **Import 4 days…** (primary) and **Not now, keep on this device**. | Panel › Import choice › Not yet |
+| 5 | **Import prompt** (sheet, right after sign-in) | "Import this phone's days?", "Found 4 days and 3 memos kept on this device", the first three days listed, a paragraph saying import is permanent, that the days leave local mode on this phone, and that nothing is imported if the user says not now. Importing is all-or-nothing and never gated or limited by the plan (no plan-limit notice). **Import 4 days…** (primary) and **Not now, keep on this device**. | Panel › Import choice › Not yet |
 | 5b | **Confirm** (second sheet) | "This can't be undone". Import 4 days and 3 memos into the account email? Saved to the account and synced; removed from local mode on this phone, and signing out will not bring them back; can't be moved back. **Yes, import 4 days**, **Go back**. | Import › Import 4 days… |
-| 5c | **Success** | "4 days imported", "3 memos came with them", they are in the account and on other devices, no longer in local mode. **Done**. | Confirm › Yes |
-| 5d | **Partial or failed** | "3 of 4 days imported". The one that failed stays on the phone, safe and unchanged; the others are in the account for good. **Try again**, **Keep it on this device for now**. Import is per day: each day moves whole or stays. | Panel › Import result › Partial |
+| 5c | **Success** | "4 events imported", "3 memos came with them", they are in the account and on other devices, no longer in local mode. Until verified, nothing leaves the device; success appears only after progress finishes. **Done**. | Confirm › Yes (Import result: Success) |
+| 5d | **Progress** | A progress bar and spinner with "Importing 4 events...". No option to import only some. | Confirm › Yes (while in flight) |
+| 5e | **Failed** | "We couldn't import your events. Nothing has changed on this device." **Try again**, **Not now**. | Panel › Import result › Failed |
+| 5f | **Can't import** | "These events can't be imported yet. This version of the service doesn't support something in them, so they stay on this device. We've noted it so it can be fixed." **OK**. | Panel › Import result › Can't import |
 | 6 | **After "Not now"** | Signed-in Home shows only the account's days. Settings has **On this device › Import days from this device** with the count ("4 days and 3 memos kept on this phone, not in your account"). It opens the same sheets as 5 and 5b. When all days are imported the group disappears. | Panel › Import choice › Skipped |
-| 7 | **Sign out** | Confirmation "Sign out and use this device only?": back to local mode, where only the days kept on this phone (never imported ones) are shown; account days, including imported ones, stay in the account. After confirming the app opens Home in local mode with the local greeting. | Settings › Sign out |
+| 7 | **Sign out** | Confirmation "Sign out and use this device only?": back to local mode, where only the days kept on this phone (never imported ones) are shown; account days, including imported ones, stay in the account. When offline with unsynced changes, warns: "Not everything has been sent yet. The rest will be sent when you sign in again." | Settings › Sign out (Panel › Unsynced changes) |
+| 8 | **File export** | In Settings (both local mode and signed in), tapping **Export events** generates a `.zip` file of active events (`DaysThatMatter-YYYYMMDD-HHMMSS.zip`) to Downloads and displays a sheet with a **Share** button. | Settings › Export events |
+| 9 | **File import** | In Settings (both local mode and signed in), tapping **Import events** opens a "Choose a file" sheet, then confirm, progress, and results (Success, Failed, Can't import, or "This file needs a newer version of the app. Nothing has changed."). | Settings › Import events |
+| 10 | **Widget placeholders** | Widgets whose events are unavailable display a placeholder card ("This event isn't available", "Open the app") across all sizes. Demonstrated in 3 modes: Normal, Signed out, Signed in not imported. | Panel › Widgets |
 
-Panel switches added for review: **Account** (Local, Signed in), **Days on device** (None, Some), **Import choice** (Not yet, Imported, Skipped), **Import result** (All, Partial), **Name** (Short, Long, Emoji, None), **Time of day** (Now, Morning, Afternoon, Evening, Late) and **Heavy-use nudge › Show**. "Not yet" signs in if needed and opens the import prompt; "Imported" runs the import; "Skipped" closes it. The prototype starts signed in with 4 local days and "Skipped", so the account Home, the local Home and the Settings import row can all be compared at once. Tapping outside an import sheet is "Not now"; tapping outside the nudge is "Not now".
+Panel switches added for review:
+- **Account**: Local, Signed in
+- **Days on device**: None, Some
+- **Import choice**: Not yet, Imported, Skipped
+- **Import result**: Success, Failed, Can't import, File too new
+- **Limits config**: Default (20 events, 5 photos, 5 Spotify), Spotify limit removed (Spotify row omitted from Settings and paywall)
+- **Widgets**: Normal, Signed out, Signed in, not imported
+- **Unsynced changes**: None, Some, offline
+- **Name**: Short, Long, Emoji, None
+- **Time of day**: Now, Morning, Afternoon, Evening, Late
+- **Heavy-use nudge**: Show
+
+"Not yet" signs in if needed and opens the import prompt; "Imported" runs the import; "Skipped" closes it. The prototype starts signed in with 4 local days and "Skipped", so the account Home, the local Home and the Settings import row can all be compared at once. Tapping outside an import sheet is "Not now"; tapping outside the nudge is "Not now".
 
 ### 9.3 Copy
 
@@ -388,8 +415,15 @@ Panel switches added for review: **Account** (Local, Signed in), **Days on devic
 | Nudge | **Your days deserve a backup** · You are keeping 4 days and 3 memos on this phone. An account adds: · Sharing with the people you choose · Sync across your devices · History, so any change can be restored · A backup if this phone is lost · [Sign in or create an account] [Not now] · Your days stay on this phone until you decide to import them. We won't ask again for a month. |
 | Import prompt | **Import this phone's days?** Found 4 days and 3 memos kept on this device. Importing moves them into your account, so they sync to your other devices. It is permanent: they leave local mode on this phone and can't be moved back. If you choose not now, nothing is imported. [Import 4 days…] [Not now, keep on this device] They stay here and are not shown in your account. You can import them later from Settings. |
 | Confirm | **This can't be undone** · Import 4 days and 3 memos into alex@example.com? · They are saved to your account and sync to your other devices. · They are removed from local mode on this phone. Signing out later will not bring them back here. · You can't move them back. Delete or edit them in your account as you would any day. · [Yes, import 4 days] [Go back] |
-| Partial | **3 of 4 days imported** · First 5K couldn't be imported. The connection dropped. 1 day stayed on this phone, safe and unchanged. The others are in your account for good. · [Try again] [Keep it on this device for now] |
-| Sign out | **Sign out and use this device only?** You will go back to local mode, where you see only the days kept on this phone (4 days). Days in your account, including any you imported, stay in your account and won't show here. Other devices stay signed in. |
+| Import progress | **Importing 4 events...** (progress bar and spinner; all-or-nothing, no partial state). |
+| Import success | **4 events imported** · 3 memos came with them. They are in your account and will sync to your other devices. They are no longer in local mode on this phone. · [Done] |
+| Import failed | **We couldn't import your events. Nothing has changed on this device.** · [Try again] [Not now] |
+| Import can't import | **These events can't be imported yet. This version of the service doesn't support something in them, so they stay on this device. We've noted it so it can be fixed.** · [OK] |
+| File import (too new) | **This file needs a newer version of the app. Nothing has changed.** · [OK] |
+| File export saved | **Saved to Downloads: DaysThatMatter-YYYYMMDD-HHMMSS.zip** · [Share] [Done] |
+| Widget placeholder | **This event isn't available** · Open the app · (Plain words, formatted for small, medium, circular, rectangular widget frames). |
+| Sign out (online) | **Sign out and use this device only?** You will go back to local mode, where you see only the days kept on this phone (4 days). Days in your account, including any you imported, stay in your account and won't show here. Other devices stay signed in. We'll send your latest changes first. · [Sign out] [Cancel] |
+| Sign out (offline unsynced) | **Sign out and use this device only?** You will go back to local mode, where you see only the days kept on this phone (4 days). Days in your account, including any you imported, stay in your account and won't show here. Other devices stay signed in. Not everything has been sent yet. The rest will be sent when you sign in again. · [Sign out] [Cancel] |
 
 The owner's draft "found local event, want to import?" became a sheet title that names the device ("Import this phone's days?") and a first line that gives the counts. "Phone" is the word for the app on iOS and Android; a tablet build would say "device". The confirmation is its own sheet so the irreversible part gets a full screen of attention, and its button repeats the number ("Yes, import 4 days") instead of "OK".
 
@@ -419,13 +453,22 @@ Start with **Reset demo**.
 
 | # | Check | Steps | Expect |
 | :--- | :--- | :--- | :--- |
-| Y1 | **Yes: the records go to the account** | Panel › Import choice › **Not yet**. Tap **Import 4 days…**, then **Yes, import 4 days**. | Success sheet "4 days imported". Account Home now lists Japan 2027, Dad's retirement party, Sourdough starter and First 5K with the other days; the date line reads "Syncing 4 changes…". Settings has no import group. Another device signed in to the account would pull them (stand-in: switch Account to Local and back to Signed in; the days are still there). Build check: the backend holds 4 events owned by this account and memos with them. |
+| Y1 | **Yes: the records go to the account** | Panel › Import choice › **Not yet**. Tap **Import 4 days…**, then **Yes, import 4 days**. | Progress spinner/bar ("Importing 4 events..."), then success sheet "4 events imported". Account Home now lists Japan 2027, Dad's retirement party, Sourdough starter and First 5K with the other days; the date line reads "Syncing 4 changes…". Settings has no import group. Another device signed in to the account would pull them (stand-in: switch Account to Local and back to Signed in; the days are still there). Build check: the backend holds 4 events owned by this account and memos with them. |
 | Y2 | **Yes: local mode no longer has them** | After Y1, panel Account › **Local**. | Home shows the empty state ("Nothing here yet"); panel "Days on device" reads None; Settings has no import row. Build check: the local database has no rows for those ids. |
 | N1 | **No: signed-in user does not see local days** | Panel › Import choice › **Not yet**, then **Not now, keep on this device**. | Account Home shows only the account's days (no Japan 2027). Settings has **On this device › Import days from this device** with 4. |
 | N2 | **No: local days are visible in local mode** | After N1, panel Account › **Local**. | Home lists the 4 local days (Japan 2027 pinned in the carousel), greeting uses the local name. |
-| N3 | **Import later from Settings** | After N1, Settings › **Import days from this device**. | Same prompt, same confirm, same success as at sign-in; afterwards the row disappears. |
-| S1 | **Sign out** | Signed in, Settings › **Sign out**. | The sheet explains local mode; after "Sign out" Home shows only the local days and the local greeting; imported days are not there. |
-| P1 | **Partial import** | Panel › Import result › **Partial**, then run Y1. | "3 of 4 days imported" naming First 5K. **Try again** gives "4 days imported". Settings (before retrying, via "Keep it on this device for now") still shows the row with 1. |
+| N3 | **Import later from Settings** | After N1, Settings › **Import days from this device**. | Same prompt, same confirm, progress state, and success as at sign-in; afterwards the row disappears. |
+| S1 | **Sign out (online)** | Signed in, Settings › **Sign out**. | The sheet explains local mode; after "Sign out" Home shows only the local days and the local greeting; imported days are not there. |
+| S2 | **Sign out offline with unsynced changes** | Panel › Unsynced changes › **Some, offline**, Settings › **Sign out**. | Warning appears above buttons: "Not everything has been sent yet. The rest will be sent when you sign in again." |
+| A1 | **All-or-nothing import: Success** | Panel › Import result › **Success**, then run Y1. | Shows progress bar and spinner "Importing 4 events...", followed by "4 events imported". All 4 events move together into account. |
+| A2 | **All-or-nothing import: Failed** | Panel › Import result › **Failed**, then tap Yes in confirm sheet. | Progress bar/spinner "Importing 4 events...", followed by "We couldn't import your events. Nothing has changed on this device." with [Try again] and [Not now]. All 4 events remain local. |
+| A3 | **All-or-nothing import: Can't import** | Panel › Import result › **Can't import**, then tap Yes in confirm sheet. | Progress bar/spinner "Importing 4 events...", followed by "These events can't be imported yet. This version of the service doesn't support something in them, so they stay on this device. We've noted it so it can be fixed." with [OK]. All 4 events remain local. |
+| FX1 | **File export** | Settings › **Export events**. | Generates `DaysThatMatter-YYYYMMDD-HHMMSS.zip` in Downloads and displays a sheet/toast with a **Share** button. Works identically in Local mode and Signed in. |
+| FI1 | **File import** | Settings › **Import events**. | Displays "Choose a file" sheet, then confirm, progress, and result flow. |
+| FI2 | **File import (file too new)** | Panel › Import result › **File too new**, Settings › Import events › Choose file › Confirm. | Shows "This file needs a newer version of the app. Nothing has changed." |
+| W1 | **Widget placeholders (Signed out)** | Panel › Widgets › **Signed out**, navigate to Widgets screen. | Account event widgets display placeholder "This event isn't available" / "Open the app"; local event widgets display normally. |
+| W2 | **Widget placeholders (Not imported)** | Panel › Widgets › **Signed in, not imported**, navigate to Widgets screen. | Local event widgets not imported display placeholder; account and imported widgets display normally. |
+| LC1 | **Limits config: Spotify removed** | Panel › Limits config › **Spotify limit removed**. | In Settings, the "Spotify events" meter row disappears. In Paywall sheet, the Spotify benefit row disappears. |
 | G1 | **Greeting** | Panel › Name and Time of day. | Short, long (two lines, ellipsis), emoji and empty names; four times of day; works in Local and Signed in; switch off in Settings › Appearance. |
 | H1 | **Nudge** | Panel › Heavy-use nudge › Show. Tap **Not now** twice. | The second time the toast says it won't ask again. **Sign in or create an account** opens the usual sign-in sheet. |
 | C1 | **Choice screen** | Panel › Device or account. | **Use on this device** opens local Home; **Sign in or create an account** opens the sign-in sheet and, after signing in, the import prompt if local days exist. |
@@ -440,18 +483,22 @@ Start with **Reset demo**.
 | First sign-in | Local days upload automatically; both sets kept | Nothing uploads by itself. The user is asked, confirms, and the move is permanent. |
 | Local data after sign-in | Same data set, now synced | Separate databases. Local days stay in local mode unless imported. |
 | Sign out | Days stay on the phone, you become a guest with the same days | Return to local mode with only the local days; the account's days are not shown. |
+| Offline sign-out | Online message only ("We'll send your latest changes first") | Offline unsynced warning: "Not everything has been sent yet. The rest will be sent when you sign in again." |
 | Settings (no account) | "Guest · Saved on this device only" and Sign in | Local card (tappable name with edit popup, "Local" subtitle), explanation, Sign in or create an account, locked online items. |
 | Home header | "Your days" | Greeting (can be turned off). |
-| Plan limits | Apply to guests | Unchanged; an import may take an account above its limit (nothing deleted), as the premium spec already allows. |
+| Plan limits | Apply to guests (10 days, 5 photos, 3 Spotify) | Free plan and local mode share one limit of **20 events** (counted in events; separate days count removed), 5 photo backdrops, 5 Spotify events. Remote configuration drives limits dynamically; if a limit is removed from config, it disappears from Settings meters and paywall benefits. Import is never limited by the plan. |
+| Import | Local days upload automatically or partial import | Strictly **all or nothing**. Shows a progress state ("Importing 4 events...") then one of Success, Failed ("We couldn't import your events..."), or Can't import ("These events can't be imported yet..."). No plan-limit notice. |
+| File backup | None (online sync only) | **Export events** and **Import events** in Settings under "Your events on this device" in both local mode and signed-in. Exports timestamped `.zip` to Downloads. |
+| Widgets | Always show card content | **Placeholder states** ("This event isn't available", "Open the app") when an event is unavailable (signed out or not imported). |
 
 ### 9.7 Conflicts with existing specs and the built backend (listed, not resolved)
 
-1. **Accounts spec, "First sign-in uploads local data"** (and its scenario of 4 local + 2 account = 6): requires automatic upload and no choice. The new requirement makes it an explicit, permanent import.
+1. **Accounts spec, "First sign-in uploads local data"** (and its scenario of 4 local + 2 account = 6): **Resolved.** The owner decided (2026-10-15) that import is an explicit, confirmed, all-or-nothing user action, formalized in OpenSpec change `pluggable-backend-live-sharing` under capability `local-mode`. Nothing is copied or uploaded automatically.
 2. **Auth feature spec**, section 2 item 8 ("First sign-in on a device") says the same; section 4.1 "Skip for now (Continue as Guest)", `AuthState.Guest` and the word "guest" throughout.
-3. **Accounts spec and auth spec 4.2 / 2.1, "prompt once after the first saved event"**: removed in this design.
+3. **Accounts spec and auth spec 4.2 / 2.1, "prompt once after the first saved event"**: **Resolved.** Removed; replaced by the heavy-use nudge appearing later and less often.
 4. **Accounts spec, Sessions** ("signing out ... SHALL keep the device's data until the user removes it") and auth spec 4.3 "Sign Out": under separate databases the account's cached days are not shown after sign-out; whether they stay on disk is undecided (open question 4).
-5. **Built backend, first sign-in upload exception**: `backend/core/src/http/sync.ts` (`FIRST_UPLOAD_WINDOW_SECONDS` = 86,400, `FIRST_UPLOADS_PER_SESSION` = 500, query `?firstUpload=1&createdAt=`), the store port's `firstUpload` option with the `first_upload_at` marker, and the tests `test/sync/first-upload.test.ts` and `conformance.ts`. The exception lets the first upload exceed the plan's owned-event limit only for a session younger than 24 hours. An import chosen later from Settings can come days afterwards, so the window does not fit; the 500 cap and the "createdAt before session" rule also assume an automatic upload. The exception probably needs to be tied to an explicit import request instead of the session age.
-6. **Premium spec, "Guest data above the free limit"** (14 events kept, creating a new one shows the paywall): still true for imports, but it is worded for automatic upload of "local and account events".
+5. **Built backend, first sign-in upload exception**: **Resolved.** The owner decided that import is an explicit, all-or-nothing action without a 24-hour session window limitation. Backend sync will tie the first-upload exception to an explicit import operation rather than session age.
+6. **Premium spec, "Guest data above the free limit"**: **Resolved.** The owner established a unified limit of 20 events for the Free plan and local mode. Importing is strictly all-or-nothing and is never gated or blocked by the plan. If an import causes the account to hold more than 20 events, all imported events are preserved in full without deletion; subsequent creation of a new event opens the paywall.
 7. **Premium spec, "Guest buys, then signs in"**: still valid, but the plan is now bought in local mode and moves to an account on sign-in while the days do not; worth a scenario.
 8. **To check by whoever builds it** (not read for this task): `docs/architecture/PERSISTENCE_AND_SYNC.md` and the events spec probably describe one Room database; this requirement needs one per signed-in account plus one for local mode, and widgets, reminders and notifications must follow whichever is active. `docs/legal/` (AGENTS.md rule 8) may need a line on what is kept on the device without an account.
 
@@ -459,14 +506,23 @@ Start with **Reset demo**.
 
 1. **Heavy-use thresholds and frequency** in 9.4: are 12 days / 14 days / 25 days / 20 memos and "once a month, stop after two Not nows" right?
 2. **Re-asking after "Not now":** this design asks once per device and then only shows the Settings row. Or ask at every sign-in?
-3. **Choose which days to import?** Now it is all or nothing (only errors split it). A selection list is a small addition.
+3. **Choose which days to import?** **Resolved (Decision 2):** Import is strictly all or nothing; every event moves together or nothing leaves the device.
 4. **Sign out:** keep the account's cached days on the phone (fast sign-in, offline) or remove them? Removing is the safer privacy default, and the sign-out sheet would then say so.
 5. **Name at first launch:** the name is asked for only in Settings. Ask on the choice screen too? Should the account's display name start from the local name when signing in?
 6. **Greeting wording:** "Good morning, Sam" and the late-night "Still up, Sam?" are proposals; also needed in Chinese and other languages.
-7. **Local backup:** with no account, a phone loss loses everything. The nudge says so; a JSON export (gap 14) is now more important and could be offered next to the nudge.
+7. **Local backup:** **Resolved (Decision 3):** Settings provides file export and import ("Export events" to a timestamped .zip in Downloads and "Import events" from file) under "Your events on this device".
 8. **Sign-in prompt for locked Settings rows** reuses the existing sheet. A short "what you get" version of it could replace it for non-Share rows.
-9. **Imported days over the Free limit:** kept in full, creating a new day shows the paywall (premium spec). Is a softer note at import time (as drawn) enough? Also for the owner to decide: the import prompt shows a notice about the plan limit ("Your account would have 13 days, above the Free plan's 10...") when a sign-in happens; should that notice stay at sign-in time or be removed/softened so first sign-in does not throw users off with plan limits?
-10. **Revision number:** the request said "revision 3"; this README already has revisions 1 to 4, so this is revision 5.
+9. **Imported days over the Free limit:** **Resolved (Decision 2):** The plan-limit notice is removed from the import prompt; importing is never limited or gated by the plan.
+10. **Vocabulary: "days" vs "events":** The owner decided that plan limits and user-facing count copy use "events" ("Events 9 of 20", "Free includes 20 events", "500 events", "Spotify events 1 of 5"), while existing user journeys retain "days" ("Your days", "New day"). To help the owner pick a consistent vocabulary, here is the full catalog of every place in the product where both "days" and "events" are currently used:
+    1. **Home screen title & greeting**: "Your days" (when greeting is toggled off) vs "Events 9 of 20" in Settings.
+    2. **Primary creation button**: Floating **New day** button vs plan limit "20 events".
+    3. **Item detail page**: "Day page", "Edit day", "Share day", "Added to a day" vs underlying data model "event".
+    4. **Plan usage meters & Paywall**: Settings displays "Events 9 of 20" and "Spotify events 1 of 5"; Paywall lists "Free includes 20 events" and "500 events", whereas earlier designs used "Days 9 of 10" and "Spotify days 1 of 3".
+    5. **Account import flow**: Prompt sheet asks "Import this phone's days?" and "Import 4 days...", while in-progress and completion states show "Importing 4 events...", "4 events imported", and failure copy "We couldn't import your events."
+    6. **File export & import**: Settings group titled "Your events on this device" with action rows "Export events" and "Import events", while default backup zip archives are named `DaysThatMatter-YYYYMMDD-HHMMSS.zip`.
+    7. **Widget states**: Widget placeholder cards read "This event isn't available", while the app and widget family are branded "Days That Matter".
+    8. **Notifications settings**: Preference row reads "Changes to shared days" instead of changes to shared events.
+    9. **Sharing & members**: Sharing sheet states "Share days with people you choose" and "Added to a day", while collaboration and access control logic refers to event members.
 
 ### 9.9 Components
 
@@ -476,7 +532,7 @@ No new colors, fonts or component styles. `.choice` (the two onboarding cards) i
 
 All in `offline-accounts/`, light and dark, named `<number>-<screen>-<state>-<light|dark>.png`.
 
-**Status: captured, not committed.** The PNGs were captured on 2026-10-15 in a real Chrome (Chrome 155 on macOS) with `offline-accounts/capture-cdp.mjs`, which drives a running Chrome through the DevTools protocol using only Node 22's built-in WebSocket (no Playwright, nothing to install). At 2x the 36 files are about 18 MB, so they are kept as local review files and ignored by Git (`offline-accounts/.gitignore`); to put them in the repository after approval, capture at 1x (set `deviceScaleFactor` to 1 in the script) and remove the ignore rule. To regenerate: serve `design/v2` (for example `python3 -m http.server 8765 --directory design/v2`), start Chrome with `--remote-debugging-port=9333 --user-data-dir=/tmp/dtm-cdp` and the prototype open, make that port reachable (SSH `-R 9333:127.0.0.1:9333` when Chrome runs on another machine), then run `CDP_URL=http://127.0.0.1:9333 node offline-accounts/capture-cdp.mjs`. `capture.mjs` is an earlier Playwright version that was never run; `capture-cdp.mjs` is the one that was used. The phone frame is 876 px tall and sits about 384 px down the page, so the capture viewport must be at least 1300 px tall or the bottom of each phone is cut off (the first run had this fault and was redone).
+**Status: captured, not committed.** The PNGs were captured on 2026-10-15 in a real Chrome (Chrome 155 on macOS) with `offline-accounts/capture-cdp.mjs`, which drives a running Chrome through the DevTools protocol using only Node 22's built-in WebSocket (no Playwright, nothing to install). At 2x the files are kept as local review files and ignored by Git (`offline-accounts/.gitignore`); to put them in the repository after approval, capture at 1x (set `deviceScaleFactor` to 1 in the script) and remove the ignore rule. To regenerate: serve `design/v2` (for example `python3 -m http.server 8765 --directory design/v2`), start Chrome with `--remote-debugging-port=9333 --user-data-dir=/tmp/dtm-cdp` and the prototype open, make that port reachable (SSH `-R 9333:127.0.0.1:9333` when Chrome runs on another machine), then run `CDP_URL=http://127.0.0.1:9333 node offline-accounts/capture-cdp.mjs`. `capture.mjs` is an earlier Playwright version that was never run; `capture-cdp.mjs` is the one that was used. The phone frame is 876 px tall and sits about 384 px down the page, so the capture viewport must be at least 1300 px tall or the bottom of each phone is cut off (the first run had this fault and was redone).
 
 Each name below exists as `-light.png` and `-dark.png`.
 
@@ -492,16 +548,34 @@ Each name below exists as `-light.png` and `-dark.png`.
 - `08-nudge-sheet`: Heavy-use nudge
 - `09-import-prompt`: Import prompt after sign-in
 - `10-import-confirm`: Irreversible confirmation
-- `11-import-success`: Success, 4 days imported
-- `12-import-partial`: Partial import, retry
-- `13-home-signed-in-after-skip`: Signed-in Home after Not now: only the account's days
-- `14-settings-signed-in-import-row`: Settings with Import days from this device
-- `15-signout-confirm`: Sign-out confirmation
-- `16-home-local-after-signout`: Local Home after sign-out: only local days
+- `11-import-success`: Success, 4 events imported
+- `12-home-signed-in-after-skip`: Signed-in Home after Not now: only the account's days
+- `13-settings-signed-in-import-row`: Settings with Import days from this device
+- `14-signout-confirm`: Sign-out confirmation
+- `15-home-local-after-signout`: Local Home after sign-out: only local days
+- `16-import-progress`: Import in-flight progress bar and spinner (all-or-nothing)
+- `17-import-failed`: Import failed: nothing changed on device, Try again
+- `18-import-cannot`: Import unsupported: stays on device
+- `19-settings-export-import`: Settings with "Your events on this device" (Export events, Import events)
+- `20-export-saved`: Export saved to Downloads with timestamped zip and Share button
+- `21-widgets-signed-out`: Widgets in Signed out state: account event widgets show placeholder
+- `22-widgets-not-imported`: Widgets in Signed in, not imported state: local event widgets show placeholder
+- `23-signout-offline-unsynced`: Sign-out sheet while offline with unsynced changes warning
+- `24-settings-limit-removed`: Settings with Spotify limit removed from remote configuration The Spotify usage row sits below the first screen of Settings; the screenshot shows the top. Checked in the page text instead: with Limits config set to Spotify limit removed, neither Settings nor the paywall contains a Spotify row (the default state has both).
+- `25-paywall-limit-removed`: Paywall with Spotify benefit removed from remote configuration
 
 **No new colors, fonts or component styles, how it was checked:** the change to `styles.css` is one appended block of 37 lines (`git diff 37f7839 -- styles.css`), no existing rule is edited, and a search of the added lines for hex, `rgb` and `hsl` values finds none: every color is an existing token. No font or font size outside the existing scale is added (28 px is used for the greeting).
 
 ## 10. Revision history
+
+**Revision 8:** owner decisions on limits, all-or-nothing import, file backup, widget placeholders, and offline sign-out.
+- **Limits & remote configuration:** Free plan and local mode updated to 20 events (single limit in events; separate days count removed), 5 photo backdrops, 5 Spotify events (was 3). Premium retains 500 events, unlimited photo backdrops, unlimited Spotify. Paywall and Settings usage meters are dynamically driven by remote configuration; if a limit is omitted from configuration, it disappears from Settings and paywall. Added panel switch **Limits config** (Default vs Spotify limit removed). User-facing limit text uses "events" ("Events 9 of 20", "Free includes 20 events").
+- **All-or-nothing import:** Removed partial import state, partial option in panel, and plan-limit notice from import prompt (importing is never gated). Replaced flow with progress state (spinner/bar "Importing 4 events...") and three final states switchable in panel: Success ("4 events imported"), Failed ("We couldn't import your events. Nothing has changed on this device." with Try again / Not now), and Can't import ("These events can't be imported yet..."). Nothing leaves the device until verified.
+- **File export and import:** Added "Your events on this device" section in Settings for both local mode and signed-in. **Export events** saves `DaysThatMatter-YYYYMMDD-HHMMSS.zip` to Downloads with a Share button. **Import events** provides file picker sheet, confirmation, progress, and results (Success, Failed, Can't import, plus "This file needs a newer version of the app. Nothing has changed.").
+- **Widget placeholders:** Added placeholder card ("This event isn't available" / "Open the app") across all widget sizes (small, medium, circular, rectangular) when an event is unavailable. Added panel switch **Widgets** (Normal, Signed out, Signed in not imported) and explanatory note.
+- **Offline sign-out:** Added panel switch **Unsynced changes** (None, Some offline); offline variant displays "Not everything has been sent yet. The rest will be sent when you sign in again." above action buttons.
+- **Screenshots & capture script:** Updated `capture-cdp.mjs` and section 9.10; renumbered contiguously from 00 through 25 (52 PNGs total).
+- **Documentation & vocabulary:** Resolved conflicts in 9.7, cataloged all places where "days" and "events" are used in 9.8 for owner terminology review.
 
 **Revision 7:** the Home carousel no longer flashes when it collapses. The card contents now cross-fade through the layout swap and the collapse has hysteresis (section 5, Collapse behavior). The capture script also disables the browser cache so a stale `app.js` cannot be captured.
 
