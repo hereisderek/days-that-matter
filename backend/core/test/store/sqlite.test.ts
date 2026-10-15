@@ -10,15 +10,15 @@ import type { SqlDriver } from '../../src/ports/sql.ts';
 const dirs: string[] = [];
 afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
-describe('migrations 0001_init.sql and 0002_accounts.sql', () => {
+describe('migrations 0001_init.sql, 0002_accounts.sql and 0003_sharing.sql', () => {
   it('creates the tables of this wave and leaves later ones to their tasks', async () => {
     const { driver } = await openSqliteStore();
     const tables = (await driver.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).map((r) => r.name);
     expect(tables).toEqual([
-      '_migrations', 'accounts', 'devices', 'email_codes', 'events', 'exports', 'grants', 'identities', 'links', 'media', 'members', 'memos',
-      'revisions', 'sessions',
+      '_migrations', 'accounts', 'devices', 'email_codes', 'events', 'exports', 'grants', 'identities', 'invites', 'links', 'media', 'members',
+      'memos', 'revisions', 'sessions',
     ]);
-    for (const later of ['invites', 'purchases', 'rate_counters']) expect(tables).not.toContain(later);
+    for (const later of ['purchases', 'rate_counters']) expect(tables).not.toContain(later);
   });
 
   it('matches the columns and indexes of BACKEND.md section 6.1', async () => {
@@ -36,6 +36,10 @@ describe('migrations 0001_init.sql and 0002_accounts.sql', () => {
     expect(await columns('email_codes')).toEqual(['email_hash', 'code_mac', 'expires_at', 'attempts']);
     expect(await columns('sessions')).toEqual(['token_hash', 'account_id', 'created_at', 'last_used_at']);
     expect(await columns('revisions')).toEqual(['event_id', 'rev', 'author_id', 'created_at', 'patch', 'inverse', 'overwrote', 'restored_from']);
+    expect(await columns('links')).toEqual(['id', 'token', 'event_id', 'label', 'created_at', 'expires_at', 'revoked_at']);
+    expect(await columns('invites')).toEqual([
+      'id', 'token_hash', 'token_enc', 'event_id', 'role', 'max_uses', 'use_count', 'created_at', 'expires_at', 'revoked_at',
+    ]);
     expect(await columns('members')).toEqual(['event_id', 'account_id', 'role', 'invite_id', 'archived_at', 'reminders', 'created_at']);
     expect(await columns('media')).toEqual([
       'id', 'uploader_id', 'event_id', 'kind', 'content_type', 'bytes', 'width', 'height', 'duration_ms', 'title', 'library_removed_at', 'created_at', 'unused_since',
@@ -44,7 +48,7 @@ describe('migrations 0001_init.sql and 0002_accounts.sql', () => {
     expect(indexes).toEqual([
       'idx_accounts_last_active', 'idx_accounts_media_bytes', 'idx_accounts_media_files', 'idx_devices_account', 'idx_events_audio_media',
       'idx_events_owner', 'idx_events_spotify', 'idx_exports_account', 'idx_grants_account', 'idx_identities_account', 'idx_identities_email',
-      'idx_links_event', 'idx_media_unused', 'idx_media_uploader', 'idx_members_account', 'idx_memos_event_seq', 'idx_sessions_account',
+      'idx_invites_event', 'idx_links_event', 'idx_media_unused', 'idx_media_uploader', 'idx_members_account', 'idx_memos_event_seq', 'idx_sessions_account',
     ]);
   });
 
@@ -52,12 +56,13 @@ describe('migrations 0001_init.sql and 0002_accounts.sql', () => {
     const { driver } = await openSqliteStore();
     await expect(driver.batch([{ sql: "INSERT INTO accounts (id, display_name, plan, last_active_at, created_at) VALUES ('a', 'A', 'gold', 0, 0)" }])).rejects.toThrow();
     await expect(driver.batch([{ sql: "INSERT INTO members (event_id, account_id, role, created_at) VALUES ('e', 'a', 'owner', 0)" }])).rejects.toThrow();
+    await expect(driver.batch([{ sql: "INSERT INTO invites (id, token_hash, token_enc, event_id, role, created_at) VALUES ('i', 'h', 'x', 'e', 'owner', 0)" }])).rejects.toThrow();
     await expect(driver.batch([{ sql: "INSERT INTO media (id, uploader_id, kind, content_type, bytes, created_at) VALUES ('m', 'a', 'gif', 'x', 1, 0)" }])).rejects.toThrow();
   });
 
   it('applies once, in name order', async () => {
     const driver = new NodeSqliteDriver();
-    expect(await applyMigrations(driver, readMigrations())).toEqual(['0001_init.sql', '0002_accounts.sql']);
+    expect(await applyMigrations(driver, readMigrations())).toEqual(['0001_init.sql', '0002_accounts.sql', '0003_sharing.sql']);
     expect(await applyMigrations(driver, readMigrations())).toEqual([]);
     const later = [{ name: '0004_c.sql', sql: 'CREATE TABLE c (x INTEGER);' }, { name: '0003_b.sql', sql: 'CREATE TABLE b (x INTEGER);' }];
     expect(await applyMigrations(driver, later)).toEqual(['0003_b.sql', '0004_c.sql']);

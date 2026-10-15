@@ -4,7 +4,21 @@
 // run can be checked to fail (the negative test runs it against a deliberately broken store).
 import { revertTo } from '../rules/merge.ts';
 import type { JsonObject } from '../rules/merge.ts';
-import type { EventRecord, IdentityInput, MemoRecord, PatchOutcome, PutMemoOutcome, Store } from '../ports/store.ts';
+import type {
+  CreateInviteOutcome,
+  CreateLinkOutcome,
+  EventRecord,
+  IdentityInput,
+  InviteRecord,
+  JoinInput,
+  LinkRecord,
+  MemoRecord,
+  NewInvite,
+  NewLink,
+  PatchOutcome,
+  PutMemoOutcome,
+  Store,
+} from '../ports/store.ts';
 
 export interface ConformanceCase {
   readonly name: string;
@@ -297,6 +311,46 @@ export const storeConformanceCases: readonly ConformanceCase[] = [
       same((await store.listRevisions(EVENT, { before: 5, limit: 2 })).map((r) => r.rev), [4, 3], 'second page');
       same((await store.listRevisions(EVENT, { before: 3, limit: 10 })).map((r) => r.rev), [2], 'last page');
       same(await store.listRevisions('missing', { limit: 10 }), [], 'unknown event');
+    },
+  },
+  // ---- History (task 3.7) ----
+  {
+    name: 'revisions: a restore records the rev it brought back',
+    async run(store) {
+      await withEvent(store);
+      ok(await patch(store, OWNER, 1, { title: 'T2' }));
+      const restored = ok(await store.applyPatch({ eventId: EVENT, authorId: EDITOR, baseRev: 2, patch: { title: 'Our wedding' }, now: T0 + 90, restoredFrom: 1 }));
+      same(restored.event.rev, 3, 'rev');
+      const [latest, earlier] = await store.listRevisions(EVENT, { limit: 2 });
+      same(latest?.restoredFrom, 1, 'restore marker');
+      same(latest?.authorId, EDITOR, 'author');
+      same(latest?.inverse, { title: 'T2' }, 'inverse');
+      same(earlier?.restoredFrom, null, 'plain patch');
+    },
+  },
+  {
+    name: 'revisions: pruning keeps the newest ones in the same write',
+    async run(store) {
+      await withEvent(store);
+      for (let rev = 1; rev <= 4; rev++) ok(await patch(store, OWNER, rev, { title: `T${rev}` }, T0 + rev));
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [5, 4, 3, 2], 'kept without a limit');
+      const pruned = ok(await store.applyPatch({ eventId: EVENT, authorId: OWNER, baseRev: 5, patch: { title: 'T5' }, now: T0 + 9, keepRevisions: 3 }));
+      same(pruned.event.rev, 6, 'rev');
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [6, 5, 4], 'newest 3 kept');
+      ok(await store.applyPatch({ eventId: EVENT, authorId: OWNER, baseRev: 6, patch: { title: 'T6' }, now: T0 + 10, keepRevisions: 3 }));
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [7, 6, 5], 'oldest dropped on the next write');
+      ok(await store.applyPatch({ eventId: EVENT, authorId: OWNER, baseRev: 7, patch: { title: 'T6' }, now: T0 + 11, keepRevisions: 1 }));
+      same((await store.listRevisions(EVENT, { limit: 10 })).map((r) => r.rev), [7, 6, 5], 'a patch that changes nothing prunes nothing');
+    },
+  },
+  {
+    name: 'accounts: display names of the ids that exist',
+    async run(store) {
+      await store.createAccount({ id: OWNER, displayName: 'Mum', now: T0 });
+      await store.createAccount({ id: EDITOR, displayName: 'Dad', now: T0 });
+      const names = await store.displayNames([OWNER, EDITOR, OTHER, OWNER]);
+      same([...names.entries()].sort(), [[EDITOR, 'Dad'], [OWNER, 'Mum']], 'names');
+      same((await store.displayNames([])).size, 0, 'no ids');
     },
   },
   {
@@ -651,7 +705,251 @@ export const storeConformanceCases: readonly ConformanceCase[] = [
       same((await store.getEvent(EVENT))?.childSeq, 8, 'child seq');
     },
   },
+  // ---- Sharing (task 3.8) ----
+  {
+    name: 'links: create, read by id and token, list the active ones oldest first',
+    async run(store) {
+      await withEvent(store);
+      const a = created(await store.createLink(newLink(1, { label: 'Instagram', now: T0 + 1 })));
+      same(a, { id: linkId(1), token: token(1), eventId: EVENT, label: 'Instagram', createdAt: T0 + 1, expiresAt: null, revokedAt: null }, 'created');
+      created(await store.createLink(newLink(2, { expiresAt: T0 + 5 * DAY })));
+      created(await store.createLink(newLink(3, { expiresAt: T0 + 10 })));
+      same(await store.getLink(linkId(1)), a, 'by id');
+      same(await store.getLinkByToken(token(1)), a, 'by token');
+      same(await store.getLink('missing'), null, 'unknown id');
+      same(await store.getLinkByToken(token(9)), null, 'unknown token');
+      same((await store.listLinks(EVENT, T0 + 10)).map((l) => l.id), [linkId(2), linkId(1)], 'expired one left out');
+      same(await store.listLinks('other-event', T0), [], 'other event');
+    },
+  },
+  {
+    name: 'links: at most maxActive active ones; revoked and expired ones do not count',
+    async run(store) {
+      await withEvent(store);
+      created(await store.createLink(newLink(1, { maxActive: 2 })));
+      created(await store.createLink(newLink(2, { maxActive: 2, expiresAt: T0 + 10 })));
+      same((await store.createLink(newLink(3, { maxActive: 2 }))).status, 'limit', 'third');
+      same(await store.getLink(linkId(3)), null, 'nothing written');
+      same((await store.createLink(newLink(3, { maxActive: 2, now: T0 + 10 }))).status, 'created', 'after one expired');
+      same(await store.revokeLink(linkId(1), T0 + 11), true, 'revoke');
+      same((await store.createLink(newLink(4, { maxActive: 2, now: T0 + 12 }))).status, 'created', 'after one was revoked');
+    },
+  },
+  {
+    name: 'links: a taken id or token writes nothing',
+    async run(store) {
+      await withEvent(store);
+      created(await store.createLink(newLink(1)));
+      same((await store.createLink({ ...newLink(2), token: token(1) })).status, 'taken', 'token');
+      same((await store.createLink({ ...newLink(2), id: linkId(1) })).status, 'taken', 'id');
+      same((await store.listLinks(EVENT, T0)).length, 1, 'links');
+    },
+  },
+  {
+    name: 'links: changes apply only while active, and revoking is permanent',
+    async run(store) {
+      await withEvent(store);
+      created(await store.createLink(newLink(1, { label: 'Old', expiresAt: T0 + 100 })));
+      same(await store.updateLink(linkId(1), { label: 'New' }, T0 + 1), { ...(await store.getLink(linkId(1))), label: 'New' }, 'label');
+      const never = await store.updateLink(linkId(1), { expiresAt: null }, T0 + 2);
+      same([never?.label, never?.expiresAt], ['New', null], 'expiry cleared, label kept');
+      same(await store.updateLink(linkId(1), { label: null }, T0 + 3).then((l) => l?.label), null, 'label cleared');
+      same(await store.updateLink('missing', { label: 'x' }, T0), null, 'unknown');
+      created(await store.createLink(newLink(2, { expiresAt: T0 + 10 })));
+      same((await store.updateLink(linkId(2), { expiresAt: null }, T0 + 10))?.expiresAt, T0 + 10, 'expired link unchanged');
+      same(await store.revokeLink(linkId(1), T0 + 20), true, 'revoke');
+      same(await store.revokeLink(linkId(1), T0 + 21), false, 'revoke again');
+      same(await store.revokeLink('missing', T0), false, 'revoke unknown');
+      const revoked = await store.updateLink(linkId(1), { label: 'Back' }, T0 + 22);
+      same([revoked?.label, revoked?.revokedAt], [null, T0 + 20], 'revoked link unchanged');
+    },
+  },
+  {
+    name: 'invites: create, read by id and hash, list the active ones; full ones count against the limit',
+    async run(store) {
+      await withEvent(store);
+      const a = createdInvite(await store.createInvite(newInvite(1, { role: 'editor', maxUses: 5, expiresAt: T0 + 30 * DAY })));
+      same(a, {
+        id: inviteId(1), tokenHash: hash(1), tokenEnc: `enc-${1}`, eventId: EVENT, role: 'editor', maxUses: 5, useCount: 0, createdAt: T0,
+        expiresAt: T0 + 30 * DAY, revokedAt: null,
+      }, 'created');
+      same(await store.getInvite(inviteId(1)), a, 'by id');
+      same(await store.getInviteByHash(hash(1)), a, 'by hash');
+      same(await store.getInviteByHash(hash(9)), null, 'unknown hash');
+      await store.createAccount({ id: OTHER, displayName: 'Other', now: T0 });
+      createdInvite(await store.createInvite(newInvite(2, { maxUses: 1, maxActive: 2 })));
+      same((await store.joinInvite(join(2, OTHER))).status, 'joined', 'fills invite 2');
+      same((await store.createInvite(newInvite(3, { maxActive: 2 }))).status, 'limit', 'full invite still counts');
+      same((await store.createInvite({ ...newInvite(3), tokenHash: hash(1) })).status, 'taken', 'taken hash');
+      same((await store.listInvites(EVENT, T0)).map((i) => i.id), [inviteId(1), inviteId(2)], 'listed');
+      same(await store.revokeInvite(inviteId(2), T0 + 1), true, 'revoke');
+      same(await store.revokeInvite(inviteId(2), T0 + 2), false, 'revoke again');
+      same((await store.listInvites(EVENT, T0 + 3)).map((i) => i.id), [inviteId(1)], 'revoked left out');
+    },
+  },
+  {
+    name: 'invites: changes apply only while active',
+    async run(store) {
+      await withEvent(store);
+      createdInvite(await store.createInvite(newInvite(1, { expiresAt: T0 + 5 * DAY })));
+      const changed = await store.updateInvite(inviteId(1), { role: 'editor', maxUses: null, expiresAt: null }, T0 + 1);
+      same([changed?.role, changed?.maxUses, changed?.expiresAt], ['editor', null, null], 'changed');
+      same((await store.updateInvite(inviteId(1), { maxUses: 10 }, T0 + 2))?.role, 'editor', 'other fields kept');
+      same(await store.updateInvite('missing', { maxUses: 1 }, T0), null, 'unknown');
+      createdInvite(await store.createInvite(newInvite(2, { expiresAt: T0 + 10 })));
+      same((await store.updateInvite(inviteId(2), { expiresAt: null }, T0 + 10))?.expiresAt, T0 + 10, 'expired invite unchanged');
+      await store.revokeInvite(inviteId(1), T0 + 3);
+      same((await store.updateInvite(inviteId(1), { maxUses: 2 }, T0 + 4))?.maxUses, 10, 'revoked invite unchanged');
+    },
+  },
+  {
+    name: 'join: adds a member with the invite role and takes one use',
+    async run(store) {
+      await withEvent(store);
+      await store.createAccount({ id: EDITOR, displayName: 'Editor', now: T0 });
+      createdInvite(await store.createInvite(newInvite(1, { role: 'editor', maxUses: 5 })));
+      const r = await store.joinInvite(join(1, EDITOR, T0 + 7));
+      check(r.status === 'joined', `join: expected joined, got ${r.status}`);
+      same(r.invite.useCount, 1, 'returned use count');
+      same(r.member, { eventId: EVENT, accountId: EDITOR, role: 'editor', inviteId: inviteId(1), archivedAt: null, reminders: null, createdAt: T0 + 7 }, 'member');
+      same((await store.getInvite(inviteId(1)))?.useCount, 1, 'stored use count');
+      same(await store.getMember(EVENT, EDITOR), r.member, 'stored member');
+      same((await store.manifest(EDITOR)).map((m) => [m.id, m.role]), [[EVENT, 'editor']], 'manifest');
+      same(await store.joinInvite(join(9, EDITOR)), { status: 'not_found' }, 'unknown hash');
+    },
+  },
+  {
+    name: 'join: owners and members take no use; removed members cannot rejoin',
+    async run(store) {
+      await withEvent(store);
+      await store.createAccount({ id: EDITOR, displayName: 'Editor', now: T0 });
+      createdInvite(await store.createInvite(newInvite(1, { maxUses: null })));
+      same((await store.joinInvite(join(1, OWNER))).status, 'owner', 'owner');
+      same((await store.joinInvite(join(1, EDITOR))).status, 'joined', 'first join');
+      same((await store.joinInvite(join(1, EDITOR))).status, 'member', 'second join');
+      same((await store.getInvite(inviteId(1)))?.useCount, 1, 'one use');
+      same(await store.removeMember(EVENT, EDITOR), true, 'removed');
+      same((await store.joinInvite(join(1, EDITOR))).status, 'removed', 'removed member');
+      same((await store.getMember(EVENT, EDITOR))?.role, 'removed', 'still blocked');
+      same((await store.getInvite(inviteId(1)))?.useCount, 1, 'no use taken');
+    },
+  },
+  {
+    name: 'join: revoked, expired and full invites and deleted events refuse without a write',
+    async run(store) {
+      await withEvent(store);
+      for (const id of [EDITOR, OTHER]) await store.createAccount({ id, displayName: id, now: T0 });
+      createdInvite(await store.createInvite(newInvite(1)));
+      createdInvite(await store.createInvite(newInvite(2, { expiresAt: T0 + 10 })));
+      createdInvite(await store.createInvite(newInvite(3, { maxUses: 1 })));
+      createdInvite(await store.createInvite(newInvite(4)));
+      await store.revokeInvite(inviteId(1), T0 + 1);
+      same((await store.joinInvite(join(1, OTHER, T0 + 2))).status, 'revoked', 'revoked');
+      same((await store.joinInvite(join(2, OTHER, T0 + 10))).status, 'expired', 'expired');
+      same((await store.joinInvite(join(3, EDITOR))).status, 'joined', 'last use');
+      same((await store.joinInvite(join(3, OTHER))).status, 'full', 'full');
+      await store.deleteEvent(EVENT, T0 + 20);
+      same((await store.joinInvite(join(4, OTHER, T0 + 21))).status, 'deleted', 'deleted event');
+      same(await store.getMember(EVENT, OTHER), null, 'no member written');
+      same((await store.getInvite(inviteId(3)))?.useCount, 1, 'uses');
+    },
+  },
+  {
+    name: 'join: concurrent joins never pass the use count or the member limit',
+    async run(store) {
+      await withEvent(store);
+      const people = Array.from({ length: 8 }, (_, i) => `acct-${i}`);
+      for (const id of people) await store.createAccount({ id, displayName: id, now: T0 });
+      createdInvite(await store.createInvite(newInvite(1, { maxUses: 3 })));
+      createdInvite(await store.createInvite(newInvite(2, { maxUses: null })));
+      const first = await Promise.all(people.map((id) => store.joinInvite(join(1, id))));
+      same(first.filter((r) => r.status === 'joined').length, 3, 'joined through the 3-use invite');
+      same(first.filter((r) => r.status === 'full').length, 5, 'told it is full');
+      same((await store.getInvite(inviteId(1)))?.useCount, 3, 'use count');
+      const second = await Promise.all(people.map((id) => store.joinInvite({ ...join(2, id), maxMembers: 5 })));
+      same(second.filter((r) => r.status === 'joined').length, 2, 'joined up to the member limit');
+      same(second.filter((r) => r.status === 'members_limit').length, 3, 'refused at the limit');
+      same((await store.listMembers(EVENT)).length, 5, 'members');
+      same((await store.getInvite(inviteId(2)))?.useCount, 2, 'uses of the unlimited invite');
+    },
+  },
+  {
+    name: 'members: list with names, change roles, remove, leave and allow again',
+    async run(store) {
+      await withEvent(store);
+      await store.createAccount({ id: EDITOR, displayName: 'Mum', now: T0 });
+      await store.createAccount({ id: OTHER, displayName: 'Dad', now: T0 });
+      createdInvite(await store.createInvite(newInvite(1, { maxUses: null })));
+      await store.joinInvite(join(1, EDITOR, T0 + 1));
+      await store.joinInvite(join(1, OTHER, T0 + 2));
+      same(await store.listMembers(EVENT), [
+        { accountId: EDITOR, name: 'Mum', role: 'viewer', inviteId: inviteId(1), createdAt: T0 + 1 },
+        { accountId: OTHER, name: 'Dad', role: 'viewer', inviteId: inviteId(1), createdAt: T0 + 2 },
+      ], 'listed');
+      same(await store.setMemberRole(EVENT, EDITOR, 'editor'), true, 'role change');
+      same((await store.getMember(EVENT, EDITOR))?.role, 'editor', 'stored role');
+      same(await store.setMemberRole(EVENT, OWNER, 'editor'), false, 'owner is no member');
+      same(await store.removeMember(EVENT, OTHER), true, 'remove');
+      same(await store.removeMember(EVENT, OTHER), false, 'remove again');
+      same(await store.setMemberRole(EVENT, OTHER, 'editor'), false, 'removed role stays');
+      same((await store.listMembers(EVENT)).map((m) => [m.accountId, m.role]), [[EDITOR, 'editor'], [OTHER, 'removed']], 'removed listed');
+      same((await store.manifest(OTHER)).length, 0, 'removed member has no event');
+      same(await store.deleteMember(EVENT, OTHER, 'active'), false, 'a removed member cannot leave the block');
+      same(await store.deleteMember(EVENT, EDITOR, 'removed'), false, 'allow again needs a block');
+      same(await store.deleteMember(EVENT, EDITOR, 'active'), true, 'leave');
+      same(await store.deleteMember(EVENT, OTHER, 'removed'), true, 'allow again');
+      same(await store.listMembers(EVENT), [], 'nobody left');
+      same((await store.joinInvite(join(1, OTHER, T0 + 3))).status, 'joined', 'rejoins once allowed');
+    },
+  },
+  {
+    name: 'account deletion: invites of owned events go, links stay for their 410',
+    async run(store) {
+      await withEvent(store);
+      created(await store.createLink(newLink(1)));
+      createdInvite(await store.createInvite(newInvite(1)));
+      await store.deleteAccount(OWNER, T0 + 5);
+      same(await store.getInvite(inviteId(1)), null, 'invite');
+      same((await store.getLinkByToken(token(1)))?.eventId, EVENT, 'link');
+      same((await store.getEvent(EVENT))?.deletedAt, T0 + 5, 'event tombstone');
+    },
+  },
 ];
+
+// ---- Sharing fixtures ----
+
+const linkId = (n: number): string => `11111111-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const inviteId = (n: number): string => `22222222-0000-4000-8000-${String(n).padStart(12, '0')}`;
+const token = (n: number): string => `tok${String(n).padStart(19, '0')}`;
+const hash = (n: number): string => `hash-${n}`;
+
+function newLink(n: number, o: Partial<{ label: string | null; expiresAt: number | null; now: number; maxActive: number }> = {}): NewLink {
+  return { id: linkId(n), token: token(n), eventId: EVENT, label: o.label ?? null, expiresAt: o.expiresAt ?? null, now: o.now ?? T0, maxActive: o.maxActive ?? 10 };
+}
+
+function newInvite(
+  n: number,
+  o: Partial<{ role: 'viewer' | 'editor'; maxUses: number | null; expiresAt: number | null; now: number; maxActive: number }> = {},
+): NewInvite {
+  return {
+    id: inviteId(n), tokenHash: hash(n), tokenEnc: `enc-${n}`, eventId: EVENT, role: o.role ?? 'viewer',
+    maxUses: o.maxUses === undefined ? 1 : o.maxUses, expiresAt: o.expiresAt ?? null, now: o.now ?? T0, maxActive: o.maxActive ?? 20,
+  };
+}
+
+function join(n: number, accountId: string, now = T0): JoinInput {
+  return { tokenHash: hash(n), accountId, now, maxMembers: 100 };
+}
+
+function created(outcome: CreateLinkOutcome): LinkRecord {
+  check(outcome.status === 'created', `createLink: expected created, got ${outcome.status}`);
+  return outcome.link;
+}
+
+function createdInvite(outcome: CreateInviteOutcome): InviteRecord {
+  check(outcome.status === 'created', `createInvite: expected created, got ${outcome.status}`);
+  return outcome.invite;
+}
 
 /** Runs every case, each against a fresh store, and reports all results instead of stopping at the first failure. */
 export async function runStoreConformance(newStore: () => Promise<Store>): Promise<ConformanceResult[]> {

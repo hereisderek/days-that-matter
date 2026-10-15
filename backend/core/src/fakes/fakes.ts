@@ -28,13 +28,23 @@ export class FakeClock implements Clock {
   }
 }
 
-/** Deterministic bytes from a counter: the same sequence on every run. Never for production. */
+/**
+ * Deterministic bytes (splitmix32 over a counter): the same sequence on every run, without repeats
+ * in the ids and tokens a test makes. Never for production.
+ */
 export class FakeRandom implements Random {
-  #next = 1;
+  #state = 0;
 
   bytes(length: number): Uint8Array {
     const out = new Uint8Array(length);
-    for (let i = 0; i < length; i++) out[i] = (this.#next++ * 151) & 0xff;
+    for (let i = 0; i < length; i += 4) {
+      this.#state = (this.#state + 0x9e3779b9) | 0;
+      let z = this.#state;
+      z = Math.imul(z ^ (z >>> 16), 0x85ebca6b);
+      z = Math.imul(z ^ (z >>> 13), 0xc2b2ae35);
+      z ^= z >>> 16;
+      for (let j = 0; j < 4 && i + j < length; j++) out[i + j] = (z >>> (8 * j)) & 0xff;
+    }
     return out;
   }
 

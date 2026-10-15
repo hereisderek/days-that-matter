@@ -18,19 +18,30 @@ import type {
   ChildrenPage,
   CreateAccountResult,
   CreateEventResult,
+  CreateInviteOutcome,
+  CreateLinkOutcome,
   EmailCodeInput,
   EventRecord,
   IdentityInput,
   IdentityRecord,
+  InviteChanges,
+  InviteRecord,
+  JoinInput,
+  JoinOutcome,
+  LinkChanges,
+  LinkRecord,
   ManifestRow,
   MediaKindValue,
   MediaRef,
+  MemberListing,
   MemberRecord,
   MemberRoleValue,
   MemoRecord,
   MemoWriteOutcome,
   NewAccount,
   NewEvent,
+  NewInvite,
+  NewLink,
   PatchInput,
   PatchMemoInput,
   PatchOutcome,
@@ -46,7 +57,7 @@ import type {
   SignInOutcome,
   Store,
 } from '../ports/store.ts';
-import { WRITE_ATTEMPTS, audioColumns, docBytes } from './records.ts';
+import { WRITE_ATTEMPTS, audioColumns, docBytes, inviteAccess } from './records.ts';
 
 interface AccountRow {
   [key: string]: SqlValue;
@@ -130,10 +141,38 @@ interface MemoRow {
   deleted_at: number | null;
 }
 
+interface LinkRow {
+  [key: string]: SqlValue;
+  id: string;
+  token: string;
+  event_id: string;
+  label: string | null;
+  created_at: number;
+  expires_at: number | null;
+  revoked_at: number | null;
+}
+
+interface InviteRow {
+  [key: string]: SqlValue;
+  id: string;
+  token_hash: string;
+  token_enc: string;
+  event_id: string;
+  role: string;
+  max_uses: number | null;
+  use_count: number;
+  created_at: number;
+  expires_at: number | null;
+  revoked_at: number | null;
+}
+
 const EVENT_COLUMNS =
   'id, owner_id, rev, doc, audio_kind, audio_set_by, audio_media_id, child_seq, child_purged_seq, updated_at, deleted_at';
 const E_EVENT_COLUMNS = EVENT_COLUMNS.split(', ').map((c) => `e.${c}`).join(', ');
 const OWNED = 'SELECT id FROM events WHERE owner_id = ?';
+/** Rows of `links` or `invites` that are usable at the second `?`, for the event of the first. */
+const ACTIVE = 'event_id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)';
+const ACTIVE_MEMBERS = "SELECT COUNT(*) FROM members WHERE event_id = ? AND role <> 'removed'";
 
 export class SqlStore implements Store {
   readonly #db: SqlDriver;
@@ -218,11 +257,11 @@ export class SqlStore implements Store {
       const [, updated] = await this.#db.batch([
         {
           sql: `INSERT INTO revisions (event_id, rev, author_id, created_at, patch, inverse, overwrote, restored_from)
-                SELECT ?, ?, ?, ?, ?, ?, ?, NULL
+                SELECT ?, ?, ?, ?, ?, ?, ?, ?
                 WHERE EXISTS (SELECT 1 FROM events WHERE id = ? AND rev = ? AND deleted_at IS NULL)`,
           args: [
             input.eventId, rev, input.authorId, input.now, JSON.stringify(result.applied), JSON.stringify(result.inverse),
-            overwritten.length > 0 ? JSON.stringify(overwritten) : null, ...guard,
+            overwritten.length > 0 ? JSON.stringify(overwritten) : null, input.restoredFrom ?? null, ...guard,
           ],
         },
         {
@@ -230,6 +269,14 @@ export class SqlStore implements Store {
                 WHERE id = ? AND rev = ? AND deleted_at IS NULL`,
           args: [rev, JSON.stringify(result.doc), audio.audioKind, audio.audioSetBy, audio.audioMediaId, input.now, ...guard],
         },
+        // Pruning (task 3.7) runs only when this write moved the event to the new rev.
+        ...(input.keepRevisions === undefined
+          ? []
+          : [{
+              sql: `DELETE FROM revisions WHERE event_id = ? AND rev <= ?
+                    AND EXISTS (SELECT 1 FROM events WHERE id = ? AND rev = ? AND deleted_at IS NULL)`,
+              args: [input.eventId, rev - input.keepRevisions, input.eventId, rev],
+            }]),
       ]);
       if (updated === 1) {
         const event: EventRecord = { ...current, ...audio, rev, doc: result.doc, updatedAt: input.now };
@@ -252,6 +299,15 @@ export class SqlStore implements Store {
       [eventId, query.before ?? Number.MAX_SAFE_INTEGER, query.limit],
     );
     return rows.map(toRevision);
+  }
+
+  async displayNames(ids: readonly string[]): Promise<ReadonlyMap<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.#db.query<{ id: string; display_name: string }>(
+      'SELECT id, display_name FROM accounts WHERE id IN (SELECT value FROM json_each(?))',
+      [JSON.stringify([...new Set(ids)])],
+    );
+    return new Map(rows.map((r) => [r.id, r.display_name]));
   }
 
   // ---- Accounts ----
@@ -350,6 +406,7 @@ export class SqlStore implements Store {
       { sql: `DELETE FROM media WHERE uploader_id = ? OR ${ownedMedia}`, args: [accountId, accountId] },
       { sql: `DELETE FROM revisions WHERE event_id IN (${OWNED})`, args: [accountId] },
       { sql: `DELETE FROM memos WHERE event_id IN (${OWNED})`, args: [accountId] },
+      { sql: `DELETE FROM invites WHERE event_id IN (${OWNED})`, args: [accountId] },
       { sql: `DELETE FROM members WHERE event_id IN (${OWNED}) OR account_id = ?`, args: [accountId, accountId] },
       {
         sql: `UPDATE events SET doc = '{}', audio_kind = NULL, audio_set_by = NULL, audio_media_id = NULL,
@@ -480,6 +537,184 @@ export class SqlStore implements Store {
   async getMember(eventId: string, accountId: string): Promise<MemberRecord | null> {
     const [row] = await this.#db.query<MemberRow>('SELECT * FROM members WHERE event_id = ? AND account_id = ?', [eventId, accountId]);
     return row ? toMember(row) : null;
+  }
+
+  // ---- Sharing ----
+
+  async createLink(input: NewLink): Promise<CreateLinkOutcome> {
+    const [created] = await this.#db.batch([
+      {
+        sql: `INSERT INTO links (id, token, event_id, label, created_at, expires_at)
+              SELECT ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM links WHERE ${ACTIVE}) < ?
+              ON CONFLICT DO NOTHING`,
+        args: [input.id, input.token, input.eventId, input.label, input.now, input.expiresAt, input.eventId, input.now, input.maxActive],
+      },
+    ]);
+    if (created === 1) return { status: 'created', link: (await this.getLink(input.id)) as LinkRecord };
+    const [count] = await this.#db.query<{ n: number }>(`SELECT COUNT(*) AS n FROM links WHERE ${ACTIVE}`, [input.eventId, input.now]);
+    return (count?.n ?? 0) >= input.maxActive ? { status: 'limit' } : { status: 'taken' };
+  }
+
+  async getLink(id: string): Promise<LinkRecord | null> {
+    const [row] = await this.#db.query<LinkRow>('SELECT * FROM links WHERE id = ?', [id]);
+    return row ? toLink(row) : null;
+  }
+
+  async getLinkByToken(token: string): Promise<LinkRecord | null> {
+    const [row] = await this.#db.query<LinkRow>('SELECT * FROM links WHERE token = ?', [token]);
+    return row ? toLink(row) : null;
+  }
+
+  async listLinks(eventId: string, now: number): Promise<LinkRecord[]> {
+    const rows = await this.#db.query<LinkRow>(`SELECT * FROM links WHERE ${ACTIVE} ORDER BY created_at, id`, [eventId, now]);
+    return rows.map(toLink);
+  }
+
+  async updateLink(id: string, changes: LinkChanges, now: number): Promise<LinkRecord | null> {
+    const sets = changeSets({ label: changes.label, expires_at: changes.expiresAt });
+    if (sets.columns.length > 0) {
+      await this.#db.batch([
+        {
+          sql: `UPDATE links SET ${sets.columns.join(', ')} WHERE id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)`,
+          args: [...sets.args, id, now],
+        },
+      ]);
+    }
+    return this.getLink(id);
+  }
+
+  async revokeLink(id: string, now: number): Promise<boolean> {
+    const [changed] = await this.#db.batch([{ sql: 'UPDATE links SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL', args: [now, id] }]);
+    return changed === 1;
+  }
+
+  async createInvite(input: NewInvite): Promise<CreateInviteOutcome> {
+    const [created] = await this.#db.batch([
+      {
+        sql: `INSERT INTO invites (id, token_hash, token_enc, event_id, role, max_uses, created_at, expires_at)
+              SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM invites WHERE ${ACTIVE}) < ?
+              ON CONFLICT DO NOTHING`,
+        args: [
+          input.id, input.tokenHash, input.tokenEnc, input.eventId, input.role, input.maxUses, input.now, input.expiresAt,
+          input.eventId, input.now, input.maxActive,
+        ],
+      },
+    ]);
+    if (created === 1) return { status: 'created', invite: (await this.getInvite(input.id)) as InviteRecord };
+    const [count] = await this.#db.query<{ n: number }>(`SELECT COUNT(*) AS n FROM invites WHERE ${ACTIVE}`, [input.eventId, input.now]);
+    return (count?.n ?? 0) >= input.maxActive ? { status: 'limit' } : { status: 'taken' };
+  }
+
+  async getInvite(id: string): Promise<InviteRecord | null> {
+    const [row] = await this.#db.query<InviteRow>('SELECT * FROM invites WHERE id = ?', [id]);
+    return row ? toInvite(row) : null;
+  }
+
+  async getInviteByHash(tokenHash: string): Promise<InviteRecord | null> {
+    const [row] = await this.#db.query<InviteRow>('SELECT * FROM invites WHERE token_hash = ?', [tokenHash]);
+    return row ? toInvite(row) : null;
+  }
+
+  async listInvites(eventId: string, now: number): Promise<InviteRecord[]> {
+    const rows = await this.#db.query<InviteRow>(`SELECT * FROM invites WHERE ${ACTIVE} ORDER BY created_at, id`, [eventId, now]);
+    return rows.map(toInvite);
+  }
+
+  async updateInvite(id: string, changes: InviteChanges, now: number): Promise<InviteRecord | null> {
+    const sets = changeSets({ role: changes.role, max_uses: changes.maxUses, expires_at: changes.expiresAt });
+    if (sets.columns.length > 0) {
+      await this.#db.batch([
+        {
+          sql: `UPDATE invites SET ${sets.columns.join(', ')} WHERE id = ? AND revoked_at IS NULL AND (expires_at IS NULL OR expires_at > ?)`,
+          args: [...sets.args, id, now],
+        },
+      ]);
+    }
+    return this.getInvite(id);
+  }
+
+  async revokeInvite(id: string, now: number): Promise<boolean> {
+    const [changed] = await this.#db.batch([{ sql: 'UPDATE invites SET revoked_at = ? WHERE id = ? AND revoked_at IS NULL', args: [now, id] }]);
+    return changed === 1;
+  }
+
+  async joinInvite(input: JoinInput): Promise<JoinOutcome> {
+    for (let attempt = 0; attempt < WRITE_ATTEMPTS; attempt++) {
+      const invite = await this.getInviteByHash(input.tokenHash);
+      if (!invite) return { status: 'not_found' };
+      const event = await this.getEvent(invite.eventId);
+      if (!event) return { status: 'not_found' };
+      const member = await this.getMember(invite.eventId, input.accountId);
+      const [count] = await this.#db.query<{ n: number }>(`SELECT (${ACTIVE_MEMBERS}) AS n`, [invite.eventId]);
+      const access = inviteAccess(invite, event, member, input.accountId, input.now, count?.n ?? 0, input.maxMembers);
+      if (access !== 'open') return { status: access, invite };
+      // The member row is written only while the invite is still as read (same use count and role,
+      // still open), and the use is taken only when that row is this join's: a join that loses a
+      // race writes nothing and reads again.
+      const [, used] = await this.#db.batch([
+        {
+          sql: `INSERT INTO members (event_id, account_id, role, invite_id, created_at)
+                SELECT ?, ?, ?, ?, ?
+                WHERE EXISTS (SELECT 1 FROM invites WHERE id = ? AND use_count = ? AND role = ? AND revoked_at IS NULL
+                                AND (expires_at IS NULL OR expires_at > ?) AND (max_uses IS NULL OR use_count < max_uses))
+                  AND EXISTS (SELECT 1 FROM events WHERE id = ? AND deleted_at IS NULL)
+                  AND (${ACTIVE_MEMBERS}) < ?
+                ON CONFLICT (event_id, account_id) DO NOTHING`,
+          args: [
+            invite.eventId, input.accountId, invite.role, invite.id, input.now,
+            invite.id, invite.useCount, invite.role, input.now,
+            invite.eventId, invite.eventId, input.maxMembers,
+          ],
+        },
+        {
+          sql: `UPDATE invites SET use_count = use_count + 1
+                WHERE id = ? AND use_count = ?
+                  AND EXISTS (SELECT 1 FROM members WHERE event_id = ? AND account_id = ? AND invite_id = ? AND created_at = ? AND role = ?)`,
+          args: [invite.id, invite.useCount, invite.eventId, input.accountId, invite.id, input.now, invite.role],
+        },
+      ]);
+      if (used === 1) {
+        return {
+          status: 'joined',
+          invite: { ...invite, useCount: invite.useCount + 1 },
+          member: (await this.getMember(invite.eventId, input.accountId)) as MemberRecord,
+        };
+      }
+    }
+    throw new StoreBusyError();
+  }
+
+  async listMembers(eventId: string): Promise<MemberListing[]> {
+    const rows = await this.#db.query<MemberRow & { name: string }>(
+      `SELECT m.*, a.display_name AS name FROM members m JOIN accounts a ON a.id = m.account_id
+       WHERE m.event_id = ? ORDER BY m.created_at, m.account_id`,
+      [eventId],
+    );
+    return rows.map((r) => ({ accountId: r.account_id, name: r.name, role: r.role as MemberListing['role'], inviteId: r.invite_id, createdAt: r.created_at }));
+  }
+
+  async setMemberRole(eventId: string, accountId: string, role: MemberRoleValue): Promise<boolean> {
+    const [changed] = await this.#db.batch([
+      { sql: "UPDATE members SET role = ? WHERE event_id = ? AND account_id = ? AND role <> 'removed'", args: [role, eventId, accountId] },
+    ]);
+    return changed === 1;
+  }
+
+  async removeMember(eventId: string, accountId: string): Promise<boolean> {
+    const [changed] = await this.#db.batch([
+      { sql: "UPDATE members SET role = 'removed' WHERE event_id = ? AND account_id = ? AND role <> 'removed'", args: [eventId, accountId] },
+    ]);
+    return changed === 1;
+  }
+
+  async deleteMember(eventId: string, accountId: string, which: 'active' | 'removed'): Promise<boolean> {
+    const [changed] = await this.#db.batch([
+      {
+        sql: `DELETE FROM members WHERE event_id = ? AND account_id = ? AND role ${which === 'removed' ? '=' : '<>'} 'removed'`,
+        args: [eventId, accountId],
+      },
+    ]);
+    return changed === 1;
   }
 
   // ---- Memos ----
@@ -645,6 +880,31 @@ function bumpChildSeq(eventId: string, from: number, memoId: string): { sql: str
     sql: `UPDATE events SET child_seq = ? WHERE id = ? AND child_seq = ? AND deleted_at IS NULL
           AND EXISTS (SELECT 1 FROM memos WHERE id = ? AND event_id = ? AND seq = ?)`,
     args: [from + 1, eventId, from, memoId, eventId, from + 1],
+  };
+}
+
+/** `column = ?` pairs for the members of `values` that are not undefined. */
+function changeSets(values: Readonly<Record<string, SqlValue | undefined>>): { columns: string[]; args: SqlValue[] } {
+  const entries = Object.entries(values).filter((e): e is [string, SqlValue] => e[1] !== undefined);
+  return { columns: entries.map(([c]) => `${c} = ?`), args: entries.map(([, v]) => v) };
+}
+
+function toLink(r: LinkRow): LinkRecord {
+  return { id: r.id, token: r.token, eventId: r.event_id, label: r.label, createdAt: r.created_at, expiresAt: r.expires_at, revokedAt: r.revoked_at };
+}
+
+function toInvite(r: InviteRow): InviteRecord {
+  return {
+    id: r.id,
+    tokenHash: r.token_hash,
+    tokenEnc: r.token_enc,
+    eventId: r.event_id,
+    role: r.role as MemberRoleValue,
+    maxUses: r.max_uses,
+    useCount: r.use_count,
+    createdAt: r.created_at,
+    expiresAt: r.expires_at,
+    revokedAt: r.revoked_at,
   };
 }
 

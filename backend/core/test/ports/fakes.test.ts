@@ -26,6 +26,13 @@ describe('random', () => {
     expect(a.uuid()).not.toBe(a.uuid());
   });
 
+  it('fake random does not repeat ids or tokens within a long test', () => {
+    const r = new FakeRandom();
+    const seen = new Set<string>();
+    for (let i = 0; i < 20_000; i++) seen.add(i % 2 === 0 ? r.uuid() : token22(r));
+    expect(seen.size).toBe(20_000);
+  });
+
   it('tokens are 22 base64url characters', () => {
     expect(token22(new FakeRandom())).toMatch(/^[A-Za-z0-9_-]{22}$/);
     expect(token22(cryptoRandom)).toMatch(/^[A-Za-z0-9_-]{22}$/);
