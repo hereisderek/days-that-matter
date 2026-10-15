@@ -474,6 +474,30 @@ No new colors, fonts or component styles. `.choice` (the two onboarding cards) i
 
 All in `offline-accounts/`, light and dark, named `<number>-<screen>-<state>-<light|dark>.png`.
 
+**Status: the PNGs are not in this commit.** The host that produced this revision has no browser (no Chromium, no `playwright-cli`; the browser-use daemon does not start) and nothing was installed. The coordinator was asked on 2026-10-15 whether to install one and had not answered when this was finished. `offline-accounts/capture.mjs` produces every file below in one run on a host with Chromium (`npm i playwright && npx playwright install chromium && node offline-accounts/capture.mjs`, from `design/v2`). The script has not been run; selectors may need a small fix. What was checked here without a browser: the prototype's JavaScript parses, and a Node smoke run with a DOM stub rendered Home, Settings, the choice screen, the nudge and every import step in both account modes without errors or `undefined` text. Layout, the long-name wrap and dark mode have not been looked at yet.
+
+Each name below exists as `-light.png` and `-dark.png`.
+
+- `00-welcome`: Welcome with Get started
+- `01-onboarding-choice`: First-launch choice, device or account
+- `02-settings-local`: Settings in local mode: name, explanation, locked items
+- `03-home-greeting-morning-local`: Local Home, morning, name Sam
+- `04-home-greeting-afternoon-no-name`: Local Home, afternoon, no name
+- `05-home-greeting-evening-long-name`: Local Home, evening, long name wrapping to two lines
+- `06-home-greeting-late-emoji-name`: Local Home, late night, name with an emoji
+- `07-home-greeting-signed-in`: Signed-in Home, evening, account display name
+- `08-nudge-sheet`: Heavy-use nudge
+- `09-import-prompt`: Import prompt after sign-in
+- `10-import-confirm`: Irreversible confirmation
+- `11-import-success`: Success, 4 days imported
+- `12-import-partial`: Partial import, retry
+- `13-home-signed-in-after-skip`: Signed-in Home after Not now: only the account's days
+- `14-settings-signed-in-import-row`: Settings with Import days from this device
+- `15-signout-confirm`: Sign-out confirmation
+- `16-home-local-after-signout`: Local Home after sign-out: only local days
+
+**No new colors, fonts or component styles, how it was checked:** the change to `styles.css` is one appended block of 37 lines (`git diff 37f7839 -- styles.css`), no existing rule is edited, and a search of the added lines for hex, `rgb` and `hsl` values finds none: every color is an existing token. No font or font size outside the existing scale is added (28 px is used for the greeting).
+
 ## 10. Revision history
 
 **Revision 5:** offline use and importing local days.
@@ -482,7 +506,7 @@ All in `offline-accounts/`, light and dark, named `<number>-<screen>-<state>-<li
 - First-launch choice screen (device or account), local-mode Settings (name, locked online items), Home greeting, heavy-use nudge, import prompt with confirmation, success and partial states, Settings import row, sign-out back to local mode.
 - Panel: Account is now Local or Signed in; added Days on device, Import choice, Import result, Name, Time of day and the nudge button.
 - Welcome has **Get started** instead of the sign-in buttons and "Skip for now". The sign-in prompt after the first saved day is gone.
-- "Guest" renamed "Local" (list in 9.6 and the next bullet). Renamed in: panel Account switch, Settings card, toast on starting local use, sign-out toast and sheet, Welcome hint in the panel, `ACT.guest` (now `local-start`), and README lines on the panel, sign-in prompt, Home, Settings, More, gap 14 and revision 2.
+- "Guest" renamed "Local" Renamed in: panel Account switch, Settings card, toast on starting local use, sign-out toast and sheet, Welcome hint in the panel, `ACT.guest` (now `local-start`), and README lines on the panel, sign-in prompt, Home, Settings, More, gap 14 and revision 2.
 
 **Revision 4:**
 
