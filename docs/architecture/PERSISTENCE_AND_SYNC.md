@@ -13,13 +13,12 @@ Behavior requirements: `event-sync` and `event-history` specs in the OpenSpec ch
 ## 2. Local Database: Room Multiplatform (Room KMP 2.7+)
 
 ### 2.1 Database Schema Definition
+Implemented in `:core:database` (schema version 2, exported to `core/database/schemas/`). Version 1 held only `app_meta`, a key-value table kept for sync cursors; version 2 adds `events` and `memos` by an automatic, additive migration.
+
 ```kotlin
-package dev.derek.daysthatmatter.core.database
+package dev.derek.daysthatmatter.core.database.event
 
-import androidx.room.*
-import kotlinx.coroutines.flow.Flow
-
-@Entity(tableName = "events")
+@Entity(tableName = "events", indices = [Index("archived_at"), Index("pinned_at")])
 data class EventEntity(
     @PrimaryKey val id: String,                                             // uuid, generated on the device
     val title: String,
@@ -38,10 +37,10 @@ data class EventEntity(
     @ColumnInfo(name = "reminders_json") val remindersJson: String?,        // owner-only field, or the member's own reminders (membership)
     @ColumnInfo(name = "category_id") val categoryId: String?,              // local only for shared-with-me events
     @ColumnInfo(name = "role") val role: String,                            // owner, editor, viewer
-    @ColumnInfo(name = "server_rev") val serverRev: Int?,                   // null = never on the backend
-    @ColumnInfo(name = "child_seq") val childSeq: Int = 0,                  // last memo seq applied (owner only)
+    @ColumnInfo(name = "server_rev") val serverRev: Long?,                  // null = never on the backend
+    @ColumnInfo(name = "child_seq") val childSeq: Long = 0,                 // last memo seq applied (owner only)
     @ColumnInfo(name = "pending_patch") val pendingPatch: String?,          // JSON: fields changed since server_rev
-    @ColumnInfo(name = "is_deleted") val isDeleted: Boolean = false,        // pending delete
+    @ColumnInfo(name = "is_deleted") val isDeleted: Boolean = false,        // pending delete (or leave, for shared-with-me events)
     @ColumnInfo(name = "created_at") val createdAtEpochMillis: Long,
     @ColumnInfo(name = "updated_at") val updatedAtEpochMillis: Long
 )
@@ -52,7 +51,7 @@ data class MemoEntity(
     @ColumnInfo(name = "event_id") val eventId: String,
     val content: String,
     @ColumnInfo(name = "milestone_tag") val milestoneTag: String?,
-    @ColumnInfo(name = "seq") val seq: Int?,                                // null = never on the backend
+    @ColumnInfo(name = "seq") val seq: Long?,                               // null = never on the backend
     @ColumnInfo(name = "pending_patch") val pendingPatch: String?,
     @ColumnInfo(name = "is_deleted") val isDeleted: Boolean = false,
     @ColumnInfo(name = "created_at") val createdAtEpochMillis: Long,
@@ -60,26 +59,30 @@ data class MemoEntity(
 )
 
 @Dao
-interface EventDao {
-    @Query("SELECT * FROM events WHERE is_deleted = 0 AND archived_at IS NULL ORDER BY target_date ASC")
-    fun observeEvents(): Flow<List<EventEntity>>                            // Home list; the carousel orders by pinned_at DESC
+abstract class EventDao {
+    // Home: not deleted, not archived; category and title filters; pinned first, newest pin first, then by date.
+    // The user's sort (closest, furthest, A to Z, recently added) is applied on top with the countdown engine.
+    @Query("""SELECT * FROM events WHERE is_deleted = 0 AND archived_at IS NULL
+        AND (:categoryId IS NULL OR category_id = :categoryId) AND title LIKE :titlePattern ESCAPE '\'
+        ORDER BY pinned_at IS NULL, pinned_at DESC, target_date ASC, title ASC""")
+    abstract fun observeHome(titlePattern: String = "%", categoryId: String? = null): Flow<List<EventEntity>>
 
-    @Query("SELECT * FROM events WHERE is_deleted = 0 AND archived_at IS NOT NULL ORDER BY archived_at DESC")
-    fun observeArchived(): Flow<List<EventEntity>>
-
-    @Query("SELECT * FROM events WHERE id = :id AND is_deleted = 0")
-    fun observeEventById(id: String): Flow<EventEntity?>
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsert(event: EventEntity)
-
-    @Query("UPDATE events SET is_deleted = 1, updated_at = :now WHERE id = :id")
-    suspend fun markDeleted(id: String, now: Long)
-
-    @Query("SELECT * FROM events WHERE server_rev IS NULL OR pending_patch IS NOT NULL OR is_deleted = 1")
-    suspend fun getPending(): List<EventEntity>
+    abstract fun observeArchived(): Flow<List<EventEntity>>                 // archived_at DESC
+    abstract fun observeArchivedCount(): Flow<Int>                          // the "Archived · N" row
+    abstract fun observeById(id: String): Flow<EventEntity?>                // hides deleted rows
+    abstract suspend fun getById(id: String): EventEntity?                  // includes deleted rows (undo, sync)
+    abstract suspend fun upsert(event: EventEntity)
+    abstract suspend fun markDeleted(id: String, now: Long)
+    abstract suspend fun restore(id: String, now: Long)                     // undo of markDeleted
+    abstract suspend fun getPending(): List<EventEntity>                    // server_rev IS NULL OR pending_patch IS NOT NULL OR is_deleted = 1
+    @Transaction open suspend fun update(id: String, transform: (EventEntity) -> EventEntity?): EventEntity?
 }
 ```
+
+- Nested objects are JSON columns in the API form of `:core:model` (`ModelJson`), so the sync engine sends them unchanged. Mappers `EventEntity.toEventDoc()` and `EventDoc.toEntity(EventRowMeta)` convert rows to and from `EventDoc`; `Memo` maps the same way.
+- A local edit (`EventEntity.withLocalEdit`) writes the new document and `updated_at`, and, for a row that is on the backend (`server_rev` set), adds the changed writable fields to `pending_patch` (a cleared field is `null`). A row never synced keeps no patch: the sync engine sends it whole with `PUT`.
+- Archiving writes `archivedAt` and clears `pinnedAt` in the same edit; unarchiving clears only `archivedAt` (design-v2 D4).
+- `MemoDao`: memos of a day oldest first, the count, upsert, `markDeleted`, `getPending`.
 
 The session token is kept in secure storage (Keychain, EncryptedSharedPreferences), never in Room. Links, invites and people are not cached in Room; the share screen loads them from the backend. The custom audio library is not in Room either: the audio picker loads `GET /me/library` (ETag) and keeps the last response for offline use. Push registration (`PUT /me/devices/{installId}`) is not part of sync.
 
