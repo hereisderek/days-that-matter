@@ -814,7 +814,8 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 
 /* Tappable name in Settings profile card and compact centered name dialog */
 .profile > div { min-width: 0; flex: 1; }
-.profile-name { display: inline-flex; align-items: center; gap: 6px; text-align: left; max-width: 100%; }
+.profile-name { display: flex; width: fit-content; align-items: center; gap: 6px; text-align: left; max-width: 100%; }
+.profile > div > small { display: block; margin-top: 2px; }
 .profile-name b { display: inline; font-size: 17px; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .profile-name b.muted { color: var(--ink-3); font-weight: 500; }
 .profile-name .i { width: 14px; height: 14px; color: var(--ink-3); flex: none; }
