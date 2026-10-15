@@ -15,9 +15,11 @@ Order: groups 1 and 2 need only `:core:model` and the app; groups 3 and 4 need t
 
 - [x] 2.1 Add `CardSize` to `EventCustomization` and `theme.size` to the API types and validation; verify JSON round-trip tests and that a missing `size` reads as Medium.
   - Note: the app's `EventCustomization` does not exist yet; `CardSize` lives in `:core:model` and is carried by `Theme.size`, which the app type will use.
+  - Note (wave 2 editor): UI part done and verified: the editor's Style tab has the Small / Medium / Large picker that sets `theme.size`, with the live preview row in the chosen size (`:feature:eventeditor` ViewModel and Compose UI tests, preview rows 64, 84 and 132 dp; save writes `theme.size`, checked on Room).
 - [ ] 2.2 Draw list rows at 64, 84 and 132 pt, Large spanning two grid columns, and size ignored in the carousel, day page, widgets and share images; verify Compose UI tests for each size in list and grid.
   - Note (wave 0b design system): `DayCardRow` (64, 84, 132 dp), `DayCardTile` and `DayCardGrid` (Large spans two columns) exist in `:core:designsystem` with host Compose UI tests, but they take `DayCardState`, not model types. Not ticked: wiring to `CardSize` and the "ignored in carousel, day page, widgets, share images" part wait for the model task 2.1 and those screens.
   - Note (wave 1 events): Home maps `theme.size` to the rows and tiles (Compose UI tests: 64, 84, 132 dp rows; Large tile full width in the grid) and the day page ignores size. Carousel, widgets and share images do not exist yet.
+  - Note (wave 2 editor): the size can now be set in the editor (picker and preview verified by UI tests). Still not ticked: the carousel, widgets and share images that must ignore size do not exist yet.
 - [ ] 2.3 Add the memo badge (icon and count, "9+" above 9) to owned cards in list, grid and carousel, positioned from cached `GET /config` `ui.memoBadge` with the default `top-right`; verify UI tests for both positions, a member's card without a badge, and offline first start with the default.
   - Note (wave 0b design system): `MemoBadge` draws on rows and tiles at both positions with "9+" (host UI tests). Remote config, owner-only rule and the pinned carousel are not done.
 - [ ] 2.4 Add `ui.memoBadge` to `GET /config` from deployment config; verify a core test and a conformance suite run on the variants touched.
