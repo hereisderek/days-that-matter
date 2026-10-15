@@ -775,7 +775,7 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .menu-item .cv { font-variant-numeric: tabular-nums; color: var(--ink); }
 .menu-item[disabled] { opacity: .45; cursor: default; }
 
-/* ---------- offline use and importing local days (revision 5 of this file's notes: "Offline use and importing local days") ----------
+/* ---------- offline use and importing local days (README section "Offline use and importing local days") ----------
    Additive rules only. Every value is an existing token or a size already used above. */
 .pctl.stack { flex-direction: column; align-items: stretch; gap: 4px; }
 .pctl.stack .seg { width: 100%; }
