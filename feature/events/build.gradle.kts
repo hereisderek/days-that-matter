@@ -1,7 +1,8 @@
 // Events feature: Home (list, grid, search, filters, sort, archive), the Archived screen and the day page
 // (docs/features/events/SPEC.md). Domain (use cases, repository interface) is pure Kotlin; the data layer is
-// the offline-first Room repository; the UI is shared Compose. The jvm target exists only so ViewModel,
-// repository and Compose UI tests run on the host (in-memory Room, headless Skia); no app links it.
+// the offline-first Room repository; the UI is shared Compose. commonTest (use cases, ViewModels, formatting) runs
+// on the jvm target and as Android host tests. The jvm target also exists so the
+// repository and Compose UI tests (jvmTest) run on the host (in-memory Room, headless Skia); no app links it.
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
     alias(libs.plugins.android.kotlin.multiplatform.library)
@@ -19,6 +20,7 @@ kotlin {
         }
         minSdk = libs.versions.android.minSdk.get().toInt()
         buildToolsVersion = libs.versions.android.buildTools.get()
+        withHostTestBuilder {}
     }
     jvm()
     iosArm64()

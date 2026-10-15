@@ -7,6 +7,8 @@ plugins {
     alias(libs.plugins.android.kotlin.multiplatform.library)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.compose.multiplatform)
+    // Navigation 3 keys are @Serializable so the back stack survives process death.
+    alias(libs.plugins.kotlin.serialization)
 }
 
 kotlin {
@@ -37,7 +39,17 @@ kotlin {
             implementation(projects.core.designsystem)
             implementation(projects.core.database)
             implementation(projects.core.network)
+            implementation(projects.feature.events)
             api(libs.koin.core)
+            implementation(libs.koin.compose)
+            implementation(libs.koin.compose.viewmodel)
+            implementation(libs.navigation3.ui)
+            implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+            implementation(libs.androidx.lifecycle.runtime.compose)
+            implementation(libs.kotlinx.serialization.json)
+        }
+        androidMain.dependencies {
+            implementation(libs.koin.android)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

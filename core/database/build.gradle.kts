@@ -18,10 +18,11 @@ kotlin {
         }
         minSdk = libs.versions.android.minSdk.get().toInt()
         buildToolsVersion = libs.versions.android.buildTools.get()
+        withHostTestBuilder {}
     }
     iosArm64()
     iosSimulatorArm64()
-    // Not an app target: DAO and migration tests run here on an in-memory bundled SQLite database,
+    // Not an app target: DAO and migration tests (jvmTest) run here on an in-memory bundled SQLite database,
     // because Android host tests have no Context and no native SQLite for the host.
     jvm()
 
