@@ -128,6 +128,7 @@ Requirements: the [`home-screen`](../../../openspec/changes/design-v2-features/s
   - Pinned days stay in the list with a pin icon. When the carousel settles on a card, the list scrolls to that day's row and outlines it; the outline stays while the card is centred. Under reduce motion the list jumps.
   - Header and carousel stay fixed; only the list scrolls. Scrolling the list collapses the carousel to a 96 pt strip (title and number); it expands at the top of the list. The scroll that follows the carousel does not collapse it.
   - Hidden while searching or filtering. A setting turns it off.
+- **Until the carousel ships** (`:feature:events`, wave 1): Home shows owned pinned days in a "Pinned" section above Upcoming and Since, newest pin first, with "Pinned" on the date line.
 - **Card sizes:** Small, Medium, Large per day ([customization spec](../customization/SPEC.md) section 2.4).
 - **Memo badge:** on the owner's cards, a memo icon and count ([memos spec](../memos/SPEC.md) section 4.2).
 - **Archived row:** "Archived · 3" at the bottom of the list opens the Archived screen (section 5).

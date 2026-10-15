@@ -7,7 +7,8 @@ Order: groups 1 and 2 need only `:core:model` and the app; groups 3 and 4 need t
 - [x] 1.1 Add the six `UnitMode` values and workday counting to the countdown engine in `:core:model`; verify unit tests for each unit, including workdays across a weekend, a target on a Saturday, a count-up started on a Friday, the target day itself, and Auto at 48 hours.
 - [ ] 1.2 Add every unit to the countdown vector generator (task 2.7 of the active change); verify `countdown.js` passes the new vectors and CI fails when the committed file differs from a fresh generation.
 - [ ] 1.3 Accept the six API values in `unitMode` validation and reject a viewer's change; verify `:core:model` validation tests, a core test for `403 forbidden` from a viewer, and a conformance suite run on the cloudflare and selfhost variants.
-- [ ] 1.4 Day page: tap the number to switch to the next unit, a list of all six, no control for viewers, and a note that public holidays are not skipped; verify ViewModel tests for owner, editor and viewer.
+- [x] 1.4 Day page: tap the number to switch to the next unit, a list of all six, no control for viewers, and a note that public holidays are not skipped; verify ViewModel tests for owner, editor and viewer.
+  - Note (wave 1 events): `EventDetailViewModel` and `DayScreen` in `:feature:events`; ViewModel tests for owner, editor and viewer, Compose UI tests for the tap, the list and the Workdays note. The change is stored locally (pending patch); it syncs with the sync engine (task 7.3 of the active change).
 
 ## 2. Home screen
 
@@ -15,15 +16,19 @@ Order: groups 1 and 2 need only `:core:model` and the app; groups 3 and 4 need t
   - Note: the app's `EventCustomization` does not exist yet; `CardSize` lives in `:core:model` and is carried by `Theme.size`, which the app type will use.
 - [ ] 2.2 Draw list rows at 64, 84 and 132 pt, Large spanning two grid columns, and size ignored in the carousel, day page, widgets and share images; verify Compose UI tests for each size in list and grid.
   - Note (wave 0b design system): `DayCardRow` (64, 84, 132 dp), `DayCardTile` and `DayCardGrid` (Large spans two columns) exist in `:core:designsystem` with host Compose UI tests, but they take `DayCardState`, not model types. Not ticked: wiring to `CardSize` and the "ignored in carousel, day page, widgets, share images" part wait for the model task 2.1 and those screens.
+  - Note (wave 1 events): Home maps `theme.size` to the rows and tiles (Compose UI tests: 64, 84, 132 dp rows; Large tile full width in the grid) and the day page ignores size. Carousel, widgets and share images do not exist yet.
 - [ ] 2.3 Add the memo badge (icon and count, "9+" above 9) to owned cards in list, grid and carousel, positioned from cached `GET /config` `ui.memoBadge` with the default `top-right`; verify UI tests for both positions, a member's card without a badge, and offline first start with the default.
   - Note (wave 0b design system): `MemoBadge` draws on rows and tiles at both positions with "9+" (host UI tests). Remote config, owner-only rule and the pinned carousel are not done.
 - [ ] 2.4 Add `ui.memoBadge` to `GET /config` from deployment config; verify a core test and a conformance suite run on the variants touched.
 - [ ] 2.5 Add `archivedAt` (owner-only, clears `pinnedAt` in the same write), `members.archived_at`, `PATCH /events/{id}/membership` and `archived` in the member projection; verify core tests for owner and member archive, unpinning on archive, no pin on unarchive, archived days counting toward the owned-event limit, and a conformance suite run on every variant.
 - [ ] 2.6 Hide archived days from Home, filters, search and widget choices; add the "Archived · N" row and the Archived screen with Unarchive and Delete (Leave for shared days); verify ViewModel tests and a UI test for the row.
+  - Note (wave 1 events): done and verified for Home, filters, search, the row and the Archived screen (DAO, ViewModel and Compose UI tests in `:core:database` and `:feature:events`). Not ticked: widget choices wait for the widgets, which must use the same non-archived query (`EventDao.observeHome`).
 - [ ] 2.7 Replace `pinned` with `pinnedAt` in `:core:model`, the API and Room, with no pin option on days shared with the user; verify projection tests (no `pinnedAt` or `archivedAt` outside the owner's projection) and DAO tests ordering pins newest first.
   - Note: `:core:model` part done and verified (model types use `pinnedAt`; projection tests show no `pinnedAt` or `archivedAt` outside the owner's projection). API server, Room and DAO parts are pending.
+  - Note (wave 1 events): Room and DAO parts done and verified: `pinned_at` column, Home order pinned first newest pin first, shared-with-me days never in the pinned section and no pin option for them (DAO, use case and UI tests). The API part is backend work (`backend/core`).
 - [ ] 2.8 Build the pinned carousel (focus card, 16 pt edges at 92% and 60%, one card per swipe, dots, tap to centre or open), the list that follows and outlines the centred day, the fixed header, the 96 pt collapsed strip, hiding while searching or filtering, and the Settings switch; verify UI tests for each behavior and a manual run with reduce motion on both platforms.
-- [ ] 2.9 Add `pinned_at`, `archived_at` and `reminders_json` to the Room schema with a migration; verify migration and DAO tests with an in-memory database.
+- [x] 2.9 Add `pinned_at`, `archived_at` and `reminders_json` to the Room schema with a migration; verify migration and DAO tests with an in-memory database.
+  - Note (wave 1 events): schema version 2 in `:core:database` (automatic migration 1 to 2, exported `schemas/.../2.json`); `MigrationTest` and `EventDaoTest` on bundled SQLite, in memory or in a temp file (`./gradlew :core:database:jvmTest`).
 
 ## 3. Notifications
 
