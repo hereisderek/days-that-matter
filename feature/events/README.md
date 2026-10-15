@@ -21,6 +21,10 @@ Text is English for now; localized strings come with the app's resources.
 
 `./gradlew :feature:events:allTests` runs both (jvm and `testAndroidHostTest`). The jvm target exists only for these tests; no app links it.
 
+## Editor entry points
+
+`HomeRoute(onNewDay = ...)` shows the floating "New day" button, and `DayRoute(onEdit = ...)` shows Edit on the owner's day page. The editor itself is `:feature:eventeditor`; both callbacks default to null, so the screens look as before without it.
+
 ## Not in this module yet
 
-Event editor, sharing, sync engine, backdrops, audio, memos UI and badge, widgets, notifications, plans, sign-in, the pinned carousel and the card size picker.
+Sharing, sync engine, backdrops, audio, memos UI and badge, widgets, notifications, plans, sign-in, the pinned carousel. The card size picker is in the editor (`:feature:eventeditor`).

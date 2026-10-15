@@ -1,6 +1,7 @@
 package dev.derek.daysthatmatter.app
 
 import dev.derek.daysthatmatter.core.common.AppDispatchers
+import dev.derek.daysthatmatter.feature.eventeditor.di.eventEditorModule
 import dev.derek.daysthatmatter.feature.events.di.eventsModule
 import org.koin.core.KoinApplication
 import org.koin.core.context.startKoin
@@ -21,7 +22,7 @@ private val coreModule = module {
 internal expect val platformModule: Module
 
 /** Every Koin module shared by all platforms. Platform entry points add their own modules. */
-val appModules: List<Module> get() = listOf(coreModule, platformModule, eventsModule)
+val appModules: List<Module> get() = listOf(coreModule, platformModule, eventsModule, eventEditorModule)
 
 /** Starts Koin once, at app start. Android calls it from the Application, iOS from the app delegate. */
 fun initKoin(platform: KoinAppDeclaration = {}): KoinApplication = startKoin {

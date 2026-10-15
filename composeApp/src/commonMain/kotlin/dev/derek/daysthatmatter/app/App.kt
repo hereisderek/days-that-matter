@@ -14,12 +14,15 @@ import androidx.navigation3.ui.NavDisplay
 import dev.derek.daysthatmatter.app.navigation.AppNavigator
 import dev.derek.daysthatmatter.app.navigation.ArchivedKey
 import dev.derek.daysthatmatter.app.navigation.DayKey
+import dev.derek.daysthatmatter.app.navigation.EditorKey
 import dev.derek.daysthatmatter.app.navigation.GalleryKey
 import dev.derek.daysthatmatter.app.navigation.HomeKey
 import dev.derek.daysthatmatter.app.navigation.navSavedStateConfiguration
 import dev.derek.daysthatmatter.core.designsystem.gallery.DesignGallery
 import dev.derek.daysthatmatter.core.designsystem.theme.DaysThatMatterTheme
 import dev.derek.daysthatmatter.core.designsystem.theme.DtmTheme
+import dev.derek.daysthatmatter.feature.eventeditor.presentation.EditorMode
+import dev.derek.daysthatmatter.feature.eventeditor.presentation.EventEditorRoute
 import dev.derek.daysthatmatter.feature.events.debug.SeedSampleEventsUseCase
 import dev.derek.daysthatmatter.feature.events.presentation.archived.ArchivedRoute
 import dev.derek.daysthatmatter.feature.events.presentation.day.DayRoute
@@ -27,7 +30,7 @@ import dev.derek.daysthatmatter.feature.events.presentation.home.DebugAction
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeRoute
 import org.koin.compose.koinInject
 
-/** Root of the app UI on every platform: the theme and the navigation between Home, the day page and Archived. */
+/** Root of the app UI on every platform: the theme and the navigation between Home, the day page, Archived and the editor. */
 @Composable
 fun App(modifier: Modifier = Modifier) {
     DaysThatMatterTheme {
@@ -59,9 +62,17 @@ fun AppNavigation(buildInfo: AppBuildInfo = koinInject()) {
                     onOpenDay = navigator::openDay,
                     onOpenArchived = navigator::openArchived,
                     debugAction = if (buildInfo.debug) DebugAction("Design gallery", navigator::openGallery) else null,
+                    onNewDay = navigator::openNewDay,
                 )
             }
-            entry<DayKey> { key -> DayRoute(key.id, onClose = { navigator.back() }) }
+            entry<DayKey> { key -> DayRoute(key.id, onClose = { navigator.back() }, onEdit = navigator::openEditor) }
+            entry<EditorKey> { key ->
+                EventEditorRoute(
+                    mode = key.id?.let { EditorMode.Edit(it) } ?: EditorMode.Create,
+                    onClose = { navigator.closeEditor() },
+                    onSaved = { id, created -> navigator.closeEditor(id, created) },
+                )
+            }
             entry<ArchivedKey> { ArchivedRoute(onOpenDay = navigator::openDay, onClose = { navigator.back() }) }
             entry<GalleryKey> { DesignGallery(Modifier.safeDrawingPadding()) }
         },

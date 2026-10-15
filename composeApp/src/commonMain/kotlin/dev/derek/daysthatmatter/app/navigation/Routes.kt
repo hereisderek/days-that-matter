@@ -19,6 +19,10 @@ data class DayKey(val id: String) : NavKey
 @Serializable
 data object ArchivedKey : NavKey
 
+/** The event editor: a new day when [id] is null, otherwise the owner's day [id]. */
+@Serializable
+data class EditorKey(val id: String? = null) : NavKey
+
 /** DEBUG ONLY: the design gallery of :core:designsystem. */
 @Serializable
 data object GalleryKey : NavKey
@@ -30,6 +34,7 @@ val navSavedStateConfiguration: SavedStateConfiguration = SavedStateConfiguratio
             subclass(HomeKey::class, HomeKey.serializer())
             subclass(DayKey::class, DayKey.serializer())
             subclass(ArchivedKey::class, ArchivedKey.serializer())
+            subclass(EditorKey::class, EditorKey.serializer())
             subclass(GalleryKey::class, GalleryKey.serializer())
         }
     }
@@ -43,6 +48,26 @@ class AppNavigator(private val backStack: MutableList<NavKey>) {
 
     fun openArchived() {
         if (backStack.lastOrNull() != ArchivedKey) backStack.add(ArchivedKey)
+    }
+
+    /** Opens the editor for a new day. */
+    fun openNewDay() {
+        if (backStack.lastOrNull() != EditorKey()) backStack.add(EditorKey())
+    }
+
+    /** Opens the editor for the day [id]. */
+    fun openEditor(id: String) {
+        if (backStack.lastOrNull() != EditorKey(id)) backStack.add(EditorKey(id))
+    }
+
+    /**
+     * After a save: a new day replaces the editor with its day page (design/v2 `save`); an edit returns to the
+     * screen that opened the editor.
+     */
+    fun closeEditor(savedId: String? = null, created: Boolean = false) {
+        if (backStack.lastOrNull() !is EditorKey) return
+        backStack.removeAt(backStack.lastIndex)
+        if (created && savedId != null) openDay(savedId)
     }
 
     fun openGallery() {

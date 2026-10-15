@@ -60,6 +60,7 @@ import dev.derek.daysthatmatter.core.designsystem.components.EmptyState
 import dev.derek.daysthatmatter.core.designsystem.components.dtmShadow
 import dev.derek.daysthatmatter.core.designsystem.components.family
 import dev.derek.daysthatmatter.core.designsystem.icons.DtmIcons
+import dev.derek.daysthatmatter.core.designsystem.icons.EditorIcons
 import dev.derek.daysthatmatter.core.designsystem.resolveCardTone
 import dev.derek.daysthatmatter.core.designsystem.theme.CardTone
 import dev.derek.daysthatmatter.core.designsystem.theme.DtmTheme
@@ -76,6 +77,7 @@ fun DayRoute(
     eventId: String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    onEdit: ((String) -> Unit)? = null,
     viewModel: EventDetailViewModel = koinViewModel(key = "day-$eventId") { parametersOf(eventId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -88,14 +90,15 @@ fun DayRoute(
             }
         }
     }
-    DayScreen(state, viewModel::onIntent, modifier, snackbar)
+    DayScreen(state, viewModel::onIntent, modifier, snackbar, onEdit?.let { edit -> { edit(eventId) } })
 }
 
 /**
  * The day page (design/v2 `detailView`): the day's backdrop fills the top of the screen with the back button,
  * the badge, emoji, title, date line, the big number (tap to switch the unit), the live ticker and the unit list;
  * the panel below holds the Details block and, for archived days, Unarchive and Delete. Edge to edge: the backdrop
- * runs under the status bar.
+ * runs under the status bar. With [onEdit], the owner gets an Edit button at the top right (v2's "Customize"
+ * action; members cannot open the editor).
  */
 @Composable
 fun DayScreen(
@@ -103,6 +106,7 @@ fun DayScreen(
     onIntent: (DayIntent) -> Unit,
     modifier: Modifier = Modifier,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
+    onEdit: (() -> Unit)? = null,
 ) {
     val colors = DtmTheme.colors
     Box(modifier.fillMaxSize().background(colors.bg)) {
@@ -112,7 +116,7 @@ fun DayScreen(
                 GlassButton(CardTone.DarkText, onClick = { onIntent(DayIntent.Back) }, modifier = Modifier.padding(16.dp))
                 EmptyState("🗂️", "This day is gone", "It was deleted, or it is no longer shared with you.")
             }
-            is DayUiState.Content -> DayContent(state, onIntent)
+            is DayUiState.Content -> DayContent(state, onIntent, onEdit.takeIf { state.role == EventRole.Owner })
         }
         SnackbarHost(
             snackbar,
@@ -123,7 +127,7 @@ fun DayScreen(
 }
 
 @Composable
-private fun DayContent(state: DayUiState.Content, onIntent: (DayIntent) -> Unit) {
+private fun DayContent(state: DayUiState.Content, onIntent: (DayIntent) -> Unit, onEdit: (() -> Unit)?) {
     val tone = remember(state.background) { resolveCardTone(state.background.baseColor) }
     val insets = WindowInsets.safeDrawing
     BoxWithConstraints(Modifier.fillMaxSize()) {
@@ -137,8 +141,12 @@ private fun DayContent(state: DayUiState.Content, onIntent: (DayIntent) -> Unit)
                         .heightIn(min = heroHeight)
                         .windowInsetsPadding(insets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
                 ) {
-                    Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                         GlassButton(tone, onClick = { onIntent(DayIntent.Back) })
+                        if (onEdit != null) {
+                            Spacer(Modifier.weight(1f))
+                            GlassAction("Edit", tone, onClick = onEdit)
+                        }
                     }
                     Spacer(Modifier.weight(1f))
                     Hero(state, tone, onIntent)
@@ -315,6 +323,28 @@ private fun GlassButton(tone: CardTone, onClick: () -> Unit, modifier: Modifier 
         contentAlignment = Alignment.Center,
     ) {
         Icon(DtmIcons.Back, contentDescription = null, tint = tone.text, modifier = Modifier.size(20.dp))
+    }
+}
+
+/** `.act` on the backdrop: a 42 dp glass pill with an edit icon and a label; 48 dp touch target. */
+@Composable
+private fun GlassAction(label: String, tone: CardTone, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(DtmTheme.radii.pill)
+    Row(
+        Modifier
+            .testTag(EventsTestTags.EditButton)
+            .minimumInteractiveComponentSize()
+            .height(42.dp)
+            .clip(shape)
+            .background(tone.glass, shape)
+            .border(1.dp, tone.glassEdge, shape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Icon(EditorIcons.Edit, contentDescription = null, tint = tone.text, modifier = Modifier.size(18.dp))
+        Text(label, style = DtmTheme.typography.pill, color = tone.text, maxLines = 1)
     }
 }
 

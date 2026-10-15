@@ -43,11 +43,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import dev.derek.daysthatmatter.core.designsystem.components.BottomFade
 import dev.derek.daysthatmatter.core.designsystem.components.CardSize
 import dev.derek.daysthatmatter.core.designsystem.components.CategoryChip
 import dev.derek.daysthatmatter.core.designsystem.components.DtmTopBar
 import dev.derek.daysthatmatter.core.designsystem.components.EmptyState
 import dev.derek.daysthatmatter.core.designsystem.components.IconCircleButton
+import dev.derek.daysthatmatter.core.designsystem.components.NewDayFab
 import dev.derek.daysthatmatter.core.designsystem.components.SearchField
 import dev.derek.daysthatmatter.core.designsystem.components.SectionHeader
 import dev.derek.daysthatmatter.core.designsystem.components.dtmShadow
@@ -70,6 +72,7 @@ fun HomeRoute(
     onOpenArchived: () -> Unit,
     modifier: Modifier = Modifier,
     debugAction: DebugAction? = null,
+    onNewDay: (() -> Unit)? = null,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -92,13 +95,14 @@ fun HomeRoute(
             }
         }
     }
-    HomeScreen(state, viewModel::onIntent, modifier, snackbar, debugAction)
+    HomeScreen(state, viewModel::onIntent, modifier, snackbar, debugAction, onNewDay)
 }
 
 /**
  * Home (design/v2 `homeView`): fixed header with today's date and "Your days", search, filter chips, the Pinned,
  * Upcoming and Since sections in list or grid, and the "Archived · N" row at the end. Edge to edge: the header
- * sits under the status bar and the list scrolls behind the navigation bar.
+ * sits under the status bar and the list scrolls behind the navigation bar. With [onNewDay], the floating "New day"
+ * button and the bottom fade of v2 sit above the navigation bar.
  */
 @Composable
 fun HomeScreen(
@@ -107,6 +111,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
     debugAction: DebugAction? = null,
+    onNewDay: (() -> Unit)? = null,
 ) {
     val colors = DtmTheme.colors
     val insets = WindowInsets.safeDrawing
@@ -136,7 +141,19 @@ fun HomeScreen(
                         .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                 )
             }
-            HomeList(state, onIntent, Modifier.weight(1f))
+            HomeList(state, onIntent, Modifier.weight(1f), fabSpace = onNewDay != null)
+        }
+        if (onNewDay != null) {
+            BottomFade(Modifier.align(Alignment.BottomCenter))
+            NewDayFab(
+                text = "New day",
+                onClick = onNewDay,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(insets.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
+                    .padding(bottom = 16.dp)
+                    .testTag(EventsTestTags.NewDayFab),
+            )
         }
         SnackbarHost(
             snackbar,
@@ -146,12 +163,12 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeList(state: HomeUiState, onIntent: (HomeIntent) -> Unit, modifier: Modifier) {
+private fun HomeList(state: HomeUiState, onIntent: (HomeIntent) -> Unit, modifier: Modifier, fabSpace: Boolean = false) {
     val insets = WindowInsets.safeDrawing
     val bottom = insets.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
     LazyColumn(
         modifier.fillMaxWidth().windowInsetsPadding(insets.only(WindowInsetsSides.Horizontal)),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottom + 40.dp),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottom + if (fabSpace) 96.dp else 40.dp),
     ) {
         item(key = "chips") { FilterChips(state, onIntent) }
         if (state.loading) return@LazyColumn
