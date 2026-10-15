@@ -41,9 +41,11 @@ import dev.derek.daysthatmatter.core.designsystem.components.CardTypeface
 import dev.derek.daysthatmatter.core.designsystem.components.CategoryChip
 import dev.derek.daysthatmatter.core.designsystem.components.CountdownNumber
 import dev.derek.daysthatmatter.core.designsystem.components.DayCardGrid
+import dev.derek.daysthatmatter.core.designsystem.components.DayCardHero
 import dev.derek.daysthatmatter.core.designsystem.components.DayCardRow
 import dev.derek.daysthatmatter.core.designsystem.components.DayCardState
 import dev.derek.daysthatmatter.core.designsystem.components.DayCardTile
+import dev.derek.daysthatmatter.core.designsystem.theme.DtmSizes
 import dev.derek.daysthatmatter.core.designsystem.components.DtmButton
 import dev.derek.daysthatmatter.core.designsystem.components.DtmButtonStyle
 import dev.derek.daysthatmatter.core.designsystem.components.DtmTestTags
@@ -278,6 +280,49 @@ class ComponentUiTest {
         onNodeWithText("B").performClick()
 
         assertEquals(1, clicked)
+    }
+
+    // ---- hero card and compact strip ----
+
+    @Test
+    fun heroCardFullHeightRendersPillAndTick() = runComposeUiTest {
+        var clicked = 0
+        setContent {
+            Themed {
+                DayCardHero(
+                    state = card(size = CardSize.Large, tick = "37d 04h 12m 08s"),
+                    onClick = { clicked++ },
+                )
+            }
+        }
+
+        val node = onNodeWithTag(DtmTestTags.DayCardHero)
+        node.assertHeightIsEqualTo(DtmSizes.heroHeight)
+        onNodeWithText("Pinned").assertExists()
+        onNodeWithText("Norway trip").assertExists()
+        onNodeWithText("38").assertExists()
+        onNodeWithText("days to go").assertExists()
+        onNodeWithText("37d 04h 12m 08s").assertExists()
+
+        node.performClick()
+        assertEquals(1, clicked)
+    }
+
+    @Test
+    fun heroCardCompactHeightRendersCollapsedStrip() = runComposeUiTest {
+        setContent {
+            Themed {
+                DayCardHero(
+                    state = card(size = CardSize.Large),
+                    compact = true,
+                )
+            }
+        }
+
+        val node = onNodeWithTag(DtmTestTags.DayCardHero)
+        node.assertHeightIsEqualTo(DtmSizes.heroCompactHeight)
+        onNodeWithText("Norway trip").assertExists()
+        onNodeWithText("38").assertExists()
     }
 
     // ---- countdown number ----

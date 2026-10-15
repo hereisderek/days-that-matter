@@ -37,6 +37,8 @@ import dev.derek.daysthatmatter.core.designsystem.icons.DtmIcons
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.TextStyle
 import dev.derek.daysthatmatter.core.designsystem.PhotoStandInColor
 import dev.derek.daysthatmatter.core.designsystem.resolveCardTone
@@ -52,6 +54,7 @@ object DtmTestTags {
     const val DayCard = "dtm-day-card"
     const val MemoBadge = "dtm-memo-badge"
     const val EmojiChip = "dtm-emoji-chip"
+    const val DayCardHero = "dtm-day-card-hero"
 }
 
 /** Colors a card resolves from its [DayCardState] and the theme. */
@@ -101,8 +104,9 @@ private fun Modifier.cardSurface(
     look: CardLook,
     shape: RoundedCornerShape,
     onClick: (() -> Unit)?,
+    tag: String = DtmTestTags.DayCard,
 ): Modifier = this
-    .testTag(DtmTestTags.DayCard)
+    .testTag(tag)
     .clip(shape)
     .let { if (look.surface != null) it.background(look.surface) else it }
     .let { if (look.edge != null) it.border(BorderStroke(1.5.dp, look.edge), shape) else it }
@@ -366,10 +370,178 @@ internal fun gridRows(cards: List<DayCardState>): List<List<Int>> {
         } else if (pending == null) {
             pending = index
         } else {
-            rows += listOf(pending!!, index)
+            rows += listOf(pending, index)
             pending = null
         }
     }
     pending?.let { rows += listOf(it) }
     return rows
 }
+
+/** `.glass-pill`: a rounded glass pill for metadata such as "Pinned" or the live ticker. */
+@Composable
+fun GlassPill(
+    tone: CardTone,
+    modifier: Modifier = Modifier,
+    style: CardStyle = CardStyle.Glass,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val pillModifier = when (style) {
+        CardStyle.Clean -> Modifier.border(1.dp, tone.glassEdge, CircleShape)
+        CardStyle.Outline -> Modifier.background(tone.glass, CircleShape)
+        else -> Modifier.background(tone.glass, CircleShape).border(1.dp, tone.glassEdge, CircleShape)
+    }
+    Row(
+        modifier
+            .height(30.dp)
+            .then(pillModifier)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        content = content,
+    )
+}
+
+/**
+ * Pinned hero card (240 dp tall, or 96 dp collapsed strip): top row with the "Pinned" glass pill and emoji,
+ * bottom section with title, meta line, big number with unit, and live ticker glass pill. When [compact] is true,
+ * swaps to a 96 dp one-line strip with the title on the left and the number + unit on the right.
+ */
+@Composable
+fun DayCardHero(
+    state: DayCardState,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    contentAlpha: Float = 1f,
+    onClick: (() -> Unit)? = null,
+) {
+    val look = rememberCardLook(state)
+    val tone = look.tone
+    val radii = DtmTheme.radii
+    val shape = RoundedCornerShape(radii.xl)
+    val shadow = tone.lightText && !look.outline
+
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(if (compact) DtmSizes.heroCompactHeight else DtmSizes.heroHeight)
+            .cardSurface(state, look, shape, onClick, tag = DtmTestTags.DayCardHero)
+    ) {
+        if (!look.outline) CardBackdrop(state.background, state.dim)
+        Box(
+            Modifier
+                .fillMaxSize()
+                .graphicsLayer { alpha = contentAlpha }
+        ) {
+            if (compact) {
+                Row(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 18.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = cardTitleText(state),
+                        style = cardTitleStyle(state, 17f, tone, shadow),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f).padding(end = 12.dp),
+                    )
+                    CountdownNumber(
+                        number = state.number,
+                        unit = state.unit,
+                        pre = state.pre,
+                        numberSize = if (state.style == CardStyle.Poster) 54.sp else 44.sp,
+                        unitSize = 12.5.sp,
+                        unitGap = 4.dp,
+                        typeface = state.typeface,
+                        tone = tone,
+                        color = look.numberColor,
+                        textShadow = shadow,
+                        horizontalAlignment = Alignment.End,
+                    )
+                }
+            } else {
+                Column(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(start = 18.dp, end = 18.dp, top = 16.dp, bottom = 18.dp),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top,
+                    ) {
+                        GlassPill(tone = tone, style = state.style) {
+                            Icon(DtmIcons.Pin, contentDescription = null, tint = tone.text, modifier = Modifier.size(13.dp))
+                            Text(
+                                text = "Pinned",
+                                style = TextStyle(fontSize = 12.5.sp, fontWeight = FontWeight.SemiBold, color = tone.text),
+                            )
+                        }
+                        EmojiChip(state.emoji, state.style, look, state.background.baseColor, 46.dp, 23f)
+                    }
+                    Column {
+                        Text(
+                            text = cardTitleText(state),
+                            style = cardTitleStyle(state, 21f, tone, shadow),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        val metaText = state.meta.removePrefix("Pinned · ")
+                        if (metaText.isNotEmpty()) {
+                            Text(
+                                text = metaText,
+                                style = DtmTheme.typography.cardMeta.copy(fontSize = 13.sp, color = tone.textMuted).soft(shadow),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.padding(top = 2.dp),
+                            )
+                        }
+                        Row(
+                            Modifier.fillMaxWidth().padding(top = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            CountdownNumber(
+                                number = state.number,
+                                unit = state.unit,
+                                pre = state.pre,
+                                numberSize = if (state.style == CardStyle.Poster) 92.sp else 76.sp,
+                                unitSize = 14.sp,
+                                unitGap = 8.dp,
+                                typeface = state.typeface,
+                                tone = tone,
+                                color = look.numberColor,
+                                textShadow = shadow,
+                                horizontalAlignment = Alignment.Start,
+                            )
+                            if (state.tick != null) {
+                                GlassPill(
+                                    modifier = Modifier.height(28.dp),
+                                    tone = tone,
+                                    style = state.style,
+                                ) {
+                                    Text(
+                                        text = state.tick,
+                                        style = DtmTheme.typography.tick.copy(color = tone.text, fontSize = 12.sp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        if (state.memoCount > 0) {
+            val align = when (state.memoBadge) {
+                MemoBadgePosition.TopLeft -> Modifier.align(Alignment.TopStart).padding(start = 24.dp)
+                MemoBadgePosition.TopRight -> Modifier.align(Alignment.TopEnd).padding(top = if (compact) 10.dp else 72.dp)
+            }
+            MemoBadge(state.memoCount, state.memoBadge, small = compact, align)
+        }
+    }
+}
+

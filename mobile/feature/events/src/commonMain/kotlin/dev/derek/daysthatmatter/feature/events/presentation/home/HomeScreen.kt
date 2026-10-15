@@ -20,7 +20,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
@@ -37,8 +39,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
@@ -112,9 +116,68 @@ fun HomeScreen(
     snackbar: SnackbarHostState = remember { SnackbarHostState() },
     debugAction: DebugAction? = null,
     onNewDay: (() -> Unit)? = null,
+    lazyListState: LazyListState = rememberLazyListState(),
+    reduceMotion: Boolean = DtmTheme.reducedMotion,
+    forceCompact: Boolean? = null,
 ) {
     val colors = DtmTheme.colors
     val insets = WindowInsets.safeDrawing
+
+    var activePinIndex by remember(state.pinnedDays) {
+        mutableStateOf(state.activePinIndex.coerceIn(0, (state.pinnedDays.size - 1).coerceAtLeast(0)))
+    }
+    var isCompact by remember { mutableStateOf(false) }
+    var isAutoScrolling by remember { mutableStateOf(false) }
+
+    val density = LocalDensity.current
+    val px32 = remember(density) { with(density) { 32.dp.toPx() } }
+    val px8 = remember(density) { with(density) { 8.dp.toPx() } }
+
+    LaunchedEffect(lazyListState) {
+        snapshotFlow {
+            Pair(lazyListState.firstVisibleItemIndex, lazyListState.firstVisibleItemScrollOffset)
+        }.collect { (index, offset) ->
+            if (!isAutoScrolling) {
+                if (!isCompact) {
+                    if (index > 0 || offset > px32) {
+                        isCompact = true
+                    }
+                } else {
+                    if (index == 0 && offset < px8) {
+                        isCompact = false
+                    }
+                }
+            }
+        }
+    }
+
+    val centeredDay = state.pinnedDays.getOrNull(activePinIndex)
+    var lastScrolledPinIndex by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(activePinIndex, state.showCarousel) {
+        if (lastScrolledPinIndex == null) {
+            lastScrolledPinIndex = activePinIndex
+            return@LaunchedEffect
+        }
+        if (lastScrolledPinIndex != activePinIndex && state.showCarousel) {
+            lastScrolledPinIndex = activePinIndex
+            if (centeredDay != null) {
+                val targetIndex = findListIndexForDay(state, centeredDay.id)
+                if (targetIndex >= 0) {
+                    isAutoScrolling = true
+                    try {
+                        if (reduceMotion) {
+                            lazyListState.scrollToItem(targetIndex)
+                        } else {
+                            lazyListState.animateScrollToItem(targetIndex)
+                        }
+                    } finally {
+                        isAutoScrolling = false
+                    }
+                }
+            }
+        }
+    }
+
     Box(modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             DtmTopBar(
@@ -141,7 +204,30 @@ fun HomeScreen(
                         .padding(start = 16.dp, end = 16.dp, bottom = 8.dp),
                 )
             }
-            HomeList(state, onIntent, Modifier.weight(1f), fabSpace = onNewDay != null)
+            if (state.showCarousel) {
+                PinnedCarousel(
+                    pinnedDays = state.pinnedDays,
+                    activeIndex = activePinIndex,
+                    onSelectPin = { index ->
+                        activePinIndex = index
+                        onIntent(HomeIntent.SelectPin(index))
+                    },
+                    onOpenDay = { id -> onIntent(HomeIntent.OpenDay(id)) },
+                    compact = forceCompact ?: isCompact,
+                    reduceMotion = reduceMotion,
+                    modifier = Modifier
+                        .windowInsetsPadding(insets.only(WindowInsetsSides.Horizontal))
+                        .padding(bottom = 6.dp),
+                )
+            }
+            HomeList(
+                state = state,
+                onIntent = onIntent,
+                modifier = Modifier.weight(1f),
+                fabSpace = onNewDay != null,
+                lazyListState = lazyListState,
+                focusedDayId = if (state.showCarousel) centeredDay?.id else null,
+            )
         }
         if (onNewDay != null) {
             BottomFade(Modifier.align(Alignment.BottomCenter))
@@ -162,12 +248,40 @@ fun HomeScreen(
     }
 }
 
+internal fun findListIndexForDay(state: HomeUiState, dayId: String): Int {
+    var currentIndex = 1 // index 0 is "chips"
+    for (section in state.sections) {
+        currentIndex++ // section header
+        if (state.layout == HomeLayout.List) {
+            for (item in section.items) {
+                if (item.id == dayId) return currentIndex
+                currentIndex++
+            }
+        } else {
+            val rows = gridRows(section.items) { it.card.size == CardSize.Large }
+            for (row in rows) {
+                if (row.any { it.id == dayId }) return currentIndex
+                currentIndex++
+            }
+        }
+    }
+    return -1
+}
+
 @Composable
-private fun HomeList(state: HomeUiState, onIntent: (HomeIntent) -> Unit, modifier: Modifier, fabSpace: Boolean = false) {
+private fun HomeList(
+    state: HomeUiState,
+    onIntent: (HomeIntent) -> Unit,
+    modifier: Modifier,
+    fabSpace: Boolean = false,
+    lazyListState: LazyListState = rememberLazyListState(),
+    focusedDayId: String? = null,
+) {
     val insets = WindowInsets.safeDrawing
     val bottom = insets.only(WindowInsetsSides.Bottom).asPaddingValues().calculateBottomPadding()
     LazyColumn(
-        modifier.fillMaxWidth().windowInsetsPadding(insets.only(WindowInsetsSides.Horizontal)),
+        state = lazyListState,
+        modifier = modifier.fillMaxWidth().windowInsetsPadding(insets.only(WindowInsetsSides.Horizontal)),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = bottom + if (fabSpace) 96.dp else 40.dp),
     ) {
         item(key = "chips") { FilterChips(state, onIntent) }
@@ -198,6 +312,7 @@ private fun HomeList(state: HomeUiState, onIntent: (HomeIntent) -> Unit, modifie
                         onOpen = { onIntent(HomeIntent.OpenDay(item.id)) },
                         actions = actions(item, onIntent),
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 5.dp),
+                        isFocused = item.id == focusedDayId,
                     )
                 }
             } else {
@@ -215,6 +330,7 @@ private fun HomeList(state: HomeUiState, onIntent: (HomeIntent) -> Unit, modifie
                                 onOpen = { onIntent(HomeIntent.OpenDay(item.id)) },
                                 actions = actions(item, onIntent),
                                 modifier = Modifier.weight(1f),
+                                isFocused = item.id == focusedDayId,
                             )
                         }
                         if (row.size == 1 && row[0].card.size != CardSize.Large) Spacer(Modifier.weight(1f))
@@ -271,6 +387,15 @@ private fun Tools(state: HomeUiState, onIntent: (HomeIntent) -> Unit) {
                     },
                 )
             }
+            DropdownMenuItem(
+                text = { Text("Pinned carousel") },
+                trailingIcon = if (state.showPinnedCarousel) ({ Icon(DtmIcons.Check, contentDescription = "Enabled", modifier = Modifier.size(18.dp)) }) else null,
+                onClick = {
+                    sortMenu = false
+                    onIntent(HomeIntent.TogglePinnedCarousel)
+                },
+                modifier = Modifier.testTag(EventsTestTags.CarouselSwitch),
+            )
         }
     }
 }
