@@ -38,9 +38,20 @@ data class HomeUiState(
     val sections: List<HomeSection> = emptyList(),
     val archivedCount: Int = 0,
     val empty: HomeEmpty? = null,
+    val pinnedDays: List<HomeDayItem> = emptyList(),
+    val showPinnedCarousel: Boolean = true,
+    val activePinIndex: Int = 0,
 ) {
     /** The "Archived · N" row: shown with archived days, and only on the unfiltered, unsearched list (design/v2). */
     val showArchivedRow: Boolean get() = archivedCount > 0 && filter == HomeFilter.All && query.isBlank()
+
+    /** Carousel sits at the top of Home when enabled, pinned days exist, and not searching or filtering (spec 2.8). */
+    val showCarousel: Boolean
+        get() = showPinnedCarousel &&
+                pinnedDays.isNotEmpty() &&
+                !searching &&
+                query.isBlank() &&
+                filter == HomeFilter.All
 }
 
 sealed interface HomeIntent {
@@ -55,6 +66,9 @@ sealed interface HomeIntent {
     data class Archive(val id: String) : HomeIntent
     data class Delete(val id: String) : HomeIntent
     data class UndoDelete(val id: String) : HomeIntent
+    data class SetShowPinnedCarousel(val show: Boolean) : HomeIntent
+    data object TogglePinnedCarousel : HomeIntent
+    data class SelectPin(val index: Int) : HomeIntent
 }
 
 sealed interface HomeEffect {

@@ -14,6 +14,7 @@ internal val LocalDtmTypography = staticCompositionLocalOf { dtmTypographyFallba
 internal val LocalDtmRadii = staticCompositionLocalOf { DtmRadii() }
 internal val LocalDtmSpacing = staticCompositionLocalOf { DtmSpacing() }
 internal val LocalDtmElevation = staticCompositionLocalOf { DtmElevation() }
+val LocalReducedMotion = staticCompositionLocalOf { false }
 
 /** Read access to the design tokens of the nearest [DaysThatMatterTheme]. */
 object DtmTheme {
@@ -22,6 +23,7 @@ object DtmTheme {
     val radii: DtmRadii @Composable @ReadOnlyComposable get() = LocalDtmRadii.current
     val spacing: DtmSpacing @Composable @ReadOnlyComposable get() = LocalDtmSpacing.current
     val elevation: DtmElevation @Composable @ReadOnlyComposable get() = LocalDtmElevation.current
+    val reducedMotion: Boolean @Composable @ReadOnlyComposable get() = LocalReducedMotion.current
 }
 
 /**
@@ -32,12 +34,14 @@ object DtmTheme {
  * @param dynamicColorScheme a wallpaper-based scheme from the platform (Android 12+). Null by default on purpose:
  * the brand palette must show. When set, only the Material 3 [ColorScheme] changes; [DtmTheme.colors] keeps the
  * brand palette, so cards and the components of this module look the same either way.
+ * @param reducedMotion when true, turns off animations and transitions (accessibility prefers-reduced-motion).
  */
 @Composable
 fun DaysThatMatterTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     accent: AccentChoice = AccentChoice.Jade,
     dynamicColorScheme: ColorScheme? = null,
+    reducedMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colors = remember(darkTheme, accent) { if (darkTheme) darkDtmColors(accent) else lightDtmColors(accent) }
@@ -51,6 +55,7 @@ fun DaysThatMatterTheme(
         LocalDtmRadii provides radii,
         LocalDtmSpacing provides DtmSpacing(),
         LocalDtmElevation provides DtmElevation(),
+        LocalReducedMotion provides reducedMotion,
     ) {
         MaterialTheme(
             colorScheme = materialColors,

@@ -97,6 +97,9 @@ class HomeViewModel(
                 }
             }
             is HomeIntent.UndoDelete -> viewModelScope.launch { restoreEvent(intent.id) }
+            is HomeIntent.SetShowPinnedCarousel -> controls.update { it.copy(showPinnedCarousel = intent.show) }
+            HomeIntent.TogglePinnedCarousel -> controls.update { it.copy(showPinnedCarousel = !it.showPinnedCarousel) }
+            is HomeIntent.SelectPin -> controls.update { it.copy(activePinIndex = intent.index) }
         }
     }
 
@@ -105,6 +108,7 @@ class HomeViewModel(
     }
 
     private fun HomeUiState.withDays(days: HomeDays, archived: Int): HomeUiState {
+        val pinnedItems = days.pinned.map(::item)
         val sections = listOf(
             HomeSectionKind.Pinned to days.pinned,
             HomeSectionKind.Upcoming to days.upcoming,
@@ -115,6 +119,7 @@ class HomeViewModel(
             loading = false,
             kicker = CountdownText.todayKicker(clock.now(), zone()),
             sections = sections,
+            pinnedDays = pinnedItems,
             archivedCount = archived,
             empty = when {
                 sections.isNotEmpty() -> null

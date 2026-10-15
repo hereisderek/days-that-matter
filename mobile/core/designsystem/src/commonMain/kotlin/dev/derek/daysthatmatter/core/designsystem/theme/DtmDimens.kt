@@ -72,6 +72,8 @@ object DtmSizes {
     val button = 54.dp
     val buttonSmall = 36.dp
     val fab = 54.dp
+    val heroHeight = 240.dp
+    val heroCompactHeight = 96.dp
 }
 
 internal fun DtmRadii.toMaterialShapes(): Shapes = Shapes(

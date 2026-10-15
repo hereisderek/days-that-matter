@@ -1,6 +1,8 @@
 package dev.derek.daysthatmatter.feature.events.presentation.common
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import dev.derek.daysthatmatter.core.designsystem.components.CardSize
 import dev.derek.daysthatmatter.core.designsystem.components.DayCardRow
 import dev.derek.daysthatmatter.core.designsystem.components.DayCardState
@@ -29,6 +32,15 @@ data class CardAction(val label: String, val hint: String? = null, val onClick: 
 /** Test tags of the events screens. */
 object EventsTestTags {
     fun card(id: String) = "day-$id"
+    fun focusedCard(id: String) = "day-$id-focused"
+    const val FocusOutline = "focus-outline"
+    const val PinnedCarousel = "pinned-carousel"
+    const val PinnedCarouselStrip = "pinned-carousel-strip"
+    const val PinnedCarouselDots = "pinned-carousel-dots"
+    fun carouselCard(id: String) = "carousel-day-$id"
+    fun carouselDot(index: Int) = "carousel-dot-$index"
+    const val CarouselSwitch = "carousel-switch"
+    const val LiveTicker = "live-ticker"
     const val ArchivedRow = "archived-row"
     const val DayNumber = "day-number"
     const val UnitList = "unit-list"
@@ -42,7 +54,8 @@ object EventsTestTags {
 
 /**
  * A day card (list row or grid tile) that opens on tap and shows [actions] in a menu on long press
- * (design/v2: long-press or right-click a card).
+ * (design/v2: long-press or right-click a card). [isFocused] outlines the card in accent when centered
+ * in the pinned carousel above the list.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -53,12 +66,21 @@ fun DayCardWithMenu(
     onOpen: () -> Unit,
     actions: List<CardAction>,
     modifier: Modifier = Modifier,
+    isFocused: Boolean = false,
+    focusProgress: Float = if (isFocused) 1f else 0f,
 ) {
     var menu by remember { mutableStateOf(false) }
-    Box(modifier) {
+    val shape = RoundedCornerShape(cardRadius(card.size, tile))
+    val effectiveFocus = if (isFocused && focusProgress == 0f) 1f else focusProgress.coerceIn(0f, 1f)
+    val focusModifier = if (effectiveFocus > 0.01f) {
+        val mod = Modifier.border(2.5.dp, DtmTheme.colors.accent.copy(alpha = effectiveFocus), shape)
+        if (effectiveFocus >= 0.5f) mod.testTag(EventsTestTags.focusedCard(id)) else mod
+    } else Modifier
+
+    Box(modifier.then(focusModifier)) {
         val clickable = Modifier
             .testTag(EventsTestTags.card(id))
-            .clip(RoundedCornerShape(cardRadius(card.size, tile)))
+            .clip(shape)
             .combinedClickable(
                 role = Role.Button,
                 onClickLabel = "Open",
@@ -67,6 +89,9 @@ fun DayCardWithMenu(
                 onClick = onOpen,
             )
         if (tile) DayCardTile(card, clickable) else DayCardRow(card, clickable)
+        if (effectiveFocus >= 0.5f) {
+            Box(Modifier.matchParentSize().testTag(EventsTestTags.FocusOutline))
+        }
         DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
             actions.forEach { action ->
                 DropdownMenuItem(

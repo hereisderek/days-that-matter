@@ -252,4 +252,57 @@ class HomeViewModelTest : MainDispatcherTest() {
         testScheduler.runCurrent()
         assertEquals(0, ticker.time.subscriptionCount.value)
     }
+
+    @Test
+    fun pinnedCarouselControlsAndContextualVisibility() = runTest(dispatcher) {
+        val vm = viewModel(repository())
+
+        vm.state.test {
+            skipItems(1)
+            val initial = awaitItem()
+            assertEquals(listOf("trip"), initial.pinnedDays.map { it.id })
+            assertTrue(initial.showPinnedCarousel)
+            assertTrue(initial.showCarousel)
+            assertEquals(0, initial.activePinIndex)
+
+            vm.onIntent(HomeIntent.SelectPin(1))
+            assertEquals(1, awaitItem().activePinIndex)
+
+            vm.onIntent(HomeIntent.TogglePinnedCarousel)
+            val toggledOff = awaitItem()
+            assertFalse(toggledOff.showPinnedCarousel)
+            assertFalse(toggledOff.showCarousel)
+
+            vm.onIntent(HomeIntent.SetShowPinnedCarousel(true))
+            val toggledOn = awaitItem()
+            assertTrue(toggledOn.showPinnedCarousel)
+            assertTrue(toggledOn.showCarousel)
+
+            vm.onIntent(HomeIntent.ToggleSearch)
+            assertTrue(awaitItem().searching)
+            vm.onIntent(HomeIntent.QueryChanged("trip"))
+            assertEquals("trip", awaitItem().query)
+            val searchingState = awaitItem()
+            assertFalse(searchingState.showCarousel)
+
+            vm.onIntent(HomeIntent.ToggleSearch)
+            val queryCleared = awaitItem()
+            assertFalse(queryCleared.searching)
+            assertEquals("", queryCleared.query)
+            val searchClosedState = awaitItem()
+            assertTrue(searchClosedState.showCarousel)
+
+            vm.onIntent(HomeIntent.SelectFilter(HomeFilter.Upcoming))
+            assertEquals(HomeFilter.Upcoming, awaitItem().filter)
+            val filteredState = awaitItem()
+            assertFalse(filteredState.showCarousel)
+
+            vm.onIntent(HomeIntent.SelectFilter(HomeFilter.All))
+            assertEquals(HomeFilter.All, awaitItem().filter)
+            val allFilterState = awaitItem()
+            assertTrue(allFilterState.showCarousel)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
 }
