@@ -253,8 +253,22 @@ function seed() {
     { id: 'weekends', kind: 'smart', rule: 'weekends', title: `Weekends left in ${t.getFullYear()}`, emoji: '🛋️', date: toISO(new Date(t.getFullYear(), 11, 31)), reminder: 'none',
       look: look({ type: 'gradient', id: 'meadow' }, { size: 'sm' }) },
     { id: 'test', title: 'Driving test', emoji: '🚗', date: rel(-120), category: 'life', archived: true, look: look({ type: 'color', value: '#CFE5F8' }) },
-  ].map((e, i) => ({ kind: 'date', rule: null, archived: false, repeat: 'none', every: 10, time: null, zone: null, pinned: false, pinnedAt: 0, unit: 'auto', created: rel(-30 - i), reminder: 'day', audio: null,
-    notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [], ...e }));
+  ].map(fillEvent);
+}
+const fillEvent = (e, i) => ({ kind: 'date', rule: null, archived: false, repeat: 'none', every: 10, time: null, zone: null, pinned: false, pinnedAt: 0, unit: 'auto', created: toISO(addDays(today(), -30 - i)), reminder: 'day', audio: null,
+  notes: '', memos: [], owner: null, role: 'owner', members: [], removed: [], links: [], invites: [], ...e });
+// Days kept on this device in local mode (own database, separate from any account's). Four days, three memos.
+function seedLocal() {
+  const t = today(), rel = n => toISO(addDays(t, n));
+  const look = (bg, o = {}) => ({ bg, dim: 0, blur: 0, style: 'glass', font: 'sans', text: 'auto', size: 'md', ...o });
+  return [
+    { id: 'l-japan', title: 'Japan 2027', emoji: '🗼', date: rel(142), category: 'travel', pinned: true, pinnedAt: 1, look: look({ type: 'gradient', id: 'glacier' }) },
+    { id: 'l-dad', title: 'Dad’s retirement party', emoji: '🥂', date: rel(21), time: '18:30', category: 'life', look: look({ type: 'gradient', id: 'citrus' }, { style: 'clean' }),
+      memos: [{ date: rel(-6), text: 'Booked the back room. Ask Aunt Li about the cake.' }] },
+    { id: 'l-bread', title: 'Sourdough starter', emoji: '🍞', date: rel(-210), category: 'life', look: look({ type: 'color', value: '#F7ECB9' }, { style: 'clean', font: 'rounded' }),
+      memos: [{ date: rel(-120), text: 'First loaf that rose properly.', tag: null }, { date: rel(-30), text: 'Shared a jar with the neighbours.' }] },
+    { id: 'l-5k', title: 'First 5K', emoji: '🏃', date: rel(-48), category: 'life', look: look({ type: 'art', id: 'hills' }, { style: 'poster', font: 'condensed', size: 'sm' }) },
+  ].map(fillEvent);
 }
 const seedHistory = () => ({
   norway: [
@@ -274,17 +288,21 @@ const seedHistory = () => ({
 // ---------- state ----------
 const ACCOUNT = { name: 'Alex', email: 'alex@example.com', methods: ['apple'] };
 const S = {
-  screen: 'home', stack: [], anim: '', events: seed(), history: seedHistory(),
-  account: { ...ACCOUNT }, plan: 'free', lastSync: Date.now() - 4 * 6e4, pending: 0, firstSavePrompted: false,
+  screen: 'home', stack: [], anim: '', accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(),
+  // account null = local mode (no sign-in). Local days and an account's days live in separate stores; only an explicit import moves days.
+  account: { ...ACCOUNT }, localName: 'Sam', plan: 'free', lastSync: Date.now() - 4 * 6e4, pending: 0,
+  importChoice: 'skipped', importFail: false, afterImport: null, nudgeNo: 0, clockHour: null, // importChoice: none (not asked yet), imported, skipped
   filter: 'all', layout: 'list', sort: 'smart', query: '', searching: false,
   detailId: 'norway', playing: false, motion: false, pinIndex: 0,
   draft: null, edTab: 'details', bgTab: 'photo', soundTab: 'builtin', prevCtx: 'hero', trackPreview: null,
   share: { tab: 'link', format: 'story', watermark: true, newLink: false, linkLabel: '', linkExpiry: 'never', inviteRole: 'editor', inviteUses: '5', inviteExpiry: '30' },
-  sheet: null, toast: null, after: null, billing: 'year',
+  sheet: null, dialog: null, toast: null, after: null, billing: 'year',
   library: seedLibrary(), config: { memoBadge: 'top-right' }, // config = remote config from GET /config
-  settings: { theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true, notifyShared: true, notifyAdded: true, notifyOffers: false },
+  settings: { greeting: true, theme: 'system', accent: 'jade', dayOne: false, weekStart: 'mon', showHero: true, widgetStyle: 'match', notify: true, notifyShared: true, notifyAdded: true, notifyOffers: false },
 };
-// Guests have no backend: no shared-with-me days, no links, no history.
+// S.events is whichever store is active: the signed-in account's days, or the days kept on this device in local mode.
+Object.defineProperty(S, 'events', { get: () => S.account ? S.accountEvents : S.localEvents, set: v => { if (S.account) S.accountEvents = v; else S.localEvents = v; } });
+// Local mode has no backend: no shared-with-me days, no links, no history.
 const visible = () => S.events.filter(e => S.account || !e.owner);
 const byId = id => S.events.find(e => e.id === id);
 // Archived days leave Home, the pinned carousel and widget choices; they live on the Archived screen.
@@ -296,6 +314,17 @@ const isOwner = ev => !ev.owner;
 const role = ev => ev.owner ? ev.role : 'owner';
 const sharedOut = ev => !!S.account && isOwner(ev) && (ev.members.length > 0 || ev.links.length > 0);
 const scrollMem = {};
+const first = s => Array.from(s || '')[0] || '';
+const initial = () => first(S.account?.name || S.account?.email || 'Y').toUpperCase();
+const localCount = () => ({ days: S.localEvents.length, memos: S.localEvents.reduce((n, e) => n + e.memos.length, 0) });
+const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
+// Home greeting: morning 5 to 11, afternoon 12 to 16, evening 17 to 21, late night 22 to 4. No name, no comma.
+const dayPart = () => { const h = S.clockHour ?? new Date().getHours(); return h >= 5 && h < 12 ? 'morning' : h < 17 && h >= 12 ? 'afternoon' : h >= 17 && h < 22 ? 'evening' : 'late'; };
+function greeting() {
+  const name = (S.account ? S.account.name : S.localName).trim(), part = dayPart();
+  if (part === 'late') return name ? `Still up, ${name}?` : 'Still up?';
+  return `Good ${part}${name ? `, ${name}` : ''}`;
+}
 function usage(except) {
   const mine = S.events.filter(e => isOwner(e) && e.id !== except);
   return { events: mine.length, photos: mine.filter(e => e.look.bg.type === 'photo').length, animated: mine.filter(e => e.look.bg.animated).length,
@@ -439,7 +468,7 @@ const catOf = ev => ev.kind === 'smart' ? ['smart', 'Smart day', '✨'] : CATS.f
 function statusbar() {
   const ev = S.screen === 'detail' && byId(S.detailId);
   const light = (ev && tone(ev.look) === 'light') || isDark();
-  const veil = !['detail', 'onboarding'].includes(S.screen) ? 'veil' : '';
+  const veil = !['detail', 'onboarding', 'choice'].includes(S.screen) ? 'veil' : '';
   return `<div class="statusbar ${light ? 'on-dark' : ''} ${veil}" aria-hidden="true"><span class="sb-time">${clock(new Date()).replace(/\s?[AP]M/, '')}</span><span class="sb-icons">
     <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
     <svg viewBox="0 0 16 12"><path d="M8 2.4c2.3 0 4.4.9 6 2.4l1.3-1.4A10.3 10.3 0 008 .4 10.3 10.3 0 00.7 3.4L2 4.8a8.4 8.4 0 016-2.4zm0 4c1.2 0 2.3.5 3.2 1.2l1.3-1.4A6.6 6.6 0 008 4.4 6.6 6.6 0 003.5 6.2l1.3 1.4C5.7 6.9 6.8 6.4 8 6.4zm0 4.2 1.9-2A2.8 2.8 0 008 8a2.8 2.8 0 00-1.9.6z"/></svg>
@@ -472,8 +501,8 @@ function homeView() {
       ${pinned.length > 1 ? `<div class="dots">${pinned.map((e, i) => `<button class="dot" data-act="pin-go" data-arg="${i}" aria-label="Show ${esc(e.title)}" aria-current="${i === S.pinIndex}"></button>`).join('')}</div>` : ''}</div>`;
   return `<section class="view home" data-key="home"><div class="home-top">
     <header class="home-head">
-      <div><div class="kicker">${kicker}</div><h1 class="h1">Your days</h1></div>
-      <div class="head-btns"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search')}</button><button class="icon-btn ${S.account ? 'av-btn' : ''}" data-act="go" data-arg="settings" aria-label="Settings and account">${S.account ? esc(S.account.name[0]) : icon('user')}</button></div>
+      <div><div class="kicker">${kicker}</div>${S.settings.greeting ? `<h1 class="h1 greet" data-part="${dayPart()}">${esc(greeting())}</h1>` : '<h1 class="h1">Your days</h1>'}</div>
+      <div class="head-btns"><button class="icon-btn" data-act="search" aria-label="Search">${icon('search')}</button><button class="icon-btn ${S.account ? 'av-btn' : ''}" data-act="go" data-arg="settings" aria-label="Settings and account">${S.account ? esc(initial()) : icon('user')}</button></div>
     </header>
     ${S.searching ? `<div class="search">${icon('search')}<input data-field="query" placeholder="Search your days" value="${esc(S.query)}" aria-label="Search your days"><button data-act="search" aria-label="Close search">${icon('close')}</button></div>` : ''}
     ${carousel}</div>
@@ -564,7 +593,7 @@ function detailView() {
     !own && r === 'viewer' && `<button class="act" data-act="report">${icon('flag')}Report</button>`,
     !own && `<button class="act" data-act="leave" data-arg="${ev.id}">${icon('leave')}Leave</button>`,
   ].filter(Boolean);
-  const memos = ev.memos.map(m => `<div class="memo"><span class="av">${esc((S.account?.name || 'Y')[0])}</span><div>
+  const memos = ev.memos.map(m => `<div class="memo"><span class="av">${esc(initial())}</span><div>
       <div class="memo-meta"><b>You</b><span>${fmtDate(parse(m.date), 'year')}</span>${m.tag ? `<span class="tag">${esc(m.tag)}</span>` : ''}</div><p>${esc(m.text)}</p></div></div>`).join('');
   const zoneText = ev.zone ? (ev.zone === DEVICE_TZ ? `Fixed · ${city(ev.zone)} (this device)` : `Fixed · ${city(ev.zone)}`) : 'Floating · each viewer’s local time';
   return `<section class="view detail" data-key="detail">
@@ -713,7 +742,8 @@ const EDITOR_TABS = {
 };
 
 function settingsView() {
-  const st = S.settings, a = S.account, L = LIMITS[S.plan], u = usage(), premium = S.plan === 'premium';
+  const st = S.settings, a = S.account, L = LIMITS[S.plan], u = usage(), premium = S.plan === 'premium', lc = localCount();
+  const locked = (ic, label, why) => `<button class="cell locked" data-act="signin-prompt" data-arg="${why}"><span class="ci">${icon(ic)}</span><span class="cl">${label}<small>Needs an account</small></span><span class="cv">${icon('lock')}</span></button>`;
   const sw = (k, label) => `<button class="switch" role="switch" aria-label="${label}" aria-checked="${st[k]}" data-act="set-flag" data-arg="${k}"></button>`;
   const meter = (label, n, max) => `<div class="cell"><span class="cl">${label}<span class="meter"><i style="width:${Math.min(100, n / max * 100)}%"></i></span></span><span class="cv">${n} of ${max}</span></div>`;
   const gated = (label, n, max) => premium ? meter(label, n, max) : `<div class="cell"><span class="cl">${label}</span><span class="cv">${proBadge()}</span></div>`;
@@ -721,11 +751,21 @@ function settingsView() {
   return `<section class="view" data-key="settings">
     <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
     <h1 class="page-title">Settings</h1>
-    ${a ? `<div class="profile"><span class="pic">${esc(a.name[0])}</span><div><b>${esc(a.name)}</b><small>${esc(a.email)} · ${a.methods.map(methodName).join(', ')}</small></div><span class="pro ${premium ? '' : 'free'}">${premium ? 'Premium' : 'Free'}</span></div>
+    ${a ? `<div class="profile"><span class="pic">${esc(initial())}</span><div><button class="profile-name" data-act="edit-name"><b class="${(a.name || '').trim() ? '' : 'muted'}">${esc((a.name || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>${esc(a.email)} · ${a.methods.map(methodName).join(', ')}</small></div><span class="pro ${premium ? '' : 'free'}">${premium ? 'Premium' : 'Free'}</span></div>
       <div class="group">
         <div class="cell"><span class="ci">${icon('cloud')}</span><span class="cl">Sync<small>${S.pending ? `${S.pending} ${S.pending === 1 ? 'change' : 'changes'} waiting` : `Synced ${ago(S.lastSync)}`}</small></span><button class="btn btn-ghost sm" data-act="sync">Sync now</button></div>
-      </div>`
-    : `<div class="profile"><span class="pic">🌤️</span><div><b>Guest</b><small>Saved on this device only</small></div><button class="btn btn-accent sm" data-act="signin-prompt" data-arg="settings">Sign in</button></div>`}
+      </div>
+      ${lc.days ? `<p class="group-label">On this device<span class="new">New</span></p>
+      <div class="group">
+        <button class="cell" data-act="import-open"><span class="ci">${icon('upload')}</span><span class="cl">Import days from this device<small>${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this phone, not in your account</small></span><span class="cv">${lc.days}${icon('chev')}</span></button>
+      </div>` : ''}`
+    : `<div class="profile"><span class="pic">🌤️</span><div><button class="profile-name" data-act="edit-name"><b class="${(S.localName || '').trim() ? '' : 'muted'}">${esc((S.localName || '').trim() || 'Add your name')}</b>${icon('edit')}</button><small>Local</small></div><span class="pro free">${premium ? 'Premium' : 'Free'}</span></div>
+      <div class="info inset">${icon('info')}<span><b>Local mode.</b> Everything about your own days works here, offline. Sharing, sync, history and invites need an account. Premium features and the plan's limits still apply, so signing in later never goes over them.</span></div>
+      <div class="cta-wrap"><button class="btn btn-accent" data-act="signin-prompt" data-arg="settings">Sign in or create an account</button></div>
+      <p class="group-label">Needs an account</p>
+      <div class="group">
+        ${locked('cloud', 'Sync across devices', 'sync')}${locked('share', 'Sharing and invites', 'share')}${locked('history', 'History and restore', 'history')}${locked('download', 'Backup and download my data', 'backup')}
+      </div>`}
     <p class="group-label">Plan</p>
     <div class="group">
       ${meter('Days', u.events, L.events)}
@@ -735,11 +775,13 @@ function settingsView() {
       ${premium ? `<div class="cell"><span class="cl">Spotify days</span><span class="cv">${u.spotify} · no limit</span></div>` : meter('Spotify days', u.spotify, L.spotify)}
       <div class="cell">${premium ? '<span class="cl">Manage in the App Store</span>' : '<button class="btn btn-primary sm" data-act="paywall">Upgrade to Premium</button>'}<button class="txt-btn" data-act="restore">Restore purchases</button></div>
     </div>
+    ${a ? '' : '<p class="note pad">Local mode follows the same limits as an account, so signing in later never puts you over them. Premium features stay Premium.</p>'}
     <p class="group-label">Appearance</p>
     <div class="group">
       <div class="cell"><span class="ci">${icon('sun')}</span><span class="cl">Theme</span><div class="seg sm">${[['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']].map(([k, n]) => `<button data-act="theme" data-arg="${k}" ${pressed(st.theme, k)}>${n}</button>`).join('')}</div></div>
       <div class="cell"><span class="ci">${icon('palette')}</span><span class="cl">Accent</span><div class="accents">${ACCENTS.map(([k, h]) => `<button style="background:${h}" data-act="accent" data-arg="${k}" aria-label="Accent ${k}" ${pressed(st.accent, k)}></button>`).join('')}</div></div>
       <div class="cell"><span class="ci">${icon('pin')}</span><span class="cl">Pinned carousel<small>Pinned days at the top of Home</small></span>${sw('showHero', 'Pinned carousel')}</div>
+      <div class="cell"><span class="ci">${icon('sun')}</span><span class="cl">Greeting on Home<span class="new">New</span><small>“Good morning, ${esc((a ? a.name : S.localName).trim() || '…')}” instead of “Your days”</small></span>${sw('greeting', 'Greeting on Home')}</div>
       <div class="cell"><span class="ci">${icon('grid')}</span><span class="cl">Home layout</span><div class="seg sm">${[['list', 'List'], ['grid', 'Grid']].map(([k, n]) => `<button data-act="layout-set" data-arg="${k}" ${pressed(S.layout, k)}>${n}</button>`).join('')}</div></div>
     </div>
     <p class="group-label">Counting</p>
@@ -760,7 +802,7 @@ function settingsView() {
       <button class="cell" data-act="go" data-arg="widgets"><span class="ci">${icon('widgets')}</span><span class="cl">Widgets</span><span class="cv">${icon('chev')}</span></button>
       ${link('trash', 'Recently deleted<span class="new">New</span>', 'Deleted days stay here for 30 days.')}
       ${link('lock', 'Privacy lock<span class="new">New</span>', 'Face ID / fingerprint lock, and hiding private days from widgets.', 'Off')}
-      ${a ? '' : link('download', 'Export to a file<span class="new">New</span>', 'Guests keep days on this device only. Export a JSON backup.')}
+      ${a ? '' : link('download', 'Export to a file<span class="new">New</span>', 'Local days stay on this device only. Export a JSON backup.')}
       ${link('globe', 'Language', 'English, 简体中文, 繁體中文 …', 'English')}
       ${link('info', 'Terms of Service', 'Opens daysthatmatter.app/terms')}
       ${link('info', 'Privacy Policy', 'Opens daysthatmatter.app/privacy')}
@@ -770,7 +812,7 @@ function settingsView() {
       ${link('edit', 'Display name<small>Members see it in the member list and history</small>', 'Edit display name', esc(a.name))}
       ${link('plus', 'Add sign-in method', 'Apple, Google or email code. Same verified email joins the same account.')}
       ${link('download', 'Download my data', 'We’ll email you a link to download your days, memos and files. It works for 30 days.')}
-      <button class="cell" data-act="sign-out"><span class="ci">${icon('leave')}</span><span class="cl">Sign out<small>This device only. Your days stay here.</small></span></button>
+      <button class="cell" data-act="sign-out"><span class="ci">${icon('leave')}</span><span class="cl">Sign out<small>Back to local mode on this device</small></span></button>
       <button class="cell danger" data-act="delete-account"><span class="ci">${icon('trash')}</span><span class="cl">Delete account</span></button>
     </div>
     <p class="note pad">Accounts not used for 24 months are deleted after two emails sent 3 months apart, each with a link to download your data.</p>` : ''}
@@ -829,9 +871,29 @@ function onboardingView() {
   return `<section class="view onb" data-key="onboarding">
     <div class="collage" aria-hidden="true">${picks.map((e, i) => `<div class="fl fl${i}">${card(e, 'row')}</div>`).join('')}</div>
     <div><h1>Count the days<br>that matter.</h1><p>Birthdays, trips, firsts and finish lines. Give each one its own photo or color.</p></div>
-    ${signInButtons()}
-    <button class="btn btn-text" data-act="guest">Skip for now</button>
-    ${legal()}
+    <div class="onb-btns"><button class="btn btn-primary" data-act="go" data-arg="choice">Get started</button></div>
+  </section>`;
+}
+
+// First-launch choice: sits between the Welcome screen and Home. Two equal options; onboarding itself is built later.
+function choiceView() {
+  const li = items => `<ul class="benefits">${items.map(([ic, t]) => `<li>${icon(ic)}${t}</li>`).join('')}</ul>`;
+  return `<section class="view onb choice-view" data-key="choice">
+    <div class="page-head"><button class="icon-btn" data-act="back" aria-label="Back">${icon('back')}</button></div>
+    <h1>Where should your days live?</h1>
+    <p>You can change this later in Settings.</p>
+    <article class="choice">
+      <div class="choice-h"><span class="ci">${icon('lock')}</span><div><b>Use on this device</b><small>No account. Nothing leaves your phone.</small></div></div>
+      ${li([['check', 'All your own days, looks, widgets and reminders'], ['check', 'Works offline, no sign-in']])}
+      <p class="note"><b>Good to know.</b> Sharing, sync, history and invites need an account.</p>
+      <button class="btn btn-primary" data-act="local-start">Use on this device</button>
+    </article>
+    <article class="choice">
+      <div class="choice-h"><span class="ci">${icon('cloud')}</span><div><b>Sign in or create an account</b><small>Free to start. No password.</small></div></div>
+      ${li([['share', 'Share days with people you choose'], ['cloud', 'Sync across all your devices'], ['history', 'History, restore and backup']])}
+      <button class="btn btn-primary" data-act="signin-prompt" data-arg="welcome">Sign in or create an account</button>
+    </article>
+    <p class="legal">Creating an account means agreeing to the <a href="#" data-act="toast" data-arg="Opens the Terms of Service">Terms of Service</a> and <a href="#" data-act="toast" data-arg="Opens the Privacy Policy">Privacy Policy</a>.</p>
   </section>`;
 }
 
@@ -878,7 +940,7 @@ function shareBody(ev) {
       <button class="btn btn-primary" data-act="create-invite" style="margin-top:14px">${icon('share')}Create and send invite</button></div>
     ${inv ? `<p class="group-label flush">Open invites</p>${inv}` : ''}
     <p class="group-label flush">People · ${ev.members.length + 1} of 100</p>
-    <div class="lrow"><span class="av">${esc((S.account?.name || 'Y')[0])}</span><div class="cl"><b>You</b></div><span class="cv">Owner</span></div>${members}
+    <div class="lrow"><span class="av">${esc(initial())}</span><div class="cl"><b>You</b></div><span class="cv">Owner</span></div>${members}
     ${ev.removed.map((m, i) => `<div class="lrow muted"><span class="av">${esc(m.name[0])}</span><div class="cl"><b>${esc(m.name)}</b><small>Removed · can't rejoin through invites</small></div><button class="txt-btn" data-act="allow-again" data-arg="${i}">Allow again</button></div>`).join('')}
     <p class="note">Invites open in the app. Without the app, the link shows a page to get it; there is no sign-in or editing on the web. Opening an invite takes no use; joining takes one.</p>`;
 }
@@ -930,7 +992,9 @@ const SHEETS = {
     if (step === 'code') return `${sheetHead('Enter the code')}<p class="sheet-p">Sent to <b>${esc(email)}</b>. Valid for 10 minutes.</p>
       <input class="input code" inputmode="numeric" maxlength="6" data-field="code" placeholder="••••••" autocomplete="one-time-code"><button class="btn btn-primary" data-act="verify-code" style="margin-top:12px">Sign in</button>
       <button class="btn btn-text" data-act="send-code">Send a new code</button>`;
-    const why = { share: 'Sharing needs an account. Your days upload when you sign in, then you can share.', first: 'Keep this day safe and see it on all your devices.', sync: 'Sync your days to all your devices.', settings: 'Sync your days to all your devices and share them.' }[reason];
+    const why = { share: 'Sharing needs an account. Your days upload when you sign in, then you can share.', first: 'Keep this day safe and see it on all your devices.', sync: 'Sync your days to all your devices.', settings: 'Sync your days to all your devices and share them.',
+      history: 'History and restore need an account, so every change can be saved and brought back.', backup: 'Your days are backed up in your account, and you can download them any time.',
+      welcome: 'Create your account or sign in. Your days sync to all your devices.', nudge: 'Share days, sync across your devices and keep a backup. Your days here stay yours until you choose to import them.' }[reason];
     return `${sheetHead('Sign in or create an account')}<p class="sheet-p">${why}</p>${signInButtons()}${reason === 'share' ? '' : '<button class="btn btn-text" data-act="close-sheet">Not now</button>'}${legal()}`;
   },
   paywall: ({ g }) => g.limit
@@ -943,18 +1007,60 @@ const SHEETS = {
       ${g.alt ? `<button class="btn btn-ghost" data-act="paywall-alt" style="margin-top:8px">${esc(g.alt.label)}</button>` : ''}
       <div class="pw-foot"><button data-act="restore">Restore purchases</button><button data-act="close-sheet">Not now</button></div>
       <p class="note center">Billed by Apple or Google; cancel in your store settings. People you share with never need Premium to see it. Ending a plan never removes anything.</p>`,
-  confirm: ({ title: t, text, label }) => `${sheetHead(t)}<p class="sheet-p">${text}</p><button class="btn btn-danger" data-act="confirm-yes">${label}</button><button class="btn btn-text" data-act="close-sheet">Cancel</button>`,
+  // Heavy-use nudge (local mode only). Calm: one primary, a clear Not now, and a line saying how often it can return.
+  nudge: () => { const lc = localCount(); return `${sheetHead('Your days deserve a backup')}
+    <p class="sheet-p">You are keeping <b>${plural(lc.days, 'day')}</b> and <b>${plural(lc.memos, 'memo')}</b> on this phone. An account adds:</p>
+    <ul class="benefits">${[['share', 'Sharing with the people you choose'], ['cloud', 'Sync across your devices'], ['history', 'History, so any change can be restored'], ['archive', 'A backup if this phone is lost']].map(([ic, t]) => `<li>${icon(ic)}${t}</li>`).join('')}</ul>
+    <button class="btn btn-primary" data-act="nudge-yes">Sign in or create an account</button>
+    <button class="btn btn-text" data-act="nudge-no">Not now</button>
+    <p class="note center">Your days stay on this phone until you decide to import them. We won't ask again for a month.</p>`; },
+  // Import after sign-in, from Settings, and the follow-up states. Same wording in all places.
+  import: ({ step, n, memos: m, failed }) => {
+    const lc = localCount(), acct = esc(S.account?.email || ''), owned = S.accountEvents.filter(isOwner).length, over = S.plan === 'free' && owned + lc.days > LIMITS.free.events;
+    const rows = S.localEvents.slice(0, 3).map(e => `<div class="lrow"><span class="emo-i">${e.emoji}</span><div class="cl"><b>${title(e)}</b><small>${esc(meta(e, calc(e)))}${e.memos.length ? ` · ${plural(e.memos.length, 'memo')}` : ''}</small></div></div>`).join('') + (lc.days > 3 ? `<div class="lrow"><div class="cl"><small>and ${lc.days - 3} more</small></div></div>` : '');
+    if (step === 'confirm') return `${sheetHead('This can’t be undone')}
+      <p class="sheet-p">Import ${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} into <b>${acct}</b>?</p>
+      <ul class="benefits">${[['check', 'They are saved to your account and sync to your other devices.'], ['lock', 'They are removed from local mode on this phone. Signing out later will not bring them back here.'], ['info', 'You can’t move them back. Delete or edit them in your account as you would any day.']].map(([ic, t]) => `<li>${icon(ic)}${t}</li>`).join('')}</ul>
+      <button class="btn btn-primary" data-act="import-yes">Yes, import ${plural(lc.days, 'day')}</button>
+      <button class="btn btn-text" data-act="import-back">Go back</button>`;
+    if (step === 'done') return `<div class="empty"><div class="big">✅</div><b>${plural(n, 'day')} imported</b>${plural(m, 'memo')} came with ${n === 1 ? 'it' : 'them'}. ${n === 1 ? 'It is' : 'They are'} in your account now and will appear on your other devices. ${n === 1 ? 'It is' : 'They are'} no longer in local mode on this phone.</div>
+      <button class="btn btn-primary" data-act="import-done">Done</button>`;
+    if (step === 'partial') return `<div class="empty"><div class="big">⚠️</div><b>${n} of ${n + failed.length} days imported</b>${esc(failed.join(', '))} couldn’t be imported. The connection dropped. ${plural(failed.length, 'day')} stayed on this phone, safe and unchanged. The others are in your account for good.</div>
+      <button class="btn btn-primary" data-act="import-retry">Try again</button>
+      <button class="btn btn-text" data-act="import-done">Keep ${failed.length === 1 ? 'it' : 'them'} on this device for now</button>`;
+    return `${sheetHead('Import this phone’s days?', `Found ${plural(lc.days, 'day')} and ${plural(lc.memos, 'memo')} kept on this device`)}
+      <div class="form-card">${rows}</div>
+      <p class="sheet-p">Importing moves them into your account, so they sync to your other devices. It is permanent: they leave local mode on this phone and can’t be moved back. If you choose not now, nothing is imported.</p>
+      ${over ? `<div class="info">${icon('info')}<span>Your account would have ${owned + lc.days} days, above the Free plan's ${LIMITS.free.events}. Nothing is deleted; adding new days needs Premium.</span></div>` : ''}
+      <button class="btn btn-primary" data-act="import-go">Import ${plural(lc.days, 'day')}…</button>
+      <button class="btn btn-ghost" data-act="import-later" style="margin-top:8px">Not now, keep on this device</button>
+      <p class="note center">They stay here and are not shown in your account. You can import them later from Settings.</p>`;
+  },
+  confirm: ({ title: t, text, label, plain }) => `${sheetHead(t)}<p class="sheet-p">${text}</p><button class="btn ${plain ? 'btn-primary' : 'btn-danger'}" data-act="confirm-yes">${label}</button><button class="btn btn-text" data-act="close-sheet">Cancel</button>`,
 };
 
 function overlays() {
   let html = '';
+  if (S.dialog === 'name') {
+    const cur = S.dialogName !== undefined ? S.dialogName : (S.account ? (S.account.name || '') : (S.localName || ''));
+    const helper = S.account ? 'Shown on your account and in greetings.' : 'Used in greetings. Stays on this device.';
+    html += `<div class="scrim" data-act="dialog-cancel"></div><div class="dialog" role="dialog" aria-modal="true">
+      <h2 class="dialog-title">What should we call you?</h2>
+      <input class="input" data-field="dialog-name" maxlength="40" value="${esc(cur)}" placeholder="Add your name" aria-label="What should we call you?" autocomplete="off">
+      <p class="dialog-hint">${helper}</p>
+      <div class="btn-row">
+        <button class="btn btn-ghost" data-act="dialog-cancel">Cancel</button>
+        <button class="btn btn-primary" data-act="dialog-save">Save</button>
+      </div>
+    </div>`;
+  }
   if (S.sheet) html += `<div class="scrim" data-act="close-sheet"></div><div class="sheet ${S.sheet.type}" role="dialog" aria-modal="true"><div class="grabber"></div>${SHEETS[S.sheet.type](S.sheet)}</div>`;
   if (S.toast) html += `<div class="toast" role="status"><span>${esc(S.toast.text)}</span>${S.toast.undo ? '<button data-act="undo">Undo</button>' : ''}</div>`;
   return html;
 }
 
 // ---------- render ----------
-const VIEWS = { archive: archiveView, home: homeView, detail: detailView, editor: editorView, settings: settingsView, widgets: widgetsView, onboarding: onboardingView };
+const VIEWS = { archive: archiveView, home: homeView, detail: detailView, editor: editorView, settings: settingsView, widgets: widgetsView, onboarding: onboardingView, choice: choiceView };
 
 function render() {
   const old = app.querySelector('.view'), oldSheet = app.querySelector('.sheet'), sheetScroll = oldSheet?.scrollTop, hadToast = !!app.querySelector('.toast');
@@ -1001,6 +1107,23 @@ function focusRow(scroll) {
   const top = list.scrollTop + row.getBoundingClientRect().top - list.getBoundingClientRect().top - 14;
   list.scrollTo({ top, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 }
+// Collapsing the pinned carousel swaps its whole layout (title row and big number become one strip). Doing that in one frame while the
+// card's height still animates reads as a flash, so the card's contents fade out first, the layout switches while they are invisible,
+// and they fade back in as the frame settles. Hysteresis (collapse past 32, expand below 8) stops it chattering near the threshold.
+const COMPACT_ON = 32, COMPACT_OFF = 8, SWAP_MS = 90;
+let compactTimer;
+function wantCompact(home, list) { const on = home.classList.contains('compact'); return on ? list.scrollTop >= COMPACT_OFF : list.scrollTop > COMPACT_ON; }
+function setCompact(home, list) {
+  if (!home || home.classList.contains('swap')) return;
+  const target = wantCompact(home, list);
+  if (target === home.classList.contains('compact')) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { home.classList.toggle('compact', target); return; }
+  // Commit to the decision made now (re-reading the scroll position at the end would sometimes cancel it after the fade-out had
+  // already started, which is a blink with no change), then look again once the swap is done in case the user moved on.
+  home.classList.add('swap');
+  clearTimeout(compactTimer);
+  compactTimer = setTimeout(() => { home.classList.toggle('compact', target); requestAnimationFrame(() => { home.classList.remove('swap'); setCompact(home, list); }); }, SWAP_MS);
+}
 function homeSync() {
   const list = app.querySelector('.home-list'), track = app.querySelector('.pins');
   app.querySelector('.home').classList.toggle('compact', list.scrollTop > 24);
@@ -1011,9 +1134,9 @@ const scrollPins = i => { const t = app.querySelector('.pins'); t.scrollTo({ lef
 
 const openSheet = sheet => { S.sheet = sheet; S.sheetFresh = true; render(); };
 
-function go(screen, anim = 'right') { S.stack.push(S.screen); S.screen = screen; S.anim = anim; S.sheet = null; render(); }
-function back() { if (S.screen === 'detail') S.playing = false; S.screen = S.stack.pop() || 'home'; S.anim = 'back'; S.sheet = null; render(); }
-function jump(screen) { S.stack = screen === 'home' || screen === 'onboarding' ? [] : ['home']; S.screen = screen; S.anim = 'fade'; S.sheet = null; render(); }
+function go(screen, anim = 'right') { S.stack.push(S.screen); S.screen = screen; S.anim = anim; S.sheet = null; S.dialog = null; render(); }
+function back() { if (S.screen === 'detail') S.playing = false; S.screen = S.stack.pop() || 'home'; S.anim = 'back'; S.sheet = null; S.dialog = null; render(); }
+function jump(screen) { S.stack = screen === 'home' || screen === 'onboarding' ? [] : screen === 'choice' ? ['onboarding'] : ['home']; S.screen = screen; S.anim = 'fade'; S.sheet = null; S.dialog = null; render(); }
 
 let toastTimer;
 function toast(text, undo) {
@@ -1097,13 +1220,40 @@ function setPinned(id, on) {
 }
 
 function signIn(method) {
-  const n = S.events.filter(isOwner).length;
   S.account = { ...ACCOUNT, methods: [method] }; S.sheet = null;
-  toast(`Signed in with ${methodName(method)}. Uploading your ${n} days…`);
-  queueSync(n);
   const then = S.after; S.after = null;
-  if (S.screen === 'onboarding') jump('home');
+  if (['onboarding', 'choice'].includes(S.screen)) jump('home');
+  // Local days found on this device: ask before anything moves. Nothing is uploaded automatically.
+  if (S.localEvents.length && S.importChoice !== 'skipped') {
+    toast(`Signed in with ${methodName(method)}.`); S.afterImport = then;
+    return openSheet({ type: 'import', step: 'ask' });
+  }
+  toast(`Signed in with ${methodName(method)}.`);
   if (then) then(); else render();
+}
+
+// Move local days into the account, one day at a time: each day is imported whole or stays local. importFail simulates a dropped connection on the last day.
+function doImport(prior = { n: 0, memos: 0 }) {
+  const list = [...S.localEvents], failing = S.importFail ? list.slice(-1) : [], ok = list.filter(e => !failing.includes(e));
+  S.accountEvents.push(...ok.map(e => ({ ...structuredClone(e), imported: true })));
+  S.localEvents = failing;
+  const memos = prior.memos + ok.reduce((n, e) => n + e.memos.length, 0), n = prior.n + ok.length;
+  if (!failing.length) S.importChoice = 'imported';
+  queueSync(ok.length);
+  S.sheet = { type: 'import', step: failing.length ? 'partial' : 'done', n, memos, failed: failing.map(e => e.title) };
+  S.sheetFresh = true; render();
+}
+function closeImport(choice) {
+  const f = S.afterImport; S.afterImport = null; S.sheet = null;
+  if (choice) S.importChoice = choice;
+  if (f) f(); else render();
+}
+// Panel helpers: put the prototype in a state so a reviewer can look at it without playing through.
+const ensureSigned = () => { if (!S.account) { S.account = { ...ACCOUNT }; S.filter = 'all'; } };
+function setLocalDays(some) {
+  S.accountEvents = S.accountEvents.filter(e => !e.imported);
+  S.localEvents = some ? seedLocal() : [];
+  if (S.importChoice === 'imported') S.importChoice = 'none';
 }
 
 function pushRevision(prev, d) {
@@ -1209,7 +1359,11 @@ const ACT = {
     const list = S.history[S.sheet.id]; list.unshift({ rev: list[0].rev + 1, by: 'You', when: 'Just now', changes: [['Restored', `Rev ${list[0].rev}`, `Rev ${a}`]] });
     toast(`Restored revision ${a}. Saved as revision ${list[0].rev}.`); render();
   },
-  'close-sheet': () => { S.sheet = null; S.after = null; render(); },
+  'close-sheet': () => {
+    if (S.sheet?.type === 'import') return S.sheet.step === 'done' || S.sheet.step === 'partial' ? closeImport() : ACT['import-later']();
+    if (S.sheet?.type === 'nudge') return ACT['nudge-no']();
+    S.sheet = null; S.after = null; render();
+  },
   'confirm-yes': () => { const f = S.sheet.then; S.sheet = null; f(); render(); },
   undo: () => { S.toast?.undo?.(); S.toast = null; render(); },
   unit: a => { byId(S.detailId).unit = a; queueSync(); render(); },
@@ -1243,7 +1397,6 @@ const ACT = {
     if (!prev) { S.stack.push(S.screen); S.screen = 'detail'; S.detailId = d.id; }
     S.anim = 'fade'; S.motion = true;
     toast(d.pinned && !prev?.pinned ? 'Saved and pinned to the top' : S.account && d.owner ? `Saved. ${d.owner.name} and the others see it now.` : 'Saved');
-    if (!prev && !S.account && !S.firstSavePrompted) { S.firstSavePrompted = true; S.sheet = { type: 'signin', reason: 'first' }; S.sheetFresh = true; }
     render();
   },
   'ed-tab': a => { S.edTab = a; render(); },
@@ -1295,12 +1448,40 @@ const ACT = {
   signin: a => { if (a === 'email') { S.sheet = { type: 'signin', reason: S.sheet?.reason || 'settings', step: 'email' }; S.sheetFresh = !app.querySelector('.sheet'); return render(); } signIn(a); },
   'send-code': () => { const email = app.querySelector('[data-field="email"]')?.value.trim() || S.sheet.email; if (!/^\S+@\S+\.\S+$/.test(email || '')) { toast('Enter an email address'); return render(); } S.sheet = { ...S.sheet, step: 'code', email }; toast('Code sent'); render(); },
   'verify-code': () => { const v = app.querySelector('[data-field="code"]').value; if (!/^\d{6}$/.test(v)) { toast('Enter the 6-digit code'); return render(); } signIn('email'); },
-  guest: () => { S.account = null; S.filter = 'all'; jump('home'); toast('You’re a guest. Days stay on this device.'); render(); },
+  'local-start': () => { S.account = null; S.filter = 'all'; jump('home'); toast('Using this device only. Tap your name in Settings to add it.'); render(); },
+  'edit-name': () => {
+    S.dialog = 'name';
+    S.dialogName = S.account ? (S.account.name || '') : (S.localName || '');
+    S.focus = '.dialog input';
+    render();
+  },
+  'dialog-save': () => {
+    const val = (S.dialogName !== undefined ? S.dialogName : (app.querySelector('.dialog input')?.value ?? '')).trim();
+    if (S.account) S.account.name = val;
+    else S.localName = val;
+    S.dialog = null;
+    delete S.dialogName;
+    render();
+  },
+  'dialog-cancel': () => {
+    S.dialog = null;
+    delete S.dialogName;
+    render();
+  },
+  'import-open': () => openSheet({ type: 'import', step: 'ask' }),
+  'import-go': () => { S.sheet = { ...S.sheet, step: 'confirm' }; render(); },
+  'import-back': () => { S.sheet = { ...S.sheet, step: 'ask' }; render(); },
+  'import-yes': () => doImport(),
+  'import-retry': () => { S.importFail = false; doImport({ n: S.sheet.n, memos: S.sheet.memos }); },
+  'import-later': () => { toast('Kept on this device. You can import them from Settings.'); closeImport('skipped'); },
+  'import-done': () => closeImport(),
+  'nudge-yes': () => { S.sheet = null; openSheet({ type: 'signin', reason: 'nudge' }); },
+  'nudge-no': () => { S.nudgeNo++; S.sheet = null; toast(S.nudgeNo >= 2 ? 'OK. We won’t ask again. It’s in Settings if you change your mind.' : 'No problem.'); render(); },
   sync: () => { if (!S.account) return openSheet({ type: 'signin', reason: 'sync' }); S.pending = 0; S.lastSync = Date.now(); toast('Synced just now. Changes sync automatically after each edit.'); render(); },
-  'sign-out': () => openSheet({ type: 'confirm', title: 'Sign out on this phone?', text: `${S.pending ? `<b>${S.pending} changes haven't synced yet.</b> ` : ''}Other devices stay signed in. Your days stay on this phone until you remove them.`, label: 'Sign out',
-    then: () => { S.account = null; S.filter = 'all'; toast('Signed out. You’re a guest on this phone.'); } }),
+  'sign-out': () => { const lc = localCount(); return openSheet({ type: 'confirm', plain: true, title: 'Sign out and use this device only?', text: `${S.pending ? `<b>${S.pending} changes haven't synced yet.</b> ` : ''}You will go back to local mode, where you see only the days kept on this phone${lc.days ? ` (${plural(lc.days, 'day')})` : ''}. Days in your account, including any you imported, stay in your account and won't show here. Other devices stay signed in.`, label: 'Sign out',
+    then: () => { S.account = null; S.filter = 'all'; S.stack = []; S.screen = 'home'; S.anim = 'fade'; toast('Signed out. You’re using this device only.'); } }); },
   'delete-account': () => openSheet({ type: 'confirm', title: 'Delete your account?', text: `This deletes your days, memos, links, invites and uploads, and removes you from days shared with you. ${S.plan === 'premium' ? '<b>Cancel your Premium subscription in the App Store first;</b> deleting the account does not stop billing.' : ''}`, label: 'Delete account',
-    then: () => { S.account = null; S.events = S.events.filter(isOwner); S.plan = 'free'; toast('Account deleted'); } }),
+    then: () => { S.account = null; S.accountEvents = []; S.plan = 'free'; toast('Account deleted. Days kept on this device are untouched.'); } }),
   // settings
   theme: a => { S.settings.theme = a; applyTheme(); render(); },
   accent: a => { S.settings.accent = a; applyTheme(); render(); },
@@ -1320,7 +1501,14 @@ app.addEventListener('click', e => {
 });
 app.addEventListener('keydown', e => {
   const t = e.target;
-  if (e.key === 'Escape' && S.sheet) { S.sheet = null; return render(); }
+  if (e.key === 'Escape') {
+    if (S.dialog) { S.dialog = null; delete S.dialogName; return render(); }
+    if (S.sheet) { S.sheet = null; return render(); }
+  }
+  if (t.dataset?.field === 'dialog-name' && e.key === 'Enter') {
+    e.preventDefault();
+    return ACT['dialog-save']();
+  }
   if (t.dataset?.field === 'memo' && e.key === 'Enter') return ACT['add-memo']();
   if ((e.key === 'Enter' || e.key === ' ') && t.matches?.('[role="button"][data-act], [role="radio"][data-act]')) { e.preventDefault(); t.click(); }
 });
@@ -1346,7 +1534,7 @@ app.addEventListener('scroll', e => {
   } else if (t.classList?.contains('home-list')) {
     // A scroll we started (carousel follow) must not collapse the carousel; it ends 150 ms after the list stops.
     if (autoScroll) { clearTimeout(autoTimer); autoTimer = setTimeout(() => { autoScroll = false; }, 150); return; }
-    t.closest('.home').classList.toggle('compact', t.scrollTop > 24);
+    setCompact(t.closest('.home'), t);
   }
 }, true);
 app.addEventListener('contextmenu', e => {
@@ -1363,6 +1551,7 @@ app.addEventListener('input', e => {
   else if (f === 'blur') { d.look.blur = +val; app.querySelector('#blur-out').textContent = val; refreshPreview(); }
   else if (f === 'color') { d.look.bg = { type: 'color', value: val.toUpperCase() }; refreshPreview(); }
   else if (f === 'link-label') S.share.linkLabel = val;
+  else if (f === 'dialog-name') S.dialogName = val;
   else if (e.target.type === 'range') e.target.nextElementSibling.textContent = `${val}%`;
 });
 app.addEventListener('change', e => {
@@ -1376,7 +1565,8 @@ app.addEventListener('change', e => {
 
 // ---------- prototype panel ----------
 const SCREENS = [
-  ['onboarding', 'Welcome', 'Apple, Google or email code; guest in one tap'],
+  ['onboarding', 'Welcome', 'First launch, step 1'],
+  ['choice', 'Device or account', 'First launch, step 2 (new)'],
   ['home', 'Home', 'Swipe the pinned carousel; the list follows'],
   ['detail', 'Day', 'Tap the number to change units'],
   ['editor', 'Customize', 'Photo, Live Photo, style, font, music'],
@@ -1385,18 +1575,27 @@ const SCREENS = [
   ['widgets', 'Widgets', 'Home and Lock Screen'],
   ['settings', 'Settings', 'Account, sync, plan, appearance'],
 ];
+// Name variants for the greeting. They change the name of whichever mode is active (local name, or the account's display name).
+const NAMES = { default: null, long: 'Alexandria Montgomery-Featherstonehaugh', emoji: 'Mia 🌸', none: '' };
+const nameKey = () => { const n = S.account ? S.account.name : S.localName; return n === NAMES.long ? 'long' : n === NAMES.emoji ? 'emoji' : n === '' ? 'none' : 'default'; };
 function renderPanel() {
   const cur = S.sheet?.type === 'share' ? 'share' : S.screen;
-  const seg = (label, pairs, cur2, key) => `<div class="pctl"><span>${label}</span><div class="seg sm" role="group" aria-label="${label}">${pairs.map(([k, n]) => `<button data-p${key}="${k}" ${pressed(cur2, k)}>${n}</button>`).join('')}</div></div>`;
+  const seg = (label, pairs, cur2, key, wide = '') => `<div class="pctl ${wide}"><span>${label}</span><div class="seg sm" role="group" aria-label="${label}">${pairs.map(([k, n]) => `<button data-p${key}="${k}" ${pressed(cur2, k)}>${n}</button>`).join('')}</div></div>`;
   panel.innerHTML = `<div class="brand"><svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="var(--accent)"/><circle cx="20" cy="21" r="6" fill="var(--on-accent)"/><path d="M10 27.5h20" stroke="var(--on-accent)" stroke-width="3" stroke-linecap="round"/><path d="M20 9.5v3M11.5 13l2 2M28.5 13l-2 2" stroke="var(--on-accent)" stroke-width="2.4" stroke-linecap="round"/></svg>
     <div><b>Days That Matter</b><small>Design v2 · interactive prototype</small></div></div>
     <p class="panel-text">Quiet, light chrome. Each day card brings its own photo, color or art. Pinned days lead Home in a carousel.</p>
     <nav class="nav" aria-label="Screens">${SCREENS.map(([k, n, hint]) => `<button data-pact="${k}" aria-current="${cur === k}">${n}<small>${hint}</small></button>`).join('')}</nav>
     <div class="pctls">
       ${seg('Theme', [['system', 'Auto'], ['light', 'Light'], ['dark', 'Dark']], S.settings.theme, 'theme')}
-      ${seg('Account', [['guest', 'Guest'], ['signed', 'Signed in']], S.account ? 'signed' : 'guest', 'acct')}
+      ${seg('Account', [['local', 'Local'], ['signed', 'Signed in']], S.account ? 'signed' : 'local', 'acct')}
       ${seg('Plan', [['free', 'Free'], ['premium', 'Premium']], S.plan, 'plan')}
       ${seg('Memo badge', [['top-left', 'Left'], ['top-right', 'Right']], S.config.memoBadge, 'badge')}
+      ${seg('Days on device', [['none', 'None'], ['some', 'Some']], S.localEvents.length ? 'some' : 'none', 'days')}
+      ${seg('Import choice', [['none', 'Not yet'], ['imported', 'Imported'], ['skipped', 'Skipped']], S.importChoice, 'import', 'stack')}
+      ${seg('Import result', [['ok', 'All'], ['fail', 'Partial']], S.importFail ? 'fail' : 'ok', 'result')}
+      ${seg('Name', [['default', 'Short'], ['long', 'Long'], ['emoji', 'Emoji'], ['none', 'None']], nameKey(), 'name', 'stack')}
+      ${seg('Time of day', [['now', 'Now'], ['9', 'Morning'], ['14', 'Afternoon'], ['19', 'Evening'], ['1', 'Late']], S.clockHour === null ? 'now' : String(S.clockHour), 'hour', 'stack')}
+      <div class="pctl"><span>Heavy-use nudge</span><button class="btn btn-ghost sm" data-pnudge="1">Show</button></div>
     </div>
     <div class="panel-foot"><a href="README.md">Design notes &amp; gaps</a><button data-pact="reset">Reset demo</button></div>`;
   panel.querySelector('[aria-current="true"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
@@ -1405,10 +1604,24 @@ panel.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const k = b.dataset.pact;
   if (b.dataset.ptheme) { S.settings.theme = b.dataset.ptheme; applyTheme(); return render(); }
+  if (b.dataset.pdays) { setLocalDays(b.dataset.pdays === 'some'); S.sheet = null; return render(); }
+  if (b.dataset.presult) { S.importFail = b.dataset.presult === 'fail'; return render(); }
+  if (b.dataset.pname) { const v = b.dataset.pname === 'default' ? (S.account ? ACCOUNT.name : 'Sam') : NAMES[b.dataset.pname]; if (S.account) S.account.name = v; else S.localName = v; return render(); }
+  if (b.dataset.phour) { S.clockHour = b.dataset.phour === 'now' ? null : +b.dataset.phour; return render(); }
+  if (b.dataset.pnudge) { S.account = null; if (S.screen !== 'home') { S.stack = []; S.screen = 'home'; } return openSheet({ type: 'nudge' }); }
+  if (b.dataset.pimport) {
+    const v = b.dataset.pimport;
+    ensureSigned();
+    if (v !== 'skipped' && !S.localEvents.length) setLocalDays(true);
+    S.afterImport = null;
+    if (v === 'none') { S.importChoice = 'none'; return openSheet({ type: 'import', step: 'ask' }); }
+    if (v === 'imported') { S.importFail = false; S.sheet = null; return doImport(); }
+    S.importChoice = 'skipped'; S.sheet = null; return render();
+  }
   if (b.dataset.pacct) { S.account = b.dataset.pacct === 'signed' ? { ...ACCOUNT } : null; S.filter = 'all'; if (S.screen === 'detail' && !visible().includes(byId(S.detailId))) S.screen = 'home'; return render(); }
   if (b.dataset.pplan) { S.plan = b.dataset.pplan; return render(); }
   if (b.dataset.pbadge) { S.config.memoBadge = b.dataset.pbadge; return render(); } // simulates a remote config change
-  if (k === 'reset') { Object.assign(S, { events: seed(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, plan: 'free', pending: 0, firstSavePrompted: false, sheet: null, filter: 'all', query: '', searching: false }); S.settings.dayOne = false; return jump('home'); }
+  if (k === 'reset') { Object.assign(S, { accountEvents: seed(), localEvents: seedLocal(), history: seedHistory(), library: seedLibrary(), account: { ...ACCOUNT }, localName: 'Sam', importChoice: 'skipped', importFail: false, afterImport: null, nudgeNo: 0, clockHour: null, plan: 'free', pending: 0, sheet: null, dialog: null, filter: 'all', query: '', searching: false }); delete S.dialogName; S.settings.dayOne = false; return jump('home'); }
   if (k === 'editor') { S.stack = []; S.screen = 'home'; return openEditor(byId(S.detailId) && visible().includes(byId(S.detailId)) ? S.detailId : pins()[0]?.id, 'background'); }
   if (k === 'detail' || k === 'share') {
     if (!byId(S.detailId) || !visible().includes(byId(S.detailId))) S.detailId = (pins()[0] || visible()[0]).id;
