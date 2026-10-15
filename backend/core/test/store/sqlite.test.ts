@@ -10,12 +10,15 @@ import type { SqlDriver } from '../../src/ports/sql.ts';
 const dirs: string[] = [];
 afterAll(() => dirs.forEach((d) => rmSync(d, { recursive: true, force: true })));
 
-describe('migration 0001_init.sql', () => {
+describe('migrations 0001_init.sql and 0002_accounts.sql', () => {
   it('creates the tables of this wave and leaves later ones to their tasks', async () => {
     const { driver } = await openSqliteStore();
     const tables = (await driver.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")).map((r) => r.name);
-    expect(tables).toEqual(['_migrations', 'accounts', 'devices', 'events', 'exports', 'grants', 'links', 'media', 'members', 'memos', 'revisions']);
-    for (const later of ['identities', 'email_codes', 'sessions', 'invites', 'purchases', 'rate_counters']) expect(tables).not.toContain(later);
+    expect(tables).toEqual([
+      '_migrations', 'accounts', 'devices', 'email_codes', 'events', 'exports', 'grants', 'identities', 'links', 'media', 'members', 'memos',
+      'revisions', 'sessions',
+    ]);
+    for (const later of ['invites', 'purchases', 'rate_counters']) expect(tables).not.toContain(later);
   });
 
   it('matches the columns and indexes of BACKEND.md section 6.1', async () => {
@@ -27,7 +30,11 @@ describe('migration 0001_init.sql', () => {
     ]);
     expect(await columns('events')).toEqual([
       'id', 'owner_id', 'rev', 'doc', 'audio_kind', 'audio_set_by', 'audio_media_id', 'child_seq', 'child_purged_seq', 'updated_at', 'deleted_at',
+      'first_upload_at',
     ]);
+    expect(await columns('identities')).toEqual(['provider', 'subject', 'account_id', 'email', 'email_verified', 'created_at']);
+    expect(await columns('email_codes')).toEqual(['email_hash', 'code_mac', 'expires_at', 'attempts']);
+    expect(await columns('sessions')).toEqual(['token_hash', 'account_id', 'created_at', 'last_used_at']);
     expect(await columns('revisions')).toEqual(['event_id', 'rev', 'author_id', 'created_at', 'patch', 'inverse', 'overwrote', 'restored_from']);
     expect(await columns('members')).toEqual(['event_id', 'account_id', 'role', 'invite_id', 'archived_at', 'reminders', 'created_at']);
     expect(await columns('media')).toEqual([
@@ -36,8 +43,8 @@ describe('migration 0001_init.sql', () => {
     const indexes = (await driver.query<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_%' ORDER BY name")).map((r) => r.name);
     expect(indexes).toEqual([
       'idx_accounts_last_active', 'idx_accounts_media_bytes', 'idx_accounts_media_files', 'idx_devices_account', 'idx_events_audio_media',
-      'idx_events_owner', 'idx_events_spotify', 'idx_exports_account', 'idx_grants_account', 'idx_links_event', 'idx_media_unused',
-      'idx_media_uploader', 'idx_members_account', 'idx_memos_event_seq',
+      'idx_events_owner', 'idx_events_spotify', 'idx_exports_account', 'idx_grants_account', 'idx_identities_account', 'idx_identities_email',
+      'idx_links_event', 'idx_media_unused', 'idx_media_uploader', 'idx_members_account', 'idx_memos_event_seq', 'idx_sessions_account',
     ]);
   });
 
@@ -50,10 +57,10 @@ describe('migration 0001_init.sql', () => {
 
   it('applies once, in name order', async () => {
     const driver = new NodeSqliteDriver();
-    expect(await applyMigrations(driver, readMigrations())).toEqual(['0001_init.sql']);
+    expect(await applyMigrations(driver, readMigrations())).toEqual(['0001_init.sql', '0002_accounts.sql']);
     expect(await applyMigrations(driver, readMigrations())).toEqual([]);
-    const later = [{ name: '0003_c.sql', sql: 'CREATE TABLE c (x INTEGER);' }, { name: '0002_b.sql', sql: 'CREATE TABLE b (x INTEGER);' }];
-    expect(await applyMigrations(driver, later)).toEqual(['0002_b.sql', '0003_c.sql']);
+    const later = [{ name: '0004_c.sql', sql: 'CREATE TABLE c (x INTEGER);' }, { name: '0003_b.sql', sql: 'CREATE TABLE b (x INTEGER);' }];
+    expect(await applyMigrations(driver, later)).toEqual(['0003_b.sql', '0004_c.sql']);
   });
 
   it('rolls back a failing migration whole', async () => {

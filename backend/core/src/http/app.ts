@@ -7,6 +7,8 @@ import { ApiError, errorResponse, internalError, notFound, serviceUnavailable } 
 import { applyResponseHeaders } from './headers.ts';
 import { consoleLog, logLine } from './log.ts';
 import type { LogSink } from './log.ts';
+import { accountRoutes } from './accounts.ts';
+import { API } from './paths.ts';
 import { Router } from './router.ts';
 import type { Params, Route } from './router.ts';
 import { jsonResponse } from './types.ts';
@@ -27,10 +29,9 @@ export interface App {
   handle(req: CoreRequest): Promise<CoreResponse>;
 }
 
-export const API = '/api/v1';
+export { API };
 
-/** The routes of the core so far. Later tasks add theirs here. */
-export const coreRoutes: readonly Route<Handler>[] = [
+const healthRoutes: readonly Route<Handler>[] = [
   {
     method: 'GET',
     pattern: `${API}/health`,
@@ -40,6 +41,9 @@ export const coreRoutes: readonly Route<Handler>[] = [
     },
   },
 ];
+
+/** The routes of the core so far. Later tasks add theirs here. */
+export const coreRoutes: readonly Route<Handler>[] = [...healthRoutes, ...accountRoutes];
 
 export interface AppOptions {
   readonly routes?: readonly Route<Handler>[];

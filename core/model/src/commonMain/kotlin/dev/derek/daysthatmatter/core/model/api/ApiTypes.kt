@@ -4,6 +4,7 @@ import dev.derek.daysthatmatter.core.model.event.EventDoc
 import dev.derek.daysthatmatter.core.model.event.MemberRole
 import dev.derek.daysthatmatter.core.model.event.PublicEvent
 import dev.derek.daysthatmatter.core.model.event.Role
+import dev.derek.daysthatmatter.core.model.plan.Feature
 import dev.derek.daysthatmatter.core.model.plan.Plan
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -11,9 +12,9 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlin.time.Instant
 
-// Request and response bodies of BACKEND.md section 7. Bodies the document does not show yet
-// (sign-in response, GET /me, the POST /events/fetch and revisions page wrappers, the memo PATCH
-// wrapper) are added with the backend core (tasks 3.x).
+// Request and response bodies of BACKEND.md section 7. The sign-in response, `GET /me`, the
+// `POST /events/fetch` and revisions page wrappers and the memo bodies came with the backend core
+// (tasks 3.5 and 3.6) and are shown in BACKEND.md section 7.4.
 
 /** `GET /health`. */
 @Serializable
@@ -340,3 +341,51 @@ data class StorageRow(
 /** `GET /admin/storage` (operator only). */
 @Serializable
 data class StorageReport(val rows: List<StorageRow>, val next: String? = null)
+
+/** One sign-in method of the account; [email] is shown to the account owner only. */
+@Serializable
+data class IdentityInfo(val provider: SignInMethod, val email: String? = null)
+
+/**
+ * `GET /me`, also the answer to `PATCH /me` and `POST /me/identities`: the account, its plan, its
+ * sign-in methods and, per counted [Feature], what it uses ([usage]) and its plan's limit ([limits];
+ * 0 = not included, null = no limit). [planExpiresAt] null = no end.
+ */
+@Serializable
+data class Me(
+    val id: String,
+    val displayName: String,
+    val plan: Plan,
+    val planExpiresAt: Instant? = null,
+    val identities: List<IdentityInfo> = emptyList(),
+    val usage: Map<Feature, Int> = emptyMap(),
+    val limits: Map<Feature, Int?> = emptyMap(),
+    val createdAt: Instant,
+)
+
+/** `PATCH /me`: the display name members see (1 to 100 characters, the title rule). */
+@Serializable
+data class MePatchRequest(val displayName: String)
+
+/**
+ * Answer to `POST /auth/token` and `POST /auth/email/verify`: the bearer [session] token
+ * (`st_` + 43 characters), the account, and [created] when this sign-in created the account.
+ */
+@Serializable
+data class SignInResponse(val session: String, val account: Me, val created: Boolean = false)
+
+/** `POST /events/fetch`: documents projected by role. Unknown, deleted or inaccessible ids are left out. */
+@Serializable
+data class FetchEventsResponse(val events: List<EventDoc>)
+
+/** `PUT /events/{id}/memos/{memoId}`: a new memo. The answer is the memo (`Memo`). */
+@Serializable
+data class MemoPutRequest(val content: String, val milestoneTag: String? = null, val createdAt: Instant)
+
+/** `PATCH /events/{id}/memos/{memoId}`: new values of memo fields; null clears `milestoneTag`. The answer is the memo (`Memo`). */
+@Serializable
+data class MemoPatchRequest(val patch: JsonObject)
+
+/** `GET /events/{id}/revisions?before=&limit=`: newest first; [next] is the `before` of the next page, null at the end. */
+@Serializable
+data class RevisionsPage(val revisions: List<Revision>, val next: Long? = null)

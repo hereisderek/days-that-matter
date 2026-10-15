@@ -153,6 +153,10 @@ export interface FetchEventsRequest {
   ids: string[];
 }
 
+export interface FetchEventsResponse {
+  events: EventDoc[];
+}
+
 export interface FieldChange {
   field: string;
   from?: unknown | null;
@@ -167,6 +171,11 @@ export interface GooglePurchaseRequest {
 export interface HealthResponse {
   status: string;
   version: string;
+}
+
+export interface IdentityInfo {
+  provider: SignInMethod;
+  email?: string | null;
 }
 
 export interface InviteInfo {
@@ -246,6 +255,22 @@ export interface ManifestEntry {
   childSeq: number;
 }
 
+export interface Me {
+  id: string;
+  displayName: string;
+  plan: Plan;
+  planExpiresAt?: string | null;
+  identities?: IdentityInfo[];
+  usage?: Record<string, number>;
+  limits?: Record<string, number | null>;
+  /** Format: date-time. */
+  createdAt: string;
+}
+
+export interface MePatchRequest {
+  displayName: string;
+}
+
 export type MediaKind = "still" | "motion" | "audio";
 
 export interface MediaUploadResponse {
@@ -293,6 +318,17 @@ export interface MemoChange {
   milestoneTag?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+}
+
+export interface MemoPatchRequest {
+  patch: Record<string, unknown>;
+}
+
+export interface MemoPutRequest {
+  content: string;
+  milestoneTag?: string | null;
+  /** Format: date-time. */
+  createdAt: string;
 }
 
 export interface PatchRequest {
@@ -368,6 +404,11 @@ export interface RevisionAuthor {
   name: string;
 }
 
+export interface RevisionsPage {
+  revisions: Revision[];
+  next?: number | null;
+}
+
 export type Role = "owner" | "editor" | "viewer";
 
 export interface SetMemberRoleRequest {
@@ -382,6 +423,12 @@ export interface SharingResponse {
 }
 
 export type SignInMethod = "apple" | "google" | "email";
+
+export interface SignInResponse {
+  session: string;
+  account: Me;
+  created?: boolean;
+}
 
 export interface StorageBytes {
   media?: number;

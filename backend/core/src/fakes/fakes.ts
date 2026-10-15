@@ -114,6 +114,8 @@ export function testConfig(overrides: Env = {}): Config {
     LIVE_MODE: 'ws',
     SIGN_IN: 'apple,google,email',
     STORES: 'apple,google',
+    GOOGLE_CLIENT_IDS: 'google-client.test',
+    APPLE_CLIENT_IDS: 'app.test.ios,app.test.web',
     VERSION: 'test',
     RATE_SALT: 'test-rate-salt',
     EMAIL_CODE_KEY: 'test-email-code-key',
