@@ -44,6 +44,9 @@ kover = "0.9.11"
 navigation3 = "1.1.2"
 turbine = "1.2.1"
 
+# Wave 2 event editor: system back with unsaved changes
+navigationevent = "1.1.0"
+
 [libraries]
 # Kotlin
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
@@ -92,6 +95,9 @@ navigation3-ui = { module = "org.jetbrains.androidx.navigation3:navigation3-ui",
 androidx-lifecycle-viewmodel-navigation3 = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidx-lifecycle" }
 androidx-room-testing = { module = "androidx.room:room-testing", version.ref = "androidx-room" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
+
+# Wave 2 event editor: system back with unsaved changes
+navigationevent-compose = { module = "org.jetbrains.androidx.navigationevent:navigationevent-compose", version.ref = "navigationevent" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
