@@ -128,6 +128,7 @@ Implementation notes (`backend/core/src/ports/`, wave 1):
 - `Ports` also carries `keys`, the `KeyFetcher` for Google's and Apple's JWKS: `cachedKeyFetcher(fetch, clock)` in production (cached an hour per URL, refetched at most once a minute for an unknown key id), a fixed set of locally generated keys in tests.
 - Identity providers live in `src/auth/`: `googleProvider` and `appleProvider` (`TokenProvider`, built from `Config` and `keys`) and the email code functions over the `Store` and `Mailer`.
 - The store conformance suite (`src/store/conformance.ts`) has no test framework dependency; it runs against `SqlStore` on `node:sqlite` and the in-memory `MemoryStore`, and a test checks that it fails for a store with a lost-update bug.
+- Reads by role (wave 2): `GET /events/{id}` answers `404 not_found` for an unknown or malformed id, `403 forbidden` for an event the caller is not owner, viewer or editor of (removed members included), and `410 deleted` for a deleted event the caller could read. `POST /events/fetch` leaves those out instead. Members see `childSeq` 0 in the manifest. Memo writes past 500 per event answer `429 quota_exceeded` with `details.limit` = `memos_per_event`. Repeating `DELETE /events/{id}` or a memo `DELETE` answers `204`. Lists of ids go to SQL as one JSON parameter (`json_each`), which stays under D1's 100 bound parameters.
 
 ---
 
