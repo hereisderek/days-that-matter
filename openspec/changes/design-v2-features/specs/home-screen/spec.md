@@ -58,7 +58,7 @@ Archiving SHALL hide a day from Home (list, grid, pinned carousel, filters and s
 - **THEN** the day leaves the carousel and the list, and after unarchiving it is back in the list without a pin
 
 #### Scenario: Archived days count
-- **WHEN** a free user with 10 owned days, 3 of them archived, creates another day
+- **WHEN** a free user with 20 owned days, 3 of them archived, creates another day
 - **THEN** the paywall appears
 
 ### Requirement: Archive is personal

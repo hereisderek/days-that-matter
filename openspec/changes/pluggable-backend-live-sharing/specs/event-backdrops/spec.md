@@ -18,7 +18,7 @@ An event SHALL have at most one backdrop: a still photo, or an animated photo wi
 - **THEN** the app uses its still image as the backdrop
 
 ### Requirement: Conversion on the device
-The app SHALL convert a backdrop before upload so it fits the limits without the user doing anything. Stills and key photos SHALL be JPEG or WebP, at most 1.5 MB and 2560 px on the long edge. The motion part SHALL be an H.264 MP4 without sound, at most 4 MB, 5 seconds and 1280 px on the long edge.
+The app SHALL convert a backdrop before upload so it fits the limits without the user doing anything. Stills and key photos SHALL be JPEG or WebP, at most 1.5 MB and 2560 px on the long edge. The motion part SHALL be an H.264 MP4 without sound, at most 4 MB, 5 seconds and 1280 px on the long edge. The size and resolution limits are configuration values (remote-config spec); the numbers in this spec are the initial ones.
 
 #### Scenario: Large phone photo
 - **WHEN** a user picks a 12 megapixel, 6 MB photo

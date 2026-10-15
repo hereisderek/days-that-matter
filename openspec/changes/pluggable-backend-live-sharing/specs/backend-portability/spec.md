@@ -73,3 +73,24 @@ The storage report SHALL require the operator token (`Authorization: Bearer <ADM
 #### Scenario: No operator token
 - **WHEN** a client calls the storage report without the operator token, or with a wrong one
 - **THEN** the response is `401 unauthorized` and contains no account data
+
+### Requirement: Versioned API
+Every JSON API endpoint SHALL live under the versioned prefix `/api/v1/`. A breaking change SHALL get a new version prefix, and the old one SHALL stay available for supported app versions. Endpoints where a version makes no sense SHALL stay unversioned: the share pages (`/e/`, `/i/`, `/s/`), the Apple callback `/auth/apple/callback`, the data export download page `/export/{token}`, the operator routes under `/admin/`, and the `/.well-known/` files.
+
+#### Scenario: Call without the version
+- **WHEN** a client calls `/events/batch` without the `/api/v1/` prefix
+- **THEN** the backend answers `404 not_found`
+
+### Requirement: Protected API
+Every API endpoint SHALL require a valid access token (the session's bearer token) and SHALL answer `401 unauthorized` without one, except the public endpoints: health, the deployment configuration, the remote configuration (token optional), the sign-in endpoints, link and invite resolution, the Apple callback, the share pages and static files. The operator routes SHALL keep their own token.
+
+#### Scenario: Request without a token
+- **WHEN** a client calls `GET /api/v1/sync` with no token
+- **THEN** the response is `401 unauthorized`
+
+### Requirement: API design follows established conventions
+A new or changed endpoint SHALL follow the conventions in `docs/standards/API_DESIGN.md`: resource-oriented paths, standard methods and status codes, idempotent writes where a client may retry, one error body, cursor pagination, and ETags on reads. Suggestions for an endpoint, from anyone, SHALL be treated as input and checked against those conventions, and the reasoning SHALL be recorded in that document.
+
+#### Scenario: New endpoint review
+- **WHEN** an endpoint is added
+- **THEN** its path, method, status codes and errors match the conventions document, or the exception and its reason are recorded there
