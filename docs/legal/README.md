@@ -25,7 +25,7 @@ Each region gets its own set. The China region needs documents under Chinese law
 Sources: [`BACKEND.md`](../architecture/BACKEND.md), [`premium/SPEC.md`](../features/premium/SPEC.md), [`sharing/SPEC.md`](../features/sharing/SPEC.md), [`media/SPEC.md`](../features/media/SPEC.md), [`notifications/SPEC.md`](../features/notifications/SPEC.md) and the OpenSpec changes [`pluggable-backend-live-sharing`](../../openspec/changes/pluggable-backend-live-sharing/) and [`design-v2-features`](../../openspec/changes/design-v2-features/).
 
 ### Terms of service
-- [x] Accounts: sign-in with Google, Apple or email codes; one account per verified email; guests keep data on the device only.
+- [x] Accounts: sign-in with Google, Apple or email codes; one account per verified email; in local mode data stays on the device only.
 - [x] User content: users keep ownership; they give us a licence to store, process (compress, convert, remove photo metadata) and show it to the people they share it with.
 - [x] **Users may only upload photos and audio they own or have the rights to use.** No per-upload prompt asks this; the terms are the only place.
 - [x] Prohibited content (illegal content, abuse, content that infringes others' rights).
@@ -42,6 +42,12 @@ Sources: [`BACKEND.md`](../architecture/BACKEND.md), [`premium/SPEC.md`](../feat
 - [x] Service availability, maintenance, limitation of liability, governing law and venue (owner input).
 - [x] Changes to the terms and how users are told.
 - [x] Minimum age (owner input).
+
+### Local mode, import and export (the policy text needs the owner's review)
+- [ ] Local mode stores every event, memo and setting on the device only and makes one request: the public remote configuration (`GET /api/v1/remote-config`), with no token and no identifier. A server still sees an IP address for that request, so the copy says what stays on the device and never claims the app is untraceable.
+- [ ] Import moves events permanently into the account (they leave local mode on that device); the terms and privacy policy must say what the account then holds and how deletion works.
+- [ ] Export files (.zip with events, memos and media) leave the app's control once saved; the user is responsible for where the file goes.
+- [ ] `TERMS.md`, `PRIVACY.md` and `DISCLAIMER.md` still describe the old guest and automatic first-sign-in upload wording. This task did not edit them; the owner reviews and updates the policy text.
 
 ### Privacy policy
 - [x] Data collected: account (email, display name, sign-in provider ids), last activity date, events, memos, edit history, photos (location and camera metadata removed), audio files and the audio library list, Spotify links, purchase records and plan grants, and per device for notifications: push token, locale, time zone and the enabled kinds. The web sets no cookies.
@@ -95,9 +101,9 @@ Design points that are unclear or contradictory. The drafts do not guess; where 
 6. **Inactive accounts.** 24 months is a placeholder. When a notice email bounces, the drafts follow the proposal: the schedule still applies (`TERMS.md` section 12). Also unclear: which address gets the notices when an account's sign-in methods have different email addresses.
 7. **Purchase records after account deletion.** The deletion list in `BACKEND.md` section 8 does not include `purchases`, and no retention period is set for purchase records, including guest purchases that are never attached. `PRIVACY.md` section 11 has no row for them yet.
 8. **When account deletion removes data.** It is not stated whether owned days are removed at once or kept as tombstones for 30 days like a day the user deletes. `PRIVACY.md` section 11 says deleted days are removed after 30 days and backups after 7 more; the account deletion path must fit that.
-9. **Guests and "send nothing".** The accounts spec says the app sends nothing to the backend without an account, but guests can buy Premium (the purchase proof goes to `/purchases/*` without a session, premium spec), and they may also fetch `/config`, the audio catalog and holiday sets. The privacy policy mentions guest purchases only. Reconcile the spec, then the policy.
+9. **Local mode and "send nothing".** The local-mode spec allows only the remote configuration request (no identifier); local-mode users can also buy Premium (the purchase proof goes to `/purchases/*` without a session, premium spec), and the app may fetch `/config`, the audio catalog and holiday sets. The privacy policy mentions guest purchases only. Reconcile the spec, then the policy.
 10. **"Save a copy" of a public link** (`sharing/SPEC.md` section 3) is not in the OpenSpec specs. Unclear whether the copy keeps the backdrop photo and audio (as references to the original uploader's files, or as new uploads), and what takedown or deletion of the original does to copies. The drafts only say that revoking a link does not remove saved copies.
-11. **Terms for guests and link visitors.** Users accept the terms when they create an account; guests and link visitors never see them. `TERMS.md` section 1 says sections 5 and 14 to 17 apply to their use. Legal review: whether that binds them, or whether "Continue as guest" should show the same notice as the sign-in buttons.
+11. **Terms for local-mode users and link visitors.** Users accept the terms when they create an account; local-mode users and link visitors never see them. `TERMS.md` section 1 says sections 5 and 14 to 17 apply to their use. Legal review: whether that binds them, or whether "Use on this device" should show the same notice as the sign-in buttons.
 12. **Cloudflare's own processing.** "No analytics" and "raw IP addresses not stored" describe our code. Check that the Cloudflare account matches: Web Analytics off, and Workers Logs, Logpush and observability settings keep no IP addresses or URLs with tokens beyond what `PRIVACY.md` says; find out how long Cloudflare keeps its own request logs.
 13. **Adult content.** Whether legal sexual content is allowed on public links (App Store Review Guideline 1.2 on user-generated content). The drafts prohibit illegal, abusive and infringing content only.
 

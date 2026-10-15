@@ -22,7 +22,7 @@ Kinds are not limited to these; more can be added.
 - The system permission prompt appears when the user first sets a reminder or first shares a day, never at launch.
 - Archived days send nothing: no reminders, no change notifications.
 - Content never includes notes or memo text.
-- Guests get local reminders only; push needs an account.
+- Local mode gets local reminders only; push needs an account.
 
 ---
 

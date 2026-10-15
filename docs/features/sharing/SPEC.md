@@ -21,7 +21,7 @@ Backend API and data model: [`docs/architecture/BACKEND.md`](../../architecture/
 | :--- | :--- | :--- |
 | URL | `https://daysthatmatter.app/e/{token}` | `https://daysthatmatter.app/i/{token}` |
 | Per event | up to 10 active, optional label | up to 20 active |
-| Who can open | anyone with the URL, no account | signed-in people in the app; opening asks guests to sign in or create an account. In a browser: a generic page that opens the app |
+| Who can open | anyone with the URL, no account | signed-in people in the app; opening asks local-mode users to sign in or create an account. In a browser: a generic page that opens the app |
 | Result | view the event in a browser or the app | in the app, the event is added to the receiver's account as a **member** |
 | Role | view only | viewer or editor, set per invite |
 | Use count | - | 1, 5, 10, unlimited, or custom (1 to 100); each new member takes one use, opening takes none |
@@ -35,7 +35,7 @@ Backend API and data model: [`docs/architecture/BACKEND.md`](../../architecture/
 - Custom scheme fallback: `daysthatmatter://e/{token}`, `daysthatmatter://i/{token}`, `daysthatmatter://s/{eventId}`.
 
 ### 2.2 Share Flow in the App
-1. **Public link:** Share sheet → "Public link" → optional label, expiry → link created and copied. A guest first sees the sign-in prompt; after sign-in their events upload and the flow continues.
+1. **Public link:** Share sheet → "Public link" → optional label, expiry → link created and copied. A local-mode user first sees the sign-in prompt; after sign-in the app asks whether to import the local events (the import is never automatic) and the flow continues.
 2. **Invite:** Share sheet → "Invite people" → role (viewer or editor), use count (1, 5, 10, unlimited, custom) and expiry → the invite URL goes to the system share sheet.
 3. **Receiving an invite:** the URL opens the app when installed. If the receiver is not signed in, they sign in or create an account (Apple, Google or email code) in the app. They then see the event name, the owner's name and the role, and tap "Join". The event appears on their home screen. Owners and existing members who open an invite just see the event; no use is taken. Without the app, the browser shows a generic page: "You're invited to a day in Days That Matter. Open it in the app to join.", with open-in-app and store links and no event details. The receiver installs the app and opens the link again. Joining happens only in the app.
 4. **Manage:** the share screen lists public links (copy, rename, change expiry, revoke), invites (copy, uses left, change expiry or count, revoke), members (role, remove) and removed people (allow again). It loads from the backend, so it is the same on every signed-in device.

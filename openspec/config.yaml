@@ -8,7 +8,7 @@ context: |
   faster (design D1); its rules come from :core:model, the Kotlin module shared with the app.
   Performance and low running cost come before code sharing.
   Architecture reference: docs/architecture/BACKEND.md. Feature docs: docs/features/. Premium features: docs/features/premium/SPEC.md.
-  Offline first: every edit works without a network. Guests use the app locally; anything online needs an account.
+  Offline first: every edit works without a network. Local mode uses the app on the device with no account; anything online needs an account.
   Privacy: shared content is an allow-list. Notes, memos and owner identifiers never reach non-owners.
   Write plainly: short sentences, no marketing language.
 
