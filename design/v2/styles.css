@@ -774,3 +774,40 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
 .menu-item .emo-i { width: 24px; flex: none; text-align: center; font-size: 19px; }
 .menu-item .cv { font-variant-numeric: tabular-nums; color: var(--ink); }
 .menu-item[disabled] { opacity: .45; cursor: default; }
+
+/* ---------- offline use and importing local days (revision 5 of this file's notes: "Offline use and importing local days") ----------
+   Additive rules only. Every value is an existing token or a size already used above. */
+.pctl.stack { flex-direction: column; align-items: stretch; gap: 4px; }
+.pctl.stack .seg { width: 100%; }
+.pctl .btn.sm { height: 30px; font-size: 13px; }
+
+/* Home greeting: a variant of the h1. Long names wrap to two lines and then cut with an ellipsis. */
+.home-head > div:first-child { min-width: 0; padding-right: 12px; }
+.h1.greet { font-size: 28px; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+
+/* Settings, local mode. */
+.cell .input { width: 46%; flex: none; height: 40px; text-align: right; }
+.cell.locked .cl { color: var(--ink-2); }
+.cell.locked .ci, .cell.locked .cv { color: var(--ink-3); }
+.info.inset { margin: 0 16px 14px; }
+.cta-wrap { margin: 0 16px 18px; }
+
+/* First-launch choice. A .choice is a .block (surface, radius, shadow) with a header row, the .benefits list and a full-width button. */
+.view.choice-view { padding-bottom: 40px; }
+.choice-view > * { flex: none; }
+.choice-view h1 { font-size: 30px; }
+.choice-view p { margin: 8px 0 18px; }
+.choice-view .page-head { margin: 0 -12px 4px; padding: 0; }
+.choice { margin-bottom: 12px; padding: 16px; border-radius: var(--r-lg); background: var(--surface); box-shadow: var(--shadow-1); }
+.choice-h { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.choice-h b { display: block; font-size: 17px; letter-spacing: -.01em; }
+.choice-h small { display: block; font-size: 13px; color: var(--ink-3); }
+.choice .benefits { margin: 0 0 12px; }
+.choice .note { margin: 0 0 14px; }
+.choice-view .legal { margin-top: 4px; }
+
+/* Import and nudge sheets reuse .sheet, .benefits, .form-card, .lrow, .info and .empty. */
+.sheet.import .form-card .lrow:first-child { border-top: 0; }
+.sheet.import .empty, .sheet.nudge .empty { padding: 28px 12px 20px; }
+.sheet .benefits li { align-items: flex-start; }
+.sheet .benefits .i { margin-top: 2px; }
