@@ -82,7 +82,7 @@ An event lives on the backend as one document with a revision number. Sync, live
 
 ### D4. Accounts: Google, Apple and email codes; sign-in methods are plug-ins
 
-- Anything online needs an account: sync, creating links and invites, joining through an invite. Viewing a public link does not. Guests keep full local use and get a sign-in prompt on Sync, Share, Invite and once after their first saved event.
+- Anything online needs an account: sync, creating links and invites, joining through an invite. Viewing a public link does not. Without an account the app runs in local mode (D20) with full local use. It shows a sign-in prompt on Sync, Share, Invite and online-only Settings rows, and never after the first saved event; a heavy-use suggestion driven by remote configuration (D21) replaces that prompt.
 - Methods: Sign in with Google, Sign in with Apple, and email with a 6-digit one-time code. First sign-in creates the account. Each method is an `IdentityProvider` in the core (verify a credential, return a subject, verified email and name); the deployment config lists the enabled ones and `GET /config` tells the app which buttons to show. WeChat or phone codes can be added the same way (needed for China).
 - An identity whose verified email matches an existing identity's verified email joins that account. Users can also add methods from account settings.
 - Email codes: stored as an HMAC with a server secret, valid 10 minutes, 5 attempts, rate limited per address and IP. No passwords: hashing does not fit 10 ms CPU on Workers Free, and there is no reset flow to build.
@@ -161,7 +161,7 @@ Not built in this change. Rules from the owner: comments have the same visibilit
   - iOS: StoreKit 2 through a small Swift bridge. The app sends the signed transaction (JWS); the core checks the certificate chain to Apple's root, bundle id and expiry. App Store Server Notifications V2 report renewals, refunds and expiry. `appAccountToken` carries the account id.
   - Android: Play Billing Library. The app sends the purchase token; the core calls the Google Play Developer API (`purchases.subscriptionsv2.get`) with a service account, acknowledges the purchase and stores the expiry.
   - Re-check: daily for expired plans, and on a gated write whose plan looks expired. Google real-time notifications (Pub/Sub) can be added later.
-  - Guests can buy; the app sends its current entitlements after sign-in to attach them to the account. "Restore purchases" does the same.
+  - A local-mode user can buy; the app sends its current entitlements after sign-in to attach them to the account. "Restore purchases" does the same.
 
 | | RevenueCat | Native (chosen) |
 | :--- | :--- | :--- |
@@ -185,7 +185,7 @@ Native is chosen because cost comes first and China matters. RevenueCat would sh
   - a registered DMCA designated agent (US Copyright Office) before launch;
   - no download button, no search, no public listing of files.
   - A stricter option, if counsel prefers: custom audio plays for the owner only. Not chosen now.
-- Spotify links: shared or pasted `open.spotify.com` track, album or playlist links; title from Spotify's public oEmbed endpoint. Free plan: 3 events, counted for the account that set them. Unavailable in China.
+- Spotify links: shared or pasted `open.spotify.com` track, album or playlist links; title from Spotify's public oEmbed endpoint. Free plan: 5 events, counted for the account that set them. Unavailable in China.
 - Spotify preview (**assumption, to check in task 7.9**): the owner reports that Spotify lets apps play a short part of a track. The app plays a short preview (about 30 seconds) inside the app where Spotify allows it; for albums and playlists, the first track (also an assumption). "Open in Spotify" plays the full item in Spotify. Known facts for the check: the Web API stopped returning `preview_url` for new apps in November 2024; the embed player (iFrame) plays previews to listeners who are not logged in. If no supported way exists, playing only opens Spotify. The share web page keeps "Listen on Spotify" and loads no Spotify content.
 
 Alternatives: full-track in-app Spotify playback (blocked by Spotify's access rules until 250,000 monthly users, and needs Spotify Premium); public URLs for audio files (anyone could fetch Premium or user-uploaded tracks).
@@ -228,6 +228,37 @@ Alternatives: keep accounts forever (storage and retention without end, against 
 - This is the only operator API. Takedowns, upload blocks and grants stay with the provider's own tools.
 
 Alternatives: SQL queries through each provider's console (different per variant; Firestore has no GROUP BY); summing `media` rows on each request (a full scan per page view); a full admin API (not needed yet).
+
+### D20. Local mode, separate databases and explicit all-or-nothing import
+
+- Local mode is the state of an app with no account. Its events live in a local database and nothing about them leaves the device. The only request the app makes is the remote configuration (D21), with no token and no identifier.
+- Each account has its own database on the device. Signing in switches to it; signing out syncs, switches back to the local database and removes the account's database once its pending changes are sent (every change carries a "server has it" flag, see `docs/architecture/PERSISTENCE_AND_SYNC.md`).
+- Moving local events into an account is a user action, the import, never automatic. The app keeps a journal per import with the states `pending`, `uploaded`, `copied`, `verified`, `removed`. `uploaded`: the import endpoint answered. `verified`: the response lists the id of every event and reports no unstored field. `copied`: the events are written to the account's database on the device. A local event is removed only after `verified` and `copied`. A failed or unverifiable import leaves the local events untouched, shows Try again, and when it cannot be recovered the app explains it in plain words, skips the import, keeps the events local and records the failure (the analytics tool is a to-do in `docs/plans/TODO.md`).
+- `POST /api/v1/events/import` is atomic and skips the owned-event limit (D22). It is idempotent by client id, so a retry after a lost response returns the same ids.
+
+Why: privacy (a person who never signs in is never known to the server), a clean sign-out (two databases, no mixing), and no merge semantics (account data and local data are never reconciled field by field; the events are only added).
+
+Alternatives: keep the 24-hour first-upload window (an automatic, time-based exception with hidden rules, dropped); partial import (a "3 of 4" state the user cannot reason about and the app cannot verify); a client-sent flag on the normal create path (the client could use it to skip the plan limit, see `docs/standards/API_DESIGN.md`).
+
+### D21. Remote configuration
+
+- Document: `GET /api/v1/remote-config` returns `{version, ttlSeconds, audience, values}`; `values` maps a key to `{value, delivery}`. ETag and `304`. Keys: the plan table, media thresholds (photo bytes and pixels, motion part and audio sizes), the sign-in suggestion rules. Every key has a compiled default and a range in `:core:model`; unknown keys are ignored, out-of-range values fall back to the default. The document is data, never code.
+- Delivery: `background` keys (default) are read from the cache, fetched after launch and applied on the next read or launch. `blocking` keys (rare) are awaited at launch for at most 1.5 seconds, then cache, then default.
+- Audience: the bearer token decides. No token means `local`. The optional `user` parameter is only a hint: it is used when it equals the token's account and ignored otherwise, because anyone could read another account's targeted values by guessing an id.
+- Provider port: the backend loads values through one `RemoteConfigSource` (a static file by default; an HTTP source or Firebase Remote Config can be added as an adapter), and the app reads through one interface, so the configuration can run with the backend or apart from it, for example Firebase Remote Config behind a Cloudflare backend.
+- Limits and paywall as data: the backend enforces the current values and is the authority; the paywall and the Settings usage rows are generated from the configuration, so a removed limit disappears from both. Photos above the configured size or resolution are compressed by the app without a prompt.
+
+Alternatives: constants in the app (every change needs a release); a field in `GET /config` (that call describes the region and is read once per install; this one has delivery classes and an audience); trusting `user` without a token (leaks targeted values).
+
+### D22. API conventions
+
+- Every JSON API sits under `/api/v1/`. Exceptions where a version means nothing: share pages `/e`, `/i`, `/s`, `/auth/apple/callback`, `/export/{token}`, `/admin/*`, `/.well-known/*`.
+- The API is protected by the bearer session token. Public endpoints are listed in BACKEND.md section 7.1.
+- Bulk writes are sub-resources of the collection. `POST /api/v1/events/batch` creates up to 100 events and returns one result per event; each event is checked like a single create, including the limit. `POST /api/v1/events/import` takes up to 500 events, is atomic, skips the owned-event limit and lists the id of every imported event and any field not stored. One shared handler runs both; the route decides the policy, never a request field.
+- The owner suggested `/import`; review against REST practice gave `/events/import`: a noun path under the resource it creates, and a verb-like name only where the operation is not a plain create.
+- Details and the decisions table: [`docs/standards/API_DESIGN.md`](../../../docs/standards/API_DESIGN.md).
+
+Alternatives: `/import` at the top level (does not say what is imported); one endpoint with an `import: true` flag (client-controlled bypass); per-event errors in import (the UI is all or nothing).
 
 ## Risks / Trade-offs
 

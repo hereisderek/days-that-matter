@@ -7,11 +7,14 @@ Lets the operator change limits, plan values, media thresholds and behavior rule
 ## ADDED Requirements
 
 ### Requirement: One remote configuration document
-`GET /api/v1/remote-config` SHALL return a versioned JSON document: `{version, ttlSeconds, audience, values}`, where `values` maps each key to `{value, delivery}`. The response SHALL carry an ETag and answer `304` when unchanged. The request SHALL NOT require a token. It MAY carry the bearer token; when it does, the audience is that account, otherwise the audience is `local`. A `user` query parameter MAY name the audience (a user id, or `local`), but the backend SHALL use a user id only when it matches the token's account and SHALL otherwise answer for the audience `local`, because anyone could otherwise read another account's targeted values.
+`GET /api/v1/remote-config` SHALL return a versioned JSON document: `{version, ttlSeconds, audience, values}`, where `values` maps each key to `{value, delivery}`. The response SHALL carry an ETag and answer `304` when unchanged. The request SHALL NOT require a token.
 
 #### Scenario: Local audience
 - **WHEN** a local-mode app requests the configuration with no token and no `user` parameter
 - **THEN** it receives the values for the audience `local`, and the request carries no identifier
+
+### Requirement: Audience of the configuration
+The request MAY carry the bearer token; when it does, the audience is that account, otherwise the audience is `local`. A `user` query parameter MAY name the audience (a user id, or `local`), but the backend SHALL use a user id only when it matches the token's account and SHALL otherwise answer for the audience `local`, because anyone could otherwise read another account's targeted values.
 
 #### Scenario: Signed-in audience
 - **WHEN** a signed-in app requests the configuration with its token
@@ -40,11 +43,14 @@ Every key SHALL have a compiled-in default and an allowed range. The app SHALL i
 - **THEN** the app uses its default limit
 
 ### Requirement: Limits, plan values and thresholds are configuration
-The plan table (every limit and feature per plan), the media thresholds (largest photo size in bytes, longest photo edge in pixels, the motion part's and audio files' largest sizes) and the sign-in suggestion rules SHALL be keys of the remote configuration, with compiled-in defaults from the shared model. The app SHALL show a limit, a usage row or a paywall item only for what exists in the current configuration: a limit removed from the configuration SHALL disappear from Settings and from the paywall. The backend SHALL enforce the current values and SHALL be the authority; when the app's copy is out of date, the backend's answer (`402` or `429`) wins and the app refreshes its configuration. The app SHALL compress or convert a photo, motion part or audio file that exceeds the configured size or resolution, so the user never resizes anything.
+The plan table (every limit and feature per plan), the media thresholds (largest photo size in bytes and edge in pixels, largest motion part and audio file) and the sign-in suggestion rules SHALL be keys of the remote configuration, with compiled-in defaults from the shared model. The app SHALL show a limit, a usage row or a paywall item only for what exists in the current configuration: a limit removed from the configuration SHALL disappear from Settings and from the paywall.
 
 #### Scenario: Limit removed
 - **WHEN** the operator removes the Spotify limit from the Free plan in the configuration
 - **THEN** after the app reads the new value, Settings shows no Spotify usage row and the paywall does not mention it
+
+### Requirement: The backend is the authority and the app adapts files
+The backend SHALL enforce the current values and SHALL be the authority; when the app's copy is out of date, the backend's answer (`402` or `429`) wins and the app refreshes its configuration. The app SHALL compress or convert a photo, motion part or audio file that exceeds the configured size or resolution, so the user never resizes anything.
 
 #### Scenario: Limit raised
 - **WHEN** the operator changes the Free event limit from 20 to 30

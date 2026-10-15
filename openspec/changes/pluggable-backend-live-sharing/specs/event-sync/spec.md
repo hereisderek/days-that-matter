@@ -93,24 +93,27 @@ The backend SHALL accept up to 100 events with their memos in one `POST /api/v1/
 - **THEN** the backend returns the events it already stored and creates no duplicates
 
 ### Requirement: Import of local events
-`POST /api/v1/events/import` SHALL accept up to 500 events with their memos in one request of at most 4 MB and SHALL be atomic: every event is imported or none is. It SHALL skip the plan's owned-event limit, so that events from the device and from the account are all kept, and SHALL still enforce every per-event rule, the request limits and the account's storage budget, and SHALL be rate limited. The response SHALL list the id of every imported event and, for each, the fields the backend did not store. A request containing a field the backend does not know SHALL be refused with `400 invalid_payload` and the field path, so a version difference is never hidden. An event already in the account with identical content SHALL count as imported; one with different content SHALL fail the whole import with `409 conflict`. Events written by an import SHALL be marked as imported in the backend's records.
+`POST /api/v1/events/import` SHALL accept up to 500 events with their memos in one request of at most 4 MB and SHALL be atomic: every event is imported or none is. It SHALL skip the plan's owned-event limit, so that events from the device and from the account are all kept, and SHALL still enforce every per-event rule, the request limits and the account's storage budget, and SHALL be rate limited. Events written by an import SHALL be marked as imported in the backend's records.
 
 #### Scenario: Import above the limit
 - **WHEN** a Free account with 20 events imports 5 local events
 - **THEN** the account has 25 events and the response lists the 5 ids
 
-#### Scenario: Import with an unknown field
-- **WHEN** an event in the import contains a field the backend does not know
-- **THEN** the response is `400 invalid_payload` with the field path and nothing is stored
-
 #### Scenario: One invalid event fails the import
 - **WHEN** one of 10 events in an import is invalid
 - **THEN** none of the 10 is stored and the response names the invalid event
 
-#### Scenario: Repeat an import
-- **WHEN** an app repeats an import that already succeeded
-- **THEN** the response lists the same ids and no event is duplicated
-
 #### Scenario: Create above the limit without an import
 - **WHEN** a Free user with 20 events creates another one through the normal create
 - **THEN** the response is `402 premium_required`
+
+### Requirement: Import response and repeats
+The import response SHALL list the id of every imported event and, for each, the fields the backend did not store. A request containing a field the backend does not know SHALL be refused with `400 invalid_payload` and the field path, so a version difference is never hidden. An event already in the account with identical content SHALL count as imported; one with different content SHALL fail the whole import with `409 conflict`.
+
+#### Scenario: Import with an unknown field
+- **WHEN** an event in the import contains a field the backend does not know
+- **THEN** the response is `400 invalid_payload` with the field path and nothing is stored
+
+#### Scenario: Repeat an import
+- **WHEN** an app repeats an import that already succeeded
+- **THEN** the response lists the same ids and no event is duplicated
