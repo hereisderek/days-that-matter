@@ -1,0 +1,348 @@
+[
+  {
+    "id": "sample-wedding",
+    "shareToken": "wedding2027",
+    "description": "Still photo backdrop with dim and blur, built-in track, days, time zone, Glassmorphic, Modern Sans, rose",
+    "event": {
+      "rev": 1,
+      "title": "Our Wedding Day",
+      "emoji": "💍",
+      "targetDate": "2027-06-15",
+      "targetTime": "15:30:00",
+      "timeZone": "America/New_York",
+      "unitMode": "days",
+      "theme": {
+        "paletteId": "rose",
+        "cardStyle": "glass",
+        "typography": "modern",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "still",
+        "stillId": "wedding",
+        "stillUrl": "/media/wedding.svg",
+        "dim": 0.25,
+        "blur": 4
+      },
+      "audio": {
+        "kind": "library",
+        "trackId": "romantic-strings"
+      },
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-anniversary",
+    "shareToken": "anniversary",
+    "description": "Count-up since a yearly date with anniversary badge, calendar units, still photo, built-in track, Glassmorphic, Classic Serif, amber",
+    "event": {
+      "rev": 2,
+      "title": "Years Together",
+      "emoji": "🥂",
+      "targetDate": "2020-04-12",
+      "targetTime": "00:00:00",
+      "timeZone": "America/Los_Angeles",
+      "unitMode": "calendar",
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2020
+      },
+      "theme": {
+        "paletteId": "amber",
+        "cardStyle": "glass",
+        "typography": "classic",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "still",
+        "stillId": "anniversary",
+        "stillUrl": "/media/anniversary.svg",
+        "dim": 0.3,
+        "blur": 2
+      },
+      "audio": {
+        "kind": "library",
+        "trackId": "acoustic-warmth"
+      }
+    }
+  },
+  {
+    "id": "sample-launch",
+    "shareToken": "launch",
+    "description": "Workdays unit mode, Minimalist Clean, Monospace Tech, blue, no backdrop",
+    "event": {
+      "title": "Days That Matter v1.0 Launch",
+      "emoji": "🚀",
+      "targetDate": "2026-12-01",
+      "targetTime": "09:00:00",
+      "timeZone": "America/New_York",
+      "unitMode": "workdays",
+      "theme": {
+        "paletteId": "blue",
+        "cardStyle": "minimal",
+        "typography": "mono",
+        "gradient": null
+      },
+      "rev": 1,
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-aurora",
+    "shareToken": "aurora",
+    "description": "Animated photo backdrop (video with still poster), hours unit mode, built-in track, Glassmorphic, Modern Sans, emerald",
+    "event": {
+      "rev": 3,
+      "title": "Northern Lights Expedition",
+      "emoji": "🌌",
+      "targetDate": "2026-11-20",
+      "targetTime": "22:00:00",
+      "timeZone": "Europe/Oslo",
+      "unitMode": "hours",
+      "theme": {
+        "paletteId": "emerald",
+        "cardStyle": "glass",
+        "typography": "modern",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "animated",
+        "stillId": "aurora",
+        "motionId": "aurora-motion",
+        "stillUrl": "/media/aurora.svg",
+        "motionUrl": "/media/aurora.mp4",
+        "dim": 0.2,
+        "blur": 0
+      },
+      "audio": {
+        "kind": "library",
+        "trackId": "ambient-night"
+      },
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-concert",
+    "shareToken": "concert",
+    "description": "Spotify link, three-colour gradient, weeks unit mode, Full-Bleed Poster, Editorial Condensed",
+    "event": {
+      "title": "Live in Concert",
+      "emoji": "🎸",
+      "targetDate": "2026-11-15",
+      "targetTime": "20:00:00",
+      "timeZone": "America/Chicago",
+      "unitMode": "weeks",
+      "theme": {
+        "paletteId": "violet",
+        "cardStyle": "poster",
+        "typography": "condensed",
+        "gradient": [
+          "#6b21a8",
+          "#3b82f6",
+          "#06b6d4"
+        ]
+      },
+      "audio": {
+        "kind": "spotify",
+        "url": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+        "title": "Viva La Vida",
+        "artist": "Coldplay"
+      },
+      "rev": 1,
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-today",
+    "shareToken": "today",
+    "description": "The day itself: \"Today\" in place of a number, Glassmorphic, Classic Serif, amber",
+    "event": {
+      "title": "Graduation Day",
+      "emoji": "🎓",
+      "targetDate": "TODAY",
+      "unitMode": "auto",
+      "theme": {
+        "paletteId": "amber",
+        "cardStyle": "glass",
+        "typography": "classic",
+        "gradient": null
+      },
+      "rev": 1,
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-monthly",
+    "shareToken": "monthly",
+    "description": "Monthly repeat with the auto unit mode, Glassmorphic, Modern Sans, blue",
+    "event": {
+      "title": "Team Retro & Demo",
+      "emoji": "💡",
+      "targetDate": "2026-10-01",
+      "unitMode": "auto",
+      "recurrence": {
+        "type": "monthly"
+      },
+      "theme": {
+        "paletteId": "blue",
+        "cardStyle": "glass",
+        "typography": "modern",
+        "gradient": null
+      },
+      "rev": 1
+    }
+  },
+  {
+    "id": "sample-kyoto",
+    "shareToken": "kyoto",
+    "description": "Full-Bleed Poster over a still photo, Classic Serif, days",
+    "event": {
+      "title": "Kyoto in Autumn",
+      "emoji": "🏯",
+      "targetDate": "2027-03-28",
+      "timeZone": "Asia/Tokyo",
+      "unitMode": "days",
+      "theme": {
+        "paletteId": "plum",
+        "cardStyle": "poster",
+        "typography": "classic",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "still",
+        "stillId": "mountain",
+        "stillUrl": "/media/mountain.svg",
+        "dim": 0.12,
+        "blur": 0
+      },
+      "rev": 1,
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-marathon",
+    "shareToken": "marathon",
+    "description": "Card Outlined, Playful Rounded, weekly repeat, emerald",
+    "event": {
+      "title": "Sunday Long Run",
+      "emoji": "🏃",
+      "targetDate": "2026-10-18",
+      "targetTime": "07:30:00",
+      "timeZone": "Europe/London",
+      "unitMode": "days",
+      "recurrence": {
+        "type": "weekly"
+      },
+      "theme": {
+        "paletteId": "emerald",
+        "cardStyle": "outline",
+        "typography": "rounded",
+        "gradient": null
+      },
+      "rev": 1
+    }
+  },
+  {
+    "id": "sample-newyear",
+    "shareToken": "newyear",
+    "description": "Floating time (no time zone), yearly repeat, Minimalist Clean, ink",
+    "event": {
+      "title": "New Year",
+      "emoji": "🎆",
+      "targetDate": "2027-01-01",
+      "targetTime": "00:00:00",
+      "unitMode": "auto",
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2000
+      },
+      "theme": {
+        "paletteId": "ink",
+        "cardStyle": "minimal",
+        "typography": "modern",
+        "gradient": null
+      },
+      "rev": 1
+    }
+  },
+  {
+    "id": "sample-tomorrow",
+    "shareToken": "tomorrow",
+    "description": "Less than 48 hours: hours, minutes and live seconds, repeat every 10 days, Glassmorphic, Playful Rounded, coral",
+    "event": {
+      "title": "Flight Departs",
+      "emoji": "✈️",
+      "targetDate": "TOMORROW",
+      "targetTime": "12:00:00",
+      "timeZone": "UTC",
+      "unitMode": "auto",
+      "recurrence": {
+        "type": "customDays",
+        "days": 10
+      },
+      "theme": {
+        "paletteId": "coral",
+        "cardStyle": "glass",
+        "typography": "rounded",
+        "gradient": null
+      },
+      "rev": 1
+    }
+  },
+  {
+    "id": "sample-longhours",
+    "shareToken": "longhours",
+    "description": "Long count in the hours unit mode (number scales to fit), Full-Bleed Poster, Monospace Tech, sky",
+    "event": {
+      "title": "Ten-Year Capsule",
+      "emoji": "⏳",
+      "targetDate": "2031-10-16",
+      "timeZone": "UTC",
+      "unitMode": "hours",
+      "theme": {
+        "paletteId": "sky",
+        "cardStyle": "poster",
+        "typography": "mono",
+        "gradient": null
+      },
+      "rev": 1,
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  },
+  {
+    "id": "sample-since",
+    "shareToken": "since",
+    "description": "Count-up in days, Solid card (older theme id), Monospace Tech, plum",
+    "event": {
+      "title": "Days Since Moving In",
+      "emoji": "🏡",
+      "targetDate": "2024-03-01",
+      "timeZone": "America/Denver",
+      "unitMode": "days",
+      "theme": {
+        "paletteId": "plum",
+        "cardStyle": "solid",
+        "typography": "mono",
+        "gradient": null
+      },
+      "rev": 1,
+      "recurrence": {
+        "type": "none"
+      }
+    }
+  }
+]

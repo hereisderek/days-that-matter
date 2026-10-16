@@ -38,11 +38,18 @@ export interface LiveUpgrade {
 export type CoreResponse = HttpResponse | LiveUpgrade;
 
 const JSON_TYPE = 'application/json; charset=utf-8';
+const HTML_TYPE = 'text/html; charset=utf-8';
 
 export function jsonResponse(status: number, value: unknown, headers?: Record<string, string>): HttpResponse {
   const h = new Headers(headers);
   h.set('Content-Type', JSON_TYPE);
   return { kind: 'http', status, headers: h, body: JSON.stringify(value) };
+}
+
+export function htmlResponse(status: number, body: string, headers?: Record<string, string>): HttpResponse {
+  const h = new Headers(headers);
+  h.set('Content-Type', HTML_TYPE);
+  return { kind: 'http', status, headers: h, body };
 }
 
 export function emptyResponse(status: number, headers?: Record<string, string>): HttpResponse {

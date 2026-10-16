@@ -1,0 +1,3 @@
+Geist, Playfair Display, Nunito, Oswald and JetBrains Mono (latin subsets, variable) are licensed under the SIL Open Font License 1.1.
+Source: https://fontsource.org (@fontsource-variable/{geist,playfair-display,nunito,oswald}, fontsource/font-files for JetBrains Mono).
+plus-jakarta-sans-latin.woff2 is no longer used by the page.
