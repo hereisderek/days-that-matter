@@ -21,6 +21,12 @@ interface AppMetaDao {
     @Query("SELECT value FROM app_meta WHERE `key` = :key")
     suspend fun get(key: String): String?
 
+    @Query("SELECT value FROM app_meta WHERE `key` = :key")
+    fun observe(key: String): kotlinx.coroutines.flow.Flow<String?>
+
+    @Query("SELECT * FROM app_meta")
+    fun observeAll(): kotlinx.coroutines.flow.Flow<List<AppMetaEntity>>
+
     @Query("DELETE FROM app_meta WHERE `key` = :key")
     suspend fun delete(key: String)
 }

@@ -81,6 +81,7 @@ fun HomeRoute(
     modifier: Modifier = Modifier,
     debugAction: DebugAction? = null,
     onNewDay: (() -> Unit)? = null,
+    onOpenSettings: (() -> Unit)? = null,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -103,7 +104,7 @@ fun HomeRoute(
             }
         }
     }
-    HomeScreen(state, viewModel::onIntent, modifier, snackbar, debugAction, onNewDay)
+    HomeScreen(state, viewModel::onIntent, modifier, snackbar, debugAction, onNewDay, onOpenSettings = onOpenSettings)
 }
 
 /**
@@ -123,6 +124,7 @@ fun HomeScreen(
     lazyListState: LazyListState = rememberLazyListState(),
     reduceMotion: Boolean = DtmTheme.reducedMotion,
     forceCompact: Boolean? = null,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
     val colors = DtmTheme.colors
     val insets = WindowInsets.safeDrawing
@@ -209,7 +211,7 @@ fun HomeScreen(
     Box(modifier.fillMaxSize().background(colors.bg)) {
         Column(Modifier.fillMaxSize()) {
             DtmTopBar(
-                title = "Your days",
+                title = state.title,
                 kicker = state.kicker,
                 modifier = Modifier.windowInsetsPadding(insets.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)),
                 actions = {
@@ -219,6 +221,14 @@ fun HomeScreen(
                         contentDescription = if (state.searching) "Close search" else "Search",
                         onClick = { onIntent(HomeIntent.ToggleSearch) },
                     )
+                    if (onOpenSettings != null) {
+                        IconCircleButton(
+                            icon = DtmIcons.User,
+                            contentDescription = "Settings",
+                            onClick = onOpenSettings,
+                            modifier = Modifier.testTag(EventsTestTags.SettingsButton),
+                        )
+                    }
                 },
             )
             if (state.searching) {

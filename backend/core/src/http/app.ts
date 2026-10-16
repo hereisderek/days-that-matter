@@ -11,6 +11,7 @@ import { accountRoutes } from './accounts.ts';
 import { historyRoutes } from './history.ts';
 import { pageRoutes } from '../page/routes.ts';
 import { renderNotFound, renderUnavailable } from '../page/render.ts';
+import { remoteConfigRoutes } from '../remote-config/handler.ts';
 import { resolveRoutes } from './resolve.ts';
 import { sharingRoutes } from './sharing.ts';
 import { API } from './paths.ts';
@@ -55,8 +56,9 @@ function isPagePath(path: string): boolean {
 
 /** The routes of the core so far. Later tasks add theirs here. */
 export const coreRoutes: readonly Route<Handler>[] = [
-  ...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes, ...sharingRoutes, ...resolveRoutes, ...pageRoutes,
+  ...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes, ...sharingRoutes, ...resolveRoutes, ...remoteConfigRoutes, ...pageRoutes,
 ];
+
 
 export interface AppOptions {
   readonly routes?: readonly Route<Handler>[];

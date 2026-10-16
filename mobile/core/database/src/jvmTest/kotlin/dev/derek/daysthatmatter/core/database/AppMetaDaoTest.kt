@@ -47,4 +47,38 @@ class AppMetaDaoTest {
 
         assertNull(dao.get("region"))
     }
+
+    @Test
+    fun observeEmitsUpdates() = runTest {
+        val dao = database.appMetaDao()
+        val values = mutableListOf<String?>()
+        val job = kotlinx.coroutines.launch {
+            dao.observe("name").collect { values.add(it) }
+        }
+        kotlinx.coroutines.test.runCurrent()
+        assertEquals(listOf(null), values)
+
+        dao.put(AppMetaEntity("name", "Sam"))
+        kotlinx.coroutines.test.runCurrent()
+        assertEquals(listOf(null, "Sam"), values)
+
+        job.cancel()
+    }
+
+    @Test
+    fun observeAllEmitsAllEntries() = runTest {
+        val dao = database.appMetaDao()
+        val lists = mutableListOf<List<AppMetaEntity>>()
+        val job = kotlinx.coroutines.launch {
+            dao.observeAll().collect { lists.add(it) }
+        }
+        kotlinx.coroutines.test.runCurrent()
+        assertEquals(emptyList<AppMetaEntity>(), lists.last())
+
+        dao.put(AppMetaEntity("k1", "v1"))
+        kotlinx.coroutines.test.runCurrent()
+        assertEquals(listOf(AppMetaEntity("k1", "v1")), lists.last())
+
+        job.cancel()
+    }
 }

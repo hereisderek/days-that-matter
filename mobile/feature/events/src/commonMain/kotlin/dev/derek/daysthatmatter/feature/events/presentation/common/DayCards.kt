@@ -42,6 +42,7 @@ object EventsTestTags {
     const val CarouselSwitch = "carousel-switch"
     const val LiveTicker = "live-ticker"
     const val ArchivedRow = "archived-row"
+    const val SettingsButton = "home-settings-button"
     const val DayNumber = "day-number"
     const val UnitList = "unit-list"
     fun unit(label: String) = "unit-$label"

@@ -1,5 +1,6 @@
 import { staticKeyFetcher } from '../auth/keys.ts';
 import type { Ports } from '../ports/index.ts';
+import { StaticRemoteConfigSource } from '../remote-config/static-source.ts';
 import { FakeClock, FakeRandom, MemoryBlobStore, MemoryLiveHub, MemoryMailer, testConfig } from './fakes.ts';
 import { MemoryStore } from './memory-store.ts';
 
@@ -26,6 +27,8 @@ export function fakePorts(overrides: Partial<Ports> = {}): FakePorts {
     random: new FakeRandom(),
     config: testConfig(),
     keys: staticKeyFetcher({}),
+    remoteConfig: new StaticRemoteConfigSource(),
     ...overrides,
   } as FakePorts;
 }
+

@@ -27,6 +27,18 @@ data class EditorKey(val id: String? = null) : NavKey
 @Serializable
 data object GalleryKey : NavKey
 
+/** The Settings screen. */
+@Serializable
+data object SettingsKey : NavKey
+
+/** The first-launch choice screen. */
+@Serializable
+data object OnboardingChoiceKey : NavKey
+
+/** The sign-in / account flow. */
+@Serializable
+data object SignInKey : NavKey
+
 /** Registers every key so the back stack can be saved on every platform (Navigation 3 open polymorphism). */
 val navSavedStateConfiguration: SavedStateConfiguration = SavedStateConfiguration {
     serializersModule = SerializersModule {
@@ -36,6 +48,9 @@ val navSavedStateConfiguration: SavedStateConfiguration = SavedStateConfiguratio
             subclass(ArchivedKey::class, ArchivedKey.serializer())
             subclass(EditorKey::class, EditorKey.serializer())
             subclass(GalleryKey::class, GalleryKey.serializer())
+            subclass(SettingsKey::class, SettingsKey.serializer())
+            subclass(OnboardingChoiceKey::class, OnboardingChoiceKey.serializer())
+            subclass(SignInKey::class, SignInKey.serializer())
         }
     }
 }
@@ -72,6 +87,20 @@ class AppNavigator(private val backStack: MutableList<NavKey>) {
 
     fun openGallery() {
         if (backStack.lastOrNull() != GalleryKey) backStack.add(GalleryKey)
+    }
+
+    fun openSettings() {
+        if (backStack.lastOrNull() != SettingsKey) backStack.add(SettingsKey)
+    }
+
+    fun openSignIn() {
+        if (backStack.lastOrNull() != SignInKey) backStack.add(SignInKey)
+    }
+
+    /** Completes onboarding: clears the onboarding choice and sets Home at the root. */
+    fun completeOnboarding() {
+        backStack.clear()
+        backStack.add(HomeKey)
     }
 
     /** Pops the top screen. Returns false at Home, where back leaves the app. */

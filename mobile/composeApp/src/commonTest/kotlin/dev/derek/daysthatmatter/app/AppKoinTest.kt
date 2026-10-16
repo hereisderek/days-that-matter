@@ -58,6 +58,15 @@ class AppKoinTest {
         koin.get<UpsertEventUseCase>()
     }
 
+    @Test
+    fun theSettingsUseCasesResolve() {
+        val koin = initKoin { allowOverride(true) }.koin
+        koin.loadModules(listOf(module { single<dev.derek.daysthatmatter.feature.settings.domain.SettingsRepository> { dev.derek.daysthatmatter.feature.settings.data.FakeSettingsRepository() } }), allowOverride = true)
+
+        koin.get<dev.derek.daysthatmatter.feature.settings.presentation.settings.SettingsViewModel>()
+        koin.get<dev.derek.daysthatmatter.feature.settings.presentation.choice.FirstLaunchChoiceViewModel>()
+    }
+
     private object NoEvents : EventRepository {
         override fun observeHome(text: String, categoryId: String?): Flow<List<StoredEvent>> = emptyFlow()
         override fun observeArchived(): Flow<List<StoredEvent>> = emptyFlow()

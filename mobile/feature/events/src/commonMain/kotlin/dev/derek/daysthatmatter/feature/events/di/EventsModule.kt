@@ -49,7 +49,7 @@ val eventsModule = module {
     // DEBUG ONLY: the app shell runs it in debuggable builds.
     factory { SeedSampleEventsUseCase(get(), get(), get<DeviceZone>()) }
 
-    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get<DeviceZone>()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get(), get<DeviceZone>(), get()) }
     viewModel { params -> EventDetailViewModel(params.get(), get(), get(), get(), get(), get<DeviceZone>()) }
     viewModel { ArchivedViewModel(get(), get(), get(), get()) }
 }

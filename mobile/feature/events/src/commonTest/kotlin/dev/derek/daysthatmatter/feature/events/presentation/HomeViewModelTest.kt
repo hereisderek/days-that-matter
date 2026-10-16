@@ -24,6 +24,9 @@ import dev.derek.daysthatmatter.feature.events.presentation.home.HomeLayout
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeSectionKind
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeUiState
 import dev.derek.daysthatmatter.feature.events.presentation.home.HomeViewModel
+import dev.derek.daysthatmatter.feature.settings.data.FakeSettingsRepository
+import dev.derek.daysthatmatter.feature.settings.domain.SettingsRepository
+import dev.derek.daysthatmatter.feature.settings.domain.UserSettings
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
@@ -48,7 +51,10 @@ class HomeViewModelTest : MainDispatcherTest() {
         event("test", title = "Driving test", date = LocalDate(2026, 6, 1), archivedAt = NOW - 1.hours),
     )
 
-    private fun viewModel(repository: FakeEventRepository) = HomeViewModel(
+    private fun viewModel(
+        repository: FakeEventRepository,
+        settingsRepository: SettingsRepository = FakeSettingsRepository(),
+    ) = HomeViewModel(
         observeEvents = ObserveEventsUseCase(repository, ticker, UTC),
         observeArchivedCount = ObserveArchivedCountUseCase(repository),
         pinEvent = PinEventUseCase(repository, clock),
@@ -57,6 +63,7 @@ class HomeViewModelTest : MainDispatcherTest() {
         restoreEvent = RestoreEventUseCase(repository),
         clock = clock,
         zone = UTC,
+        settingsRepository = settingsRepository,
     )
 
     private fun HomeUiState.ids() = sections.associate { it.kind to it.items.map { item -> item.id } }
@@ -301,6 +308,68 @@ class HomeViewModelTest : MainDispatcherTest() {
             assertEquals(HomeFilter.All, awaitItem().filter)
             val allFilterState = awaitItem()
             assertTrue(allFilterState.showCarousel)
+
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun greetingShowsGoodMorningWithNameInMorning() = runTest(dispatcher) {
+        val settings = FakeSettingsRepository(UserSettings(localName = "Sam", greetingEnabled = true))
+        val vm = viewModel(repository(), settings)
+
+        vm.state.test {
+            awaitItem() // loading
+            val content = awaitItem()
+            // At NOW (09:00 UTC), it's morning
+            assertEquals("Good morning, Sam", content.title)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun greetingShowsGoodMorningWithoutNameWhenBlank() = runTest(dispatcher) {
+        val settings = FakeSettingsRepository(UserSettings(localName = "", greetingEnabled = true))
+        val vm = viewModel(repository(), settings)
+
+        vm.state.test {
+            awaitItem() // loading
+            val content = awaitItem()
+            assertEquals("Good morning", content.title)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun greetingDisabledShowsNormalTitle() = runTest(dispatcher) {
+        val settings = FakeSettingsRepository(UserSettings(localName = "Sam", greetingEnabled = false))
+        val vm = viewModel(repository(), settings)
+
+        vm.state.test {
+            awaitItem() // loading
+            val content = awaitItem()
+            assertEquals("Days That Matter", content.title)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun greetingReactsToSettingsChanges() = runTest(dispatcher) {
+        val settings = FakeSettingsRepository(UserSettings(localName = "Sam", greetingEnabled = true))
+        val vm = viewModel(repository(), settings)
+
+        vm.state.test {
+            awaitItem() // loading
+            val initial = awaitItem()
+            assertEquals("Good morning, Sam", initial.title)
+
+            settings.setLocalName("Alex")
+            val renamed = awaitItem()
+            assertEquals("Good morning, Alex", renamed.title)
+
+            settings.setGreetingEnabled(false)
+            val disabled = awaitItem()
+            assertEquals("Days That Matter", disabled.title)
 
             cancelAndIgnoreRemainingEvents()
         }

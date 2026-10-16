@@ -16,6 +16,10 @@ import dev.derek.daysthatmatter.feature.events.domain.PinEventUseCase
 import dev.derek.daysthatmatter.feature.events.domain.RestoreEventUseCase
 import dev.derek.daysthatmatter.feature.events.presentation.common.CardLook
 import dev.derek.daysthatmatter.feature.events.presentation.common.CountdownText
+import dev.derek.daysthatmatter.feature.settings.data.FakeSettingsRepository
+import dev.derek.daysthatmatter.feature.settings.domain.Greeting
+import dev.derek.daysthatmatter.feature.settings.domain.SettingsRepository
+import dev.derek.daysthatmatter.feature.settings.domain.UserSettings
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,6 +31,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 
 /**
@@ -44,6 +49,7 @@ class HomeViewModel(
     private val restoreEvent: RestoreEventUseCase,
     private val clock: Clock,
     private val zone: () -> TimeZone,
+    private val settingsRepository: SettingsRepository = FakeSettingsRepository(),
 ) : ViewModel() {
 
     private val homeQuery = MutableStateFlow(HomeQuery())
@@ -53,8 +59,9 @@ class HomeViewModel(
 
     /** Ticks only while the screen collects it (stops 5 s after it leaves, so nothing ticks in the background). */
     val state: StateFlow<HomeUiState> =
-        combine(controls, observeEvents(homeQuery), observeArchivedCount()) { ui, days, archived -> ui.withDays(days, archived) }
-            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), controls.value)
+        combine(controls, observeEvents(homeQuery), observeArchivedCount(), settingsRepository.settings) { ui, days, archived, settings ->
+            ui.withDays(days, archived, settings)
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), controls.value)
 
     private val effects = Channel<HomeEffect>(Channel.BUFFERED)
     val effect: Flow<HomeEffect> = effects.receiveAsFlow()
@@ -107,7 +114,7 @@ class HomeViewModel(
         viewModelScope.launch { effects.send(effect) }
     }
 
-    private fun HomeUiState.withDays(days: HomeDays, archived: Int): HomeUiState {
+    private fun HomeUiState.withDays(days: HomeDays, archived: Int, settings: UserSettings): HomeUiState {
         val pinnedItems = days.pinned.map(::item)
         val sections = listOf(
             HomeSectionKind.Pinned to days.pinned,
@@ -115,8 +122,15 @@ class HomeViewModel(
             HomeSectionKind.Since to days.since,
         ).filter { it.second.isNotEmpty() }.map { (kind, list) -> HomeSection(kind, list.map(::item)) }
         val filtered = query.isNotBlank() || filter != HomeFilter.All
+        val currentHour = clock.now().toLocalDateTime(zone()).hour
+        val titleText = if (settings.greetingEnabled) {
+            Greeting.format(currentHour, settings.localName)
+        } else {
+            "Days That Matter"
+        }
         return copy(
             loading = false,
+            title = titleText,
             kicker = CountdownText.todayKicker(clock.now(), zone()),
             sections = sections,
             pinnedDays = pinnedItems,
