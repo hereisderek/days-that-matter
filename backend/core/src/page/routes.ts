@@ -50,6 +50,7 @@ export function createPageRoutes(lookup: LookupFn = defaultLinkLookup): readonly
           origin,
           mediaOrigin,
           appScheme: ports.config.appScheme,
+          stores: ports.config.stores,
         });
         return htmlResponse(200, pageHtml, headers);
       }

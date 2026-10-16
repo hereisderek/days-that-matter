@@ -2,7 +2,7 @@
 // countdown.js must give exactly what the Kotlin engine wrote into countdown-vectors.json.
 import { describe, expect, it } from 'vitest';
 import { readCoreJson } from '../../src/node/contract-files.ts';
-import { UNIT_MODES, cells, compute, ordinal, summaryText, unitValue, workdays } from '../../web/countdown.js';
+import { UNIT_MODES, cellText, cells, compute, display, ordinal, summaryText, unitLabel, unitValue, workdays } from '../../web/countdown.js';
 import type { CountdownEvent, UnitMode } from '../../web/countdown.js';
 
 interface Vector {
@@ -112,5 +112,34 @@ describe('summary and cells', () => {
     expect(typeof (globalThis as { document?: unknown }).document).toBe('undefined');
     const mod = await import('../../web/countdown.js');
     expect(typeof mod.compute).toBe('function');
+  });
+});
+
+describe('card display helpers', () => {
+  const event = { targetDate: '2026-10-20', targetTime: '15:00:00', timeZone: 'UTC' };
+  const now = Date.parse('2026-10-10T15:00:00Z');
+
+  it('splits the cells of a mode into a hero and the rest', () => {
+    const state = compute(event, now, null);
+    const days = display(state, 'days');
+    expect(days.hero).toEqual({ unit: 'days', value: 10 });
+    expect(days.rest.map((c) => c.unit)).toEqual(['hours', 'minutes', 'seconds']);
+    expect(days.suffix).toBe('to go');
+    expect(display(state, 'workdays').rest).toEqual([]);
+    expect(display(compute(event, Date.parse('2026-10-30T15:00:00Z'), null), 'days').suffix).toBe('ago');
+  });
+
+  it('has no hero on the day when nothing is left', () => {
+    const state = compute({ targetDate: '2026-10-10', timeZone: 'UTC' }, now, null);
+    expect(display(state, 'auto').hero).toBeNull();
+  });
+
+  it('formats cells and unit names', () => {
+    expect(cellText({ unit: 'hours', value: 5860 }, 0, 'en-US')).toBe('5,860');
+    expect(cellText({ unit: 'seconds', value: 7 }, 3, 'en-US')).toBe('07');
+    expect(cellText({ unit: 'days', value: 7 }, 1, 'en-US')).toBe('7');
+    expect(unitLabel('days', 1)).toBe('day');
+    expect(unitLabel('days', 0)).toBe('days');
+    expect(unitLabel('workdays', 1)).toBe('workday');
   });
 });

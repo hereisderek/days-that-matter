@@ -59,3 +59,13 @@ export function nextOccurrenceDate(event: CountdownEvent, today: LocalDate): Loc
 export function summaryText(state: CountdownState, unitMode: UnitMode | null | undefined): string;
 export function cells(state: CountdownState, unitMode: UnitMode | null | undefined): Cell[];
 export function ordinal(n: number): string;
+
+export interface CardDisplay {
+  readonly hero: Cell | null;
+  readonly rest: Cell[];
+  readonly suffix: 'to go' | 'ago';
+}
+
+export function unitLabel(unit: string, value: number): string;
+export function cellText(cell: Cell, index: number, locale?: string): string;
+export function display(state: CountdownState, unitMode: UnitMode | null | undefined): CardDisplay;

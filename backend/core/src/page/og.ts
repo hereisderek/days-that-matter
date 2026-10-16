@@ -6,7 +6,6 @@ export const ORIGIN = 'https://daysthatmatter.app';
 export const IOS_APP_ID = 'IOS_APP_ID_PLACEHOLDER';
 export const PLAY_PACKAGE = 'PLAY_PACKAGE_PLACEHOLDER';
 export const REPORT_EMAIL = 'abuse@daysthatmatter.app';
-
 export function shareUrl(token: string, origin = ORIGIN): string {
   return `${origin}/e/${token}`;
 }
@@ -16,7 +15,7 @@ export function playUrl(token: string): string {
 }
 
 export function schemeUrl(token: string, scheme = 'daysthatmatter'): string {
-  return `${scheme}://event?token=${encodeURIComponent(token)}`;
+  return `${scheme}://e/${encodeURIComponent(token)}`;
 }
 
 /** Truncates to `max` grapheme clusters, adding an ellipsis when cut. */

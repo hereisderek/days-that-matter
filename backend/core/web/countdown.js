@@ -341,13 +341,122 @@ export function cells(state, unitMode) {
   }
 }
 
+const WIDE_UNITS = new Set(['days', 'years', 'months', 'weeks', 'workdays']);
+
+/** Unit name for a count: "days" for 2, "day" for 1. */
+export function unitLabel(unit, value) {
+  return value === 1 ? unit.replace(/s$/, '') : unit;
+}
+
+/**
+ * Text of a ticker cell. The first cell and the day-sized units show the plain number (grouped for
+ * the locale), the clock units are zero padded to two digits.
+ */
+export function cellText(cell, index, locale) {
+  if (WIDE_UNITS.has(cell.unit) || index === 0) return cell.value.toLocaleString(locale);
+  return pad(cell.value, 2);
+}
+
+/**
+ * What the card shows for a state: the hero number with its unit, the smaller cells after it, and the
+ * "to go" / "ago" suffix. `hero` is null on the day itself when nothing is left to count.
+ */
+export function display(state, unitMode) {
+  const [hero, ...rest] = cells(state, unitMode);
+  return { hero: hero || null, rest, suffix: state.direction === 'since' ? 'ago' : 'to go' };
+}
+
 // ---------------------------------------------------------------------------
 // Browser behavior. Runs only on the public link page (element #share-data present).
 // All user data reaches the DOM through textContent or CSSOM only.
 // ---------------------------------------------------------------------------
 
 const HEX = /^#[0-9A-Fa-f]{6}$/;
-const WIDE_UNITS = new Set(['days', 'years', 'months', 'weeks', 'workdays']);
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+function platform() {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return 'android';
+  if (/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1)) return 'ios';
+  return 'desktop';
+}
+
+function initAudio(reduceMotion) {
+  const audio = document.getElementById('audio-player');
+  const pill = document.getElementById('share-audio');
+  const toggle = document.getElementById('audio-toggle');
+  const mute = document.getElementById('audio-mute');
+  const note = document.getElementById('audio-note');
+  if (!audio || !pill || !toggle || !mute) return;
+  pill.hidden = false;
+  const idleNote = note ? note.textContent : '';
+
+  function setPlaying(playing) {
+    pill.dataset.playing = playing ? 'true' : 'false';
+    toggle.setAttribute('aria-pressed', playing ? 'true' : 'false');
+    toggle.setAttribute('aria-label', playing ? 'Pause music' : 'Play music');
+  }
+  function setMuted(muted) {
+    audio.muted = muted;
+    pill.dataset.muted = muted ? 'true' : 'false';
+    mute.setAttribute('aria-pressed', muted ? 'true' : 'false');
+    mute.setAttribute('aria-label', muted ? 'Unmute music' : 'Mute music');
+  }
+  function setFailed(failed) {
+    pill.dataset.failed = failed ? 'true' : 'false';
+    if (note) note.textContent = failed ? 'The music did not load. Try again.' : idleNote;
+  }
+
+  toggle.addEventListener('click', () => {
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+    setFailed(false);
+    // Playback starts only from this tap; the browser may still refuse, which the catch reports.
+    audio.play().catch(() => {
+      setPlaying(false);
+      setFailed(true);
+    });
+  });
+  mute.addEventListener('click', () => setMuted(!audio.muted));
+  audio.addEventListener('play', () => setPlaying(true));
+  audio.addEventListener('pause', () => setPlaying(false));
+  audio.addEventListener('ended', () => setPlaying(false));
+  audio.addEventListener('error', () => {
+    setPlaying(false);
+    setFailed(true);
+  });
+  audio.addEventListener('waiting', () => (pill.dataset.buffering = 'true'));
+  audio.addEventListener('playing', () => (pill.dataset.buffering = 'false'));
+  if (reduceMotion) pill.dataset.motion = 'reduced';
+  setPlaying(false);
+  setMuted(false);
+}
+
+function initBackdrop(reduceMotion) {
+  const video = document.querySelector('.backdrop-motion');
+  if (!video) return;
+  if (reduceMotion) {
+    // Reduced motion shows the key photo only.
+    video.pause();
+    video.removeAttribute('autoplay');
+    video.hidden = true;
+    return;
+  }
+  const ready = () => (video.dataset.ready = 'true');
+  video.addEventListener('playing', ready);
+  if (!video.paused && video.currentTime > 0) ready();
+  video.addEventListener('error', () => (video.hidden = true));
+  const start = video.play();
+  if (start && start.catch) start.catch(() => {});
+}
 
 function initPage() {
   const blob = document.getElementById('share-data');
@@ -367,31 +476,54 @@ function initPage() {
   const skew = Number.isFinite(serverMs) ? serverMs - Date.now() : 0;
   const now = () => Date.now() + skew;
 
+  const stage = document.getElementById('share-stage');
   const card = document.getElementById('share-card');
+  const hero = document.getElementById('share-hero');
+  const heroNum = document.getElementById('hero-num');
+  const heroUnit = document.getElementById('hero-unit');
   const ticker = document.getElementById('share-ticker');
   const kicker = document.getElementById('share-kicker');
   const live = document.getElementById('share-live');
   const when = document.getElementById('share-when');
   const anniv = document.getElementById('share-anniversary');
 
-  const grad = event.theme && event.theme.gradient;
-  if (card && Array.isArray(grad) && grad.length === 2 && grad.every((g) => HEX.test(g))) {
-    card.style.setProperty('--card-from', grad[0]);
-    card.style.setProperty('--card-to', grad[1]);
-  }
-
-  const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const reduceMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   if (reduceMotion && card) card.dataset.motion = 'reduced';
 
-  // Banner: show the Android one on Android only.
-  if (/Android/i.test(navigator.userAgent)) {
-    const b = document.getElementById('banner-android');
-    if (b) b.hidden = false;
+  // Gradient: two to four hex stops. The card and the page glow around it share the value.
+  const grad = event.theme && event.theme.gradient;
+  if (stage && Array.isArray(grad) && grad.length >= 2 && grad.length <= 4 && grad.every((g) => HEX.test(g))) {
+    stage.style.setProperty('--card-bg', `linear-gradient(145deg, ${grad.join(', ')})`);
+    stage.style.setProperty('--card-glow', grad[0]);
   }
+
+  document.body.dataset.platform = platform();
+  initBackdrop(reduceMotion);
+  initAudio(reduceMotion);
 
   let cellEls = [];
   let cellKey = '';
   let lastSummaryMinute = -1;
+
+  function tickMotion(node) {
+    if (reduceMotion || !node.animate) return;
+    node.animate([{ opacity: 0.35, transform: 'translateY(4px)' }, { opacity: 1, transform: 'none' }], {
+      duration: 280,
+      easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+    });
+  }
+
+  function setText(node, text, animate) {
+    if (node.textContent === text) return;
+    node.textContent = text;
+    if (animate) tickMotion(node);
+  }
+
+  // The stylesheet sizes the number by its length, so a long count (hours) still fits the card.
+  function setHero(text) {
+    setText(heroNum, text, false);
+    heroNum.dataset.len = String(Math.min(9, text.length));
+  }
 
   function render() {
     const state = compute(event, now(), viewerZone);
@@ -404,35 +536,45 @@ function initPage() {
       anniv.hidden = !anniv.textContent;
     }
     if (when) {
-      when.textContent = new Intl.DateTimeFormat(undefined, {
-        dateStyle: 'full',
-        timeStyle: event.targetTime ? 'short' : undefined,
-        timeZone: state.zone,
-      }).format(new Date(state.targetMs));
+      const zone = { timeZone: state.zone };
+      const date = new Intl.DateTimeFormat(undefined, { dateStyle: 'full', ...zone }).format(new Date(state.targetMs));
+      const time = event.targetTime
+        ? new Intl.DateTimeFormat(undefined, { timeStyle: 'short', ...zone }).format(new Date(state.targetMs))
+        : '';
+      when.textContent = time ? `${date} · ${time}` : date;
     }
     if (card) card.dataset.state = state.direction;
+    const view = display(state, event.unitMode);
+    if (hero && heroNum && heroUnit) {
+      if (view.hero) {
+        hero.dataset.word = 'false';
+        setHero(cellText(view.hero, 0));
+        setText(heroUnit, `${unitLabel(view.hero.unit, view.hero.value)} ${view.suffix}`, false);
+      } else {
+        hero.dataset.word = 'true';
+        setHero('Today');
+        setText(heroUnit, '', false);
+      }
+    }
     if (ticker) {
-      const list = cells(state, event.unitMode);
-      const key = list.map((c) => c.unit).join(',');
+      const key = view.rest.map((c) => c.unit).join(',');
       if (key !== cellKey) {
         cellKey = key;
         ticker.textContent = '';
-        cellEls = list.map((c) => {
-          const wrap = document.createElement('div');
-          wrap.className = 'ticker-cell';
-          const num = document.createElement('span');
-          num.className = 'ticker-num';
-          const label = document.createElement('span');
-          label.className = 'ticker-label';
-          label.textContent = c.unit;
+        cellEls = view.rest.map(() => {
+          const wrap = el('div', 'tick-cell');
+          const num = el('span', 'tick-num');
+          const label = el('span', 'tick-label');
           wrap.append(num, label);
           ticker.append(wrap);
-          return num;
+          return { num, label };
         });
       }
-      list.forEach((c, i) => {
-        const text = WIDE_UNITS.has(c.unit) || i === 0 ? String(c.value) : pad(c.value, 2);
-        if (cellEls[i].textContent !== text) cellEls[i].textContent = text;
+      ticker.hidden = view.rest.length === 0;
+      view.rest.forEach((c, i) => {
+        const cellEl = cellEls[i];
+        setText(cellEl.num, cellText(c, i + 1), true);
+        setText(cellEl.label, unitLabel(c.unit, c.value), false);
       });
     }
     const minute = Math.floor(now() / 60000);

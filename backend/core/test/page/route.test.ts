@@ -144,7 +144,7 @@ describe('generic landing pages: GET /i/:token and GET /s/:id', () => {
     assertHeaders(res, ports.config.origin, ports.config.mediaOrigin);
     const body = await text(res);
     expect(body).toContain('You&#39;re invited to a day in Days That Matter. Open it in the app to join.');
-    expect(body).toContain('Open in app');
+    expect(body).toContain('Open in Days That Matter');
     expect(body).toContain('App Store');
     expect(body).toContain('Google Play');
     expect(body).not.toContain('Our wedding');
@@ -159,7 +159,7 @@ describe('generic landing pages: GET /i/:token and GET /s/:id', () => {
     assertHeaders(res, ports.config.origin, ports.config.mediaOrigin);
     const body = await text(res);
     expect(body).toContain('Open in the app');
-    expect(body).toContain('Open in app');
+    expect(body).toContain('Open in Days That Matter');
     expect(body).toContain('App Store');
     expect(body).toContain('Google Play');
     expect(body).not.toContain('Our wedding');
