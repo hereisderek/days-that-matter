@@ -14,6 +14,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "contract:types": "node scripts/contract-types.ts"
+    "contract:types": "node scripts/contract-types.ts",
+    "preview": "node scripts/preview-server.ts"
   }
 }

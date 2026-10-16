@@ -1,0 +1,193 @@
+[
+  {
+    "id": "sample-wedding",
+    "shareToken": "wedding2027",
+    "description": "Future countdown with photo backdrop, dim/blur, target time, rose palette and glass card",
+    "event": {
+      "rev": 1,
+      "title": "Our Wedding Day",
+      "emoji": "💍",
+      "targetDate": "2027-06-15",
+      "targetTime": "15:30:00",
+      "timeZone": "America/New_York",
+      "unitMode": "days",
+      "recurrence": {
+        "type": "none"
+      },
+      "theme": {
+        "paletteId": "rose",
+        "cardStyle": "glass",
+        "typography": "modern",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "photo",
+        "stillUrl": "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80",
+        "dim": 0.25,
+        "blur": 4.0
+      },
+      "audio": {
+        "kind": "library",
+        "trackId": "romantic-strings"
+      }
+    }
+  },
+  {
+    "id": "sample-anniversary",
+    "shareToken": "anniversary",
+    "description": "Past countup with yearly recurrence, anniversary ordinal, amber palette and solid card",
+    "event": {
+      "rev": 2,
+      "title": "Years Together",
+      "emoji": "🥂",
+      "targetDate": "2020-04-12",
+      "targetTime": "00:00:00",
+      "timeZone": "America/Los_Angeles",
+      "unitMode": "calendar",
+      "recurrence": {
+        "type": "yearly",
+        "originalYear": 2020
+      },
+      "theme": {
+        "paletteId": "amber",
+        "cardStyle": "solid",
+        "typography": "classic",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "photo",
+        "stillUrl": "https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=80",
+        "dim": 0.3,
+        "blur": 2.0
+      },
+      "audio": {
+        "kind": "library",
+        "trackId": "acoustic-warmth"
+      }
+    }
+  },
+  {
+    "id": "sample-launch",
+    "shareToken": "launch",
+    "description": "Workdays unit mode countdown with minimal card, blue palette and mono typography",
+    "event": {
+      "rev": 1,
+      "title": "Days That Matter v1.0 Launch",
+      "emoji": "🚀",
+      "targetDate": "2026-12-01",
+      "targetTime": "09:00:00",
+      "timeZone": "America/New_York",
+      "unitMode": "workdays",
+      "recurrence": {
+        "type": "none"
+      },
+      "theme": {
+        "paletteId": "blue",
+        "cardStyle": "minimal",
+        "typography": "mono",
+        "gradient": null
+      }
+    }
+  },
+  {
+    "id": "sample-aurora",
+    "shareToken": "aurora",
+    "description": "Animated video backdrop MP4 with still poster, emerald palette, hours unit mode",
+    "event": {
+      "rev": 3,
+      "title": "Northern Lights Expedition",
+      "emoji": "🌌",
+      "targetDate": "2026-11-20",
+      "targetTime": "22:00:00",
+      "timeZone": "Europe/Oslo",
+      "unitMode": "hours",
+      "recurrence": {
+        "type": "none"
+      },
+      "theme": {
+        "paletteId": "emerald",
+        "cardStyle": "glass",
+        "typography": "modern",
+        "gradient": null
+      },
+      "backdrop": {
+        "kind": "animated",
+        "stillUrl": "https://images.unsplash.com/photo-1517411032315-54ef2cb783bb?auto=format&fit=crop&w=1200&q=80",
+        "motionUrl": "https://assets.mixkit.co/videos/preview/mixkit-aurora-borealis-in-a-snowy-landscape-42548-large.mp4",
+        "dim": 0.2,
+        "blur": 0.0
+      }
+    }
+  },
+  {
+    "id": "sample-concert",
+    "shareToken": "concert",
+    "description": "Spotify track link with custom gradient, violet palette, weeks unit mode",
+    "event": {
+      "rev": 1,
+      "title": "Live in Concert",
+      "emoji": "🎸",
+      "targetDate": "2026-11-15",
+      "targetTime": "20:00:00",
+      "timeZone": "America/Chicago",
+      "unitMode": "weeks",
+      "recurrence": {
+        "type": "none"
+      },
+      "theme": {
+        "paletteId": "violet",
+        "cardStyle": "solid",
+        "typography": "modern",
+        "gradient": ["#6b21a8", "#3b82f6"]
+      },
+      "audio": {
+        "kind": "spotify",
+        "url": "https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT",
+        "title": "Viva La Vida",
+        "artist": "Coldplay"
+      }
+    }
+  },
+  {
+    "id": "sample-today",
+    "shareToken": "today",
+    "description": "Event on the target day itself (Today celebration banner)",
+    "event": {
+      "rev": 1,
+      "title": "Graduation Day!",
+      "emoji": "🎓",
+      "targetDate": "TODAY",
+      "unitMode": "auto",
+      "recurrence": {
+        "type": "none"
+      },
+      "theme": {
+        "paletteId": "amber",
+        "cardStyle": "glass",
+        "typography": "classic",
+        "gradient": null
+      }
+    }
+  },
+  {
+    "id": "sample-monthly",
+    "shareToken": "monthly",
+    "description": "Monthly recurring milestone with auto countdown units",
+    "event": {
+      "rev": 1,
+      "title": "Team Retro & Demo",
+      "emoji": "💡",
+      "targetDate": "2026-10-01",
+      "unitMode": "auto",
+      "recurrence": {
+        "type": "monthly"
+      },
+      "theme": {
+        "paletteId": "blue",
+        "cardStyle": "glass",
+        "typography": "modern",
+        "gradient": null
+      }
+    }
+  }
+]
