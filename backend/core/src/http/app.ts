@@ -9,14 +9,17 @@ import { consoleLog, logLine } from './log.ts';
 import type { LogSink } from './log.ts';
 import { accountRoutes } from './accounts.ts';
 import { historyRoutes } from './history.ts';
+import { pageRoutes } from '../page/routes.ts';
+import { renderNotFound, renderUnavailable } from '../page/render.ts';
 import { resolveRoutes } from './resolve.ts';
 import { sharingRoutes } from './sharing.ts';
 import { API } from './paths.ts';
 import { Router } from './router.ts';
 import { syncRoutes } from './sync.ts';
 import type { Params, Route } from './router.ts';
-import { jsonResponse } from './types.ts';
+import { htmlResponse, jsonResponse } from './types.ts';
 import type { CoreRequest, CoreResponse, HttpResponse } from './types.ts';
+import { pageHeaders } from './headers.ts';
 
 export interface RequestContext {
   readonly req: CoreRequest;
@@ -46,9 +49,13 @@ const healthRoutes: readonly Route<Handler>[] = [
   },
 ];
 
+function isPagePath(path: string): boolean {
+  return path === '/e' || path.startsWith('/e/') || path === '/i' || path.startsWith('/i/') || path === '/s' || path.startsWith('/s/');
+}
+
 /** The routes of the core so far. Later tasks add theirs here. */
 export const coreRoutes: readonly Route<Handler>[] = [
-  ...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes, ...sharingRoutes, ...resolveRoutes,
+  ...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes, ...sharingRoutes, ...resolveRoutes, ...pageRoutes,
 ];
 
 export interface AppOptions {
@@ -68,10 +75,20 @@ export function createApp(ports: Ports, options: AppOptions = {}): App {
       const ctx: RequestContext = { req, params: match?.params ?? {}, ports, reqId, rateLimited: false };
       let res: CoreResponse;
       try {
-        res = match ? await match.route.handler(ctx) : errorResponse(notFound());
+        if (match) {
+          res = await match.route.handler(ctx);
+        } else if (isPagePath(req.path)) {
+          res = htmlResponse(404, renderNotFound(), pageHeaders(ports.config.origin, ports.config.mediaOrigin));
+        } else {
+          res = errorResponse(notFound());
+        }
       } catch (e) {
-        // The error message is never logged or returned: it may hold SQL or user values.
-        res = errorResponse(e instanceof ApiError ? e : e instanceof StoreBusyError ? serviceUnavailable() : internalError(reqId));
+        if (isPagePath(req.path)) {
+          res = htmlResponse(503, renderUnavailable(), { ...pageHeaders(ports.config.origin, ports.config.mediaOrigin), 'Retry-After': '60' });
+        } else {
+          // The error message is never logged or returned: it may hold SQL or user values.
+          res = errorResponse(e instanceof ApiError ? e : e instanceof StoreBusyError ? serviceUnavailable() : internalError(reqId));
+        }
       }
       const status = res.kind === 'http' ? res.status : 101;
       applyResponseHeaders(res.headers, reqId, status);
