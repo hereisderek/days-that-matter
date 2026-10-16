@@ -5,14 +5,15 @@
 import { authenticate } from '../auth/session.ts';
 import type { Session } from '../auth/session.ts';
 import { sha256Hex } from '../auth/crypto.ts';
-import { LIMITS, PLANS, planLimit } from '../contract/index.ts';
+import { LIMITS, PLANS } from '../contract/index.ts';
 import type { ApiErrorBody, ChildrenResponse, EventDoc, Feature, ManifestEntry, Memo, MemoChange, PatchResponse, Plan, SyncManifest } from '../contract/index.ts';
 import { nowSeconds } from '../ports/clock.ts';
 import type { Ports } from '../ports/index.ts';
 import type { MemoRecord, ReaderEvent } from '../ports/store.ts';
+import type { RemoteConfigDocument } from '../remote-config/types.ts';
 import { isJsonObject } from '../rules/merge.ts';
 import type { JsonObject } from '../rules/merge.ts';
-import { effectivePlan } from '../rules/plan.ts';
+import { effectivePlan, resolvePlanLimit } from '../rules/plan.ts';
 import type { FieldError } from '../rules/validation.ts';
 import {
   MEMO_WRITABLE,
@@ -46,9 +47,9 @@ export const deleted = (): ApiError => new ApiError('deleted', 'This day was del
  * The error for a counted limit: `402 premium_required` when a higher plan allows more,
  * `429 quota_exceeded` when no plan does (premium spec "Paid plans have limits too").
  */
-export function limitError(feature: Feature, plan: Plan): ApiError {
-  const current = planLimit(plan, feature) ?? Number.POSITIVE_INFINITY;
-  const higher = PLANS.some((p) => (planLimit(p, feature) ?? Number.POSITIVE_INFINITY) > current);
+export function limitError(feature: Feature, plan: Plan, doc?: RemoteConfigDocument | null): ApiError {
+  const current = resolvePlanLimit(doc, plan, feature) ?? Number.POSITIVE_INFINITY;
+  const higher = PLANS.some((p) => (resolvePlanLimit(doc, p, feature) ?? Number.POSITIVE_INFINITY) > current);
   return higher
     ? new ApiError('premium_required', 'Your plan does not include this', { feature })
     : new ApiError('quota_exceeded', 'Limit reached', { feature });
@@ -313,7 +314,8 @@ export function bulkEventsHandler(policy: BulkPolicy): Handler {
 
     // Batch: policy.atomic === false
     const plan = policy.enforceOwnedLimit ? await writerPlan(ports, session.accountId) : null;
-    const maxOwned = plan ? planLimit(plan, 'events') : null;
+    const configDoc = policy.enforceOwnedLimit ? await ports.remoteConfig.getConfig(session.accountId) : null;
+    const maxOwned = plan ? resolvePlanLimit(configDoc, plan, 'events') : null;
     const results: ({ id: string; status: 'created' | 'exists' } | { id: string; status: 'error'; error: ApiErrorBody })[] = [];
 
     for (const rawItem of rawEvents) {
@@ -344,7 +346,7 @@ export function bulkEventsHandler(policy: BulkPolicy): Handler {
           results.push({
             id: v.item.id,
             status: 'error',
-            error: limitError('events', plan ?? 'free').body().error,
+            error: limitError('events', plan ?? 'free', configDoc).body().error,
           });
           break;
         case 'exists':
@@ -418,14 +420,15 @@ const createEvent: Handler = async (ctx) => {
   if (tooLarge) throw invalidPayload(tooLarge.field, tooLarge.reason);
   const now = nowSeconds(ports.clock);
   const plan = await writerPlan(ports, session.accountId);
+  const configDoc = await ports.remoteConfig.getConfig(session.accountId);
   const outcome = await ports.store.createEvent({
-    id, ownerId: session.accountId, doc, now, maxOwned: planLimit(plan, 'events'),
+    id, ownerId: session.accountId, doc, now, maxOwned: resolvePlanLimit(configDoc, plan, 'events'),
   });
   switch (outcome.status) {
     case 'conflict':
       throw new ApiError('conflict', 'This id is used by another account');
     case 'limit':
-      throw limitError('events', plan);
+      throw limitError('events', plan, configDoc);
     case 'exists':
       if (outcome.event.deletedAt !== null) throw deleted();
       return jsonResponse(200, projectEvent({ event: outcome.event, role: 'owner', membership: null, people: [] }), NO_STORE);
