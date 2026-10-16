@@ -40,7 +40,11 @@ function emailDeps(ports: Ports): EmailCodeDeps {
 export async function meBody(ports: Ports, account: AccountRecord): Promise<Me> {
   const now = nowSeconds(ports.clock);
   const plan = effectivePlan(account, now);
-  const [identities, usage] = await Promise.all([ports.store.listIdentities(account.id), ports.store.usage(account.id)]);
+  const [identities, usage, doc] = await Promise.all([
+    ports.store.listIdentities(account.id),
+    ports.store.usage(account.id),
+    ports.remoteConfig.getConfig(account.id),
+  ]);
   return {
     id: account.id,
     displayName: account.displayName,
@@ -48,7 +52,7 @@ export async function meBody(ports: Ports, account: AccountRecord): Promise<Me> 
     planExpiresAt: plan === 'free' || account.planExpiresAt === null ? null : isoSeconds(account.planExpiresAt),
     identities: identities.map((i): IdentityInfo => ({ provider: i.provider, email: i.email })),
     usage: usageByFeature(usage),
-    limits: limitsByFeature(plan),
+    limits: limitsByFeature(plan, doc),
     createdAt: isoSeconds(account.createdAt),
   };
 }

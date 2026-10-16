@@ -9,6 +9,7 @@ import { consoleLog, logLine } from './log.ts';
 import type { LogSink } from './log.ts';
 import { accountRoutes } from './accounts.ts';
 import { historyRoutes } from './history.ts';
+import { remoteConfigRoutes } from '../remote-config/handler.ts';
 import { resolveRoutes } from './resolve.ts';
 import { sharingRoutes } from './sharing.ts';
 import { API } from './paths.ts';
@@ -48,8 +49,9 @@ const healthRoutes: readonly Route<Handler>[] = [
 
 /** The routes of the core so far. Later tasks add theirs here. */
 export const coreRoutes: readonly Route<Handler>[] = [
-  ...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes, ...sharingRoutes, ...resolveRoutes,
+  ...healthRoutes, ...accountRoutes, ...syncRoutes, ...historyRoutes, ...sharingRoutes, ...resolveRoutes, ...remoteConfigRoutes,
 ];
+
 
 export interface AppOptions {
   readonly routes?: readonly Route<Handler>[];
