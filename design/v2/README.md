@@ -33,6 +33,7 @@ Things to try:
 | `index.html` | Page shell and font loading |
 | `styles.css` | Design tokens (top of file), components, screens |
 | `app.js` | Sample data, date math, plan table, screens, interactions |
+| `share/` | Standalone interactive demo of the shared web experience (`/e/:token`) |
 | `README.md` | This document |
 
 Prototype limits: sample photos are loaded from picsum.photos (Unsplash photos), and their "Live" motion is simulated with a short zoom. The public holiday set is a sample (New Zealand 2026). The QR code is a placeholder pattern. Buttons that would open system UI (file picker, share sheet, store purchase, Spotify) show a short message instead. Sign-in buttons are plain text; production uses Apple's and Google's official button assets.

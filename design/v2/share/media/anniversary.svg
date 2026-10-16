@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" preserveAspectRatio="xMidYMid slice">
+<defs>
+<linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#10131f"/><stop offset="0.6" stop-color="#3b2a1c"/><stop offset="1" stop-color="#d98a2b"/></linearGradient>
+<filter id="b" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+</defs>
+<rect width="1200" height="1600" fill="url(#g)"/>
+<g filter="url(#b)">
+<circle cx="150" cy="900" r="46" fill="#ffd27a"/><circle cx="330" cy="1010" r="34" fill="#ffb347"/><circle cx="500" cy="940" r="52" fill="#ffe2a1"/>
+<circle cx="690" cy="1060" r="38" fill="#ffc261"/><circle cx="860" cy="960" r="56" fill="#ffd98c"/><circle cx="1040" cy="1090" r="40" fill="#ffb74d"/>
+<circle cx="240" cy="1180" r="60" fill="#ffcf70"/><circle cx="610" cy="1240" r="70" fill="#ffe0a0"/><circle cx="960" cy="1280" r="62" fill="#ffc15a"/>
+<circle cx="420" cy="1380" r="48" fill="#ffd27a"/><circle cx="780" cy="1440" r="54" fill="#ffb347"/>
+</g>
+<g fill="#0c0d14"><path d="M0 1180 L80 1180 80 1100 160 1100 160 1200 260 1200 260 1060 330 1060 330 1160 440 1160 440 1090 540 1090 540 1210 650 1210 650 1120 760 1120 760 1190 880 1190 880 1070 960 1070 960 1170 1080 1170 1080 1110 1200 1110 V1600 H0Z" opacity=".78"/></g>
+</svg>
