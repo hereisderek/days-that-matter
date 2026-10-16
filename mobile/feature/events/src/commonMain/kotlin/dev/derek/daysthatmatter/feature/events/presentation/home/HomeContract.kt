@@ -27,6 +27,7 @@ data class FilterChip(val filter: HomeFilter, val label: String)
 
 data class HomeUiState(
     val loading: Boolean = true,
+    val title: String = "Your days",
     /** Today's date ("Wednesday, October 14"). */
     val kicker: String = "",
     val searching: Boolean = false,

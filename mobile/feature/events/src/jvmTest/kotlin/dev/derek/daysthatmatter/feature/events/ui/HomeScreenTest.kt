@@ -54,10 +54,14 @@ class HomeScreenTest {
         archivedCount = 3,
     )
 
-    private fun render(state: HomeUiState, intents: MutableList<HomeIntent>) = @androidx.compose.runtime.Composable {
+    private fun render(
+        state: HomeUiState,
+        intents: MutableList<HomeIntent>,
+        onOpenSettings: () -> Unit = {},
+    ) = @androidx.compose.runtime.Composable {
         DaysThatMatterTheme(darkTheme = false) {
             Box(Modifier.size(width = 400.dp, height = 1600.dp)) {
-                HomeScreen(state, onIntent = { intents += it })
+                HomeScreen(state, onIntent = { intents += it }, onOpenSettings = onOpenSettings)
             }
         }
     }
@@ -180,5 +184,32 @@ class HomeScreenTest {
         onNodeWithTag(EventsTestTags.SortButton).performClick()
         onNodeWithText("A to Z").performClick()
         assertEquals(listOf<HomeIntent>(HomeIntent.SelectSort(dev.derek.daysthatmatter.feature.events.domain.HomeSort.AToZ)), intents)
+    }
+
+    @Test
+    fun greetingWithNameOnHome() = runComposeUiTest {
+        setContent(render(content.copy(title = "Good morning, Sam"), mutableListOf()))
+        onNodeWithText("Good morning, Sam").assertExists()
+    }
+
+    @Test
+    fun greetingWithoutNameOnHome() = runComposeUiTest {
+        setContent(render(content.copy(title = "Good afternoon"), mutableListOf()))
+        onNodeWithText("Good afternoon").assertExists()
+    }
+
+    @Test
+    fun normalTitleWhenGreetingDisabled() = runComposeUiTest {
+        setContent(render(content.copy(title = "Days That Matter"), mutableListOf()))
+        onNodeWithText("Days That Matter").assertExists()
+    }
+
+    @Test
+    fun settingsButtonOpensSettings() = runComposeUiTest {
+        var openedSettings = false
+        setContent(render(content, mutableListOf(), onOpenSettings = { openedSettings = true }))
+
+        onNodeWithTag(EventsTestTags.SettingsButton).performClick()
+        kotlin.test.assertTrue(openedSettings)
     }
 }
