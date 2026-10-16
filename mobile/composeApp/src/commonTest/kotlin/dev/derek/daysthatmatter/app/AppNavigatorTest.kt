@@ -7,6 +7,9 @@ import dev.derek.daysthatmatter.app.navigation.DayKey
 import dev.derek.daysthatmatter.app.navigation.EditorKey
 import dev.derek.daysthatmatter.app.navigation.GalleryKey
 import dev.derek.daysthatmatter.app.navigation.HomeKey
+import dev.derek.daysthatmatter.app.navigation.OnboardingChoiceKey
+import dev.derek.daysthatmatter.app.navigation.SettingsKey
+import dev.derek.daysthatmatter.app.navigation.SignInKey
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -69,5 +72,28 @@ class AppNavigatorTest {
         navigator.openNewDay()
         navigator.closeEditor()
         assertEquals(listOf(HomeKey, DayKey("trip")), stack)
+    }
+
+    @Test
+    fun homeToSettingsToSignInAndBack() {
+        navigator.openSettings()
+        navigator.openSignIn()
+        assertEquals(listOf<NavKey>(HomeKey, SettingsKey, SignInKey), stack)
+
+        assertTrue(navigator.back())
+        assertEquals(listOf<NavKey>(HomeKey, SettingsKey), stack)
+        assertTrue(navigator.back())
+        assertEquals(listOf<NavKey>(HomeKey), stack)
+    }
+
+    @Test
+    fun completeOnboardingResetsStackToHome() {
+        val onboardingStack = mutableListOf<NavKey>(OnboardingChoiceKey)
+        val onbNavigator = AppNavigator(onboardingStack)
+        onbNavigator.openSignIn()
+        assertEquals(listOf<NavKey>(OnboardingChoiceKey, SignInKey), onboardingStack)
+
+        onbNavigator.completeOnboarding()
+        assertEquals(listOf<NavKey>(HomeKey), onboardingStack)
     }
 }

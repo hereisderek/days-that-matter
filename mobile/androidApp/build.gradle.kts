@@ -74,4 +74,5 @@ dependencies {
     implementation(projects.composeApp)
     implementation(libs.androidx.activity.compose)
     implementation(libs.koin.android)
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit:${libs.versions.kotlin.get()}")
 }
